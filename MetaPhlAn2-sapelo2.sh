@@ -14,4 +14,4 @@ cd $PBS_O_WORKDIR
 
 module load MetaPhlAn2/2.7.8-foss-2016b-Python-2.7.14
 
-metaphlan2.py /Users/MACBOOK/Downloads/R22.K_1_kneaddata_paired_1.fastq --input_type fastq > /Users/MACBOOK/Downloads/R22.K_metaPhlAn2.txt
+metaphlan2.py /project/lslab/lab_shared/leptoData/Metagenomics_Analyzed_Results/01.Data/R22.K_1_kneaddata_paired_1.fastq --input_type fastq > /scratch/rx32940/Metagenomic_taxon_profile/R22.K_metaPhlAn2.txt
