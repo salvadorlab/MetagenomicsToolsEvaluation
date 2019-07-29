@@ -13,8 +13,7 @@
 cd $PBS_O_WORKDIR
 
 module load MetaPhlAn2/2.7.8-foss-2016b-Python-2.7.14
-module load Bowtie2/2.3.4.1-foss-2016b
-module load Python/2.7.14-foss-2016b
+
 
 
 path='/scratch/rx32940/Metagenomic_taxon_profile/'
