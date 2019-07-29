@@ -14,7 +14,9 @@ cd $PBS_O_WORKDIR
 
 module load MetaPhlAn2/2.7.8-foss-2016b-Python-2.7.14
 module load Bowtie2/2.3.4.1-foss-2016b
+module load Python/2.7.14-foss-2016b
+
 
 path='/scratch/rx32940/Metagenomic_taxon_profile/'
-metaphlan2.py $path/Data/01.Data/hostclean/R22.K/R22.K_1_kneaddata_paired_1.fastq $path/Data/01.Data/hostclean/R22.K/R22.K_1_kneaddata_paired_2.fastq --input_type fastq --bowtie2out $path/R22.K.bowtie2out.bz2 > $path/R22.K_metaPhlAn2.txt
+metaphlan2.py $path/Data/01.Data/rawdata/R22.K/R22.K_1.fq.gz,$path/Data/01.Data/rawdata/R22.K/R22.K_2.fq.gz --input_type fastq --bowtie2out $path/R22.K.bowtie2out.bz2 > $path/R22.K_metaPhlAn2.txt
 
