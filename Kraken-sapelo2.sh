@@ -14,4 +14,4 @@ module load Kraken2/2.0.7-beta-foss-2018a-Perl-5.26.1
 
 path='/scratch/rx32940/Metagenomic_taxon_profile'
 
-kraken2 --use-names --db $path/kraken/minikraken2_v2_8GB_201904_UPDATE --threads 4 --report kraken.report.txt --paired $path/Data/01.Data/hostclean/R22.L/R22.L_1_kneaddata_paired_1.fastq $path/Data/01.Data/hostclean/R22.L/R22.L_1_kneaddata_paired_2.fastq > $path/Kraken_output.txt
+kraken2 --use-names --db $path/kraken/minikraken2_v1_8GB_201904_UPDATE --classified-out --threads 4 --report kraken.report.txt --paired $path/Data/01.Data/hostclean/R22.L/R22.L_1_kneaddata_paired_1.fastq $path/Data/01.Data/hostclean/R22.L/R22.L_1_kneaddata_paired_2.fastq > $path/Kraken_output.txt
