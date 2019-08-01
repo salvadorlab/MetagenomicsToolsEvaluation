@@ -1,4 +1,4 @@
-#!/bin/bash
+B#!/bin/bash
 #PBS -q batch                                                            
 #PBS -N Kraken-test                                            
 #PBS -l nodes=1:ppn=4 -l mem=20gb                                        
@@ -12,7 +12,10 @@
 module load Kraken2/2.0.7-beta-foss-2018a-Perl-5.26.1
 
 path='/scratch/rx32940/Metagenomic_taxon_profile/'
+<<<<<<< HEAD
+DBNAME = 'Lepto_Meta_db'
+=======
 DBNAME='Lepto_Meta_db'
-
+>>>>>>> c506a65e59dffcfe1d89c7fd2212953e7227936f
 kraken2-build --standard --threads 24 --db $path/$DBNAME
 kraken2 --use-names --db $DBNAME --threads 4 --paired $path/Data/01.Data/hostclean/R22.L/R22.L_1_kneaddata_paired_1.fastq $path/Data/01.Data/hostclean/R22.L/R22.L_1_kneaddata_paired_2.fastq > $path/Kraken_output.txt
