@@ -12,4 +12,6 @@
 module load Kraken2/2.0.7-beta-foss-2018a-Perl-5.26.1
 
 path='/scratch/rx32940/Metagenomic_taxon_profile/'
-kraken2 --threads 4 --paired $path/Data/01.Data/hostclean/R22.L/R22.L_1_kneaddata_paired_1.fastq $path/Data/01.Data/hostclean/R22.L/R22.L_1_kneaddata_paired_2.fastq > $path/Kraken_output.txt
+DBNAME = 'Lepto_Meta_db'
+kraken2-build --standard --threads 24 --db $path/$DBNAME
+kraken2 --use-names --db $DBNAME --threads 4 --paired $path/Data/01.Data/hostclean/R22.L/R22.L_1_kneaddata_paired_1.fastq $path/Data/01.Data/hostclean/R22.L/R22.L_1_kneaddata_paired_2.fastq > $path/Kraken_output.txt
