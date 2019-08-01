@@ -17,7 +17,7 @@ path='/scratch/rx32940/Metagenomic_taxon_profile'
 
 for dir in $path/Data/01.Data/hostclean/*; do
     echo $dir
-    sample=$(echo $dir | awk -F'[/]' '{print $7}')
+    sample=$(echo $dir | awk -F'[/]' '{print $8}')
     kraken2 --use-names --db $path/kraken/minikraken2_v1_8GB_201904_UPDATE --report --threads 4 --report $sample.report.txt --paired $path/Data/01.Data/hostclean/$sample/${sample}_1_kneaddata_paired_1.fastq $path/Data/01.Data/hostclean/$sample/${sample}_1_kneaddata_paired_2.fastq > $path/Kraken_output/$sample.txt
     cat $path/Kraken_output/$sample.txt | cut -f 2,3 > $path/Kraken_output/$sample.krona
     ktImportTaxonomy evolved-6.kraken.krona
