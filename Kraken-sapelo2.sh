@@ -1,8 +1,8 @@
 #!/bin/bash
 #PBS -q batch                                                            
 #PBS -N Kraken-test                                            
-#PBS -l nodes=1:ppn=4 -l mem=20gb                                        
-#PBS -l walltime=20:00:00                                                
+#PBS -l nodes=1:ppn=2 -l mem=10gb                                        
+#PBS -l walltime=5:00:00                                                
 #PBS -M rx32940@uga.edu                                                  
 #PBS -m abe                                                              
 #PBS -o /scratch/rx32940/Metagenomic_taxon_profile                       
