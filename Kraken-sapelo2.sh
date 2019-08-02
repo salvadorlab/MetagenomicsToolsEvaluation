@@ -10,7 +10,7 @@
 #PBS -j oe   
 
 module load Kraken2/2.0.7-beta-foss-2018a-Perl-5.26.1
-module load Bracken/2.2-foss-2016b-Python-2.7.14
+module load Bracken/2.2-foss-2016b
 
 path='/scratch/rx32940/Metagenomic_taxon_profile'
 for dir in $path/Data/01.Data/hostclean/*; do
