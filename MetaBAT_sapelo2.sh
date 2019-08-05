@@ -13,4 +13,4 @@
 module load MetaBAT/2.12.1-foss-2018a-linux_x86_64
 
 path="/scratch/rx32940/Metagenomic_taxon_profile/Data/02.Assembly"
-runMetaBat.sh $path/R22.L/R22.L.scafSeq.fa $path/alignment/R22.L.bowtie.sorted.bam
+runMetaBat.sh $path/R22.L/R22.L.scaftigs.fa $path/alignment/R22.L.bowtie.sorted.bam
