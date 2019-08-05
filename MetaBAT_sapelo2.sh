@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -q batch                                                            
-#PBS -N Kraken-test                                            
+#PBS -N MetaBAT                                            
 #PBS -l nodes=1:ppn=2 -l mem=10gb                                        
 #PBS -l walltime=5:00:00                                                
 #PBS -M rx32940@uga.edu                                                  
