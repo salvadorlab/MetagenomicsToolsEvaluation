@@ -16,4 +16,4 @@ path="/scratch/rx32940/Metagenomic_taxon_profile"
 #runMetaBat.sh $path/Data/02.Assembly/R22.L/R22.L.scaftigs.fa $path/Data/02.Assembly/alignment/R22.L.bowtie.sorted.bam
 
 jgi_summarize_bam_contig_depths --outputDepth $path/MetaBAT-output/depth.txt $path/Data/02.Assembly/alignment/R22.L.bowtie.sorted.bam 
-metabat2 -i $path/Data/02.Assembly/R22.L/R22.L.scaftigs.fa -a $path/MetaBAT-output/depth.txt -o bin > $path/MetaBAT-output/R22.L.txt
+metabat2 -m 500 -i $path/Data/02.Assembly/R22.L/R22.L.scaftigs.fa -a $path/MetaBAT-output/depth.txt -o bin > $path/MetaBAT-output/R22.L.txt
