@@ -1,0 +1,34 @@
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+setwd("/Users/rx32940/Dropbox/5. Rachel's projects/Metagenomic_Analysis/genus/")
+
+all_samples <- list.files(".") # list all files in dir
+
+all_tables <-data.frame(Date=as.Date(character()),
+                               File=character(), 
+                               User=character(), 
+                               stringsAsFactors=FALSE)
+for (file in all_samples){
+  # read all sample files, row= domain name, col = fraction of totoal reads
+  current <- read.table(file,header = T,fill=F,sep="\t",quote="") %>% select(1,7) %>% spread(name,fraction_total_reads) 
+  current$name <- file # change row name to sample name
+  assign(file,current) # variable name to sample name, not necessary
+  all_tables <- rbind.fill(all_tables,current) # combine samples
+}
+
+
+all_tables <- all_tables %>% select(-c(1,2,3))
+all_tables[is.na(all_tables)] <- 0
+row.names(all_tables) <- all_samples
+write.csv(all_tables,"genus_classfication.csv")
+
+keys <- colnames(all_tables)[!(colnames(all_tables) == "sample")]
+all_tables <- gather(all_tables,keys, key="Domain", value = "percentage")
+
+write.csv(all_tables,"genus_classfication.csv")
+
+plot <- ggplot(data = all_tables, aes(x=sample, y = percentage, fill=Domain)) +
+  geom_bar(stat = "identity")
+plot
+ggsave(file="domain_classification.png",plot = plot)
