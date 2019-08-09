@@ -1,5 +1,6 @@
 library(tidyverse)
 library(dplyr)
+library(plyr)
 library(ggplot2)
 setwd("/Users/rx32940/Dropbox/5. Rachel's projects/Metagenomic_Analysis/genus/")
 
@@ -21,12 +22,13 @@ for (file in all_samples){
 all_tables <- all_tables %>% select(-c(1,2,3))
 all_tables[is.na(all_tables)] <- 0
 row.names(all_tables) <- all_samples
+all_tables <- t(all_tables)
 write.csv(all_tables,"genus_classfication.csv")
 
 keys <- colnames(all_tables)[!(colnames(all_tables) == "sample")]
 all_tables <- gather(all_tables,keys, key="Domain", value = "percentage")
 
-write.csv(all_tables,"genus_classfication.csv")
+write.csv(all_tables,"genus_classfication_gathered.csv")
 
 plot <- ggplot(data = all_tables, aes(x=sample, y = percentage, fill=Domain)) +
   geom_bar(stat = "identity")
