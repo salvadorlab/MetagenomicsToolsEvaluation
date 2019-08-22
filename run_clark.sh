@@ -1,4 +1,13 @@
 #!/bin/bash
+#PBS -q batch                                                            
+#PBS -N run_clark                                            
+#PBS -l nodes=1:ppn=2 -l mem=40gb                                        
+#PBS -l walltime=40:00:00                                                
+#PBS -M rx32940@uga.edu                                                  
+#PBS -m abe                                                              
+#PBS -o /scratch/rx32940/CLARK                       
+#PBS -e /scratch/rx32940/CLARK                         
+#PBS -j oe     
 
 # building Clark-s database
 
