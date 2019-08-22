@@ -1,7 +1,7 @@
 #!/bin/bash
-#PBS -q batch                                                            
+#PBS -q highmem_q                                                            
 #PBS -N run_clark                                            
-#PBS -l nodes=1:ppn=2 -l mem=100gb                                        
+#PBS -l nodes=1:ppn=2 -l mem=300gb                                        
 #PBS -l walltime=100:00:00                                                
 #PBS -M rx32940@uga.edu                                                  
 #PBS -m abe                                                              
