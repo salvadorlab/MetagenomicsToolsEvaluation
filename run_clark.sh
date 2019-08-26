@@ -1,6 +1,6 @@
 #!/bin/bash
-#PBS -q batch                                                           
-#PBS -N run_clark                                            
+#PBS -q bahl_salv_q                                                           
+#PBS -N build_spaced_DB                                            
 #PBS -l nodes=1:ppn=2 -l mem=100gb                                        
 #PBS -l walltime=100:00:00                                                
 #PBS -M rx32940@uga.edu                                                  
@@ -12,17 +12,22 @@
 # building Clark-s database
 
 path="/scratch/rx32940"
+data_path="/scratch/rx32940/Metagenomic_taxon_profile/Data/01.Data/hostclean"
 
 # set up the database
-$path/CLARK/CLARKSCV1.2.6.1/set_targets.sh $path/CLARK/DB bacteria viruses --species
-$path/CLARK/CLARKSCV1.2.6.1/set_targets.sh $path/CLARK/DB bacteria viruses --genus
+#$path/CLARK/CLARKSCV1.2.6.1/set_targets.sh $path/CLARK/DB bacteria viruses --species
+#$path/CLARK/CLARKSCV1.2.6.1/set_targets.sh $path/CLARK/DB bacteria viruses --genus
 
 #echo "set target done"
 
 
 # database of discriminative 31-mers
-$path/CLARK/CLARKSCV1.2.6.1/classify_metagenome.sh -P $path/CLARK/sample.R.txt $path/CLARK/sample.L.txt -R /scratch/rx32940/CLARK/output/result.txt
+# couldn't get a list of fastq files to run together, try to run individually now
 
+for file in $data_path/*; do
+    sample=$(basename "$file")
+    $path/CLARK/CLARKSCV1.2.6.1/classify_metagenome.sh -P $data_path/$sample/${sample}_1_kneaddata_paired_1.fastq $data_path/$sample/${sample}_1_kneaddata_paired_2.fastq -R $path/CLARK/output/$sample.txt
+done
 #echo "classify_metagenome done"
 
 # analyze result from regular clark
