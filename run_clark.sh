@@ -21,12 +21,12 @@ path="/scratch/rx32940"
 
 
 # database of discriminative 31-mers
-#$path/CLARK/CLARKSCV1.2.6.1/classify_metagenome.sh -P $path/Metagenomic_taxon_profile/Data/01.Data/hostclean/R22.K/R22.K_1_kneaddata_paired_1.fastq $path/Metagenomic_taxon_profile/Data/01.Data/hostclean/R22.K/R22.K_1_kneaddata_paired_2.fastq -R /scratch/rx32940/CLARK/output/result
+$path/CLARK/CLARKSCV1.2.6.1/classify_metagenome.sh -P $path/CLARK/sample.R.txt $path/CLARK/sample.L.txt -R /scratch/rx32940/CLARK/output/result.txt
 
 #echo "classify_metagenome done"
 
 # analyze result from regular clark
-$path/CLARK/CLARKSCV1.2.6.1/estimate_abundance.sh -F /scratch/rx32940/CLARK/output/result.csv -D $path/CLARK/DB > /scratch/rx32940/CLARK/output/result_abundance.txt
+#$path/CLARK/CLARKSCV1.2.6.1/estimate_abundance.sh -F /scratch/rx32940/CLARK/output/result.csv -D $path/CLARK/DB > /scratch/rx32940/CLARK/output/result_abundance.txt
 
 # databases of discriminative spaced 31-mers
 #$path/CLARK/CLARKSCV1.2.6.1/buildSpacedDB.sh
