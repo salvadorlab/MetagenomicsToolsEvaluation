@@ -26,7 +26,7 @@ path="/scratch/rx32940"
 #echo "classify_metagenome done"
 
 # analyze result from regular clark
-$path/CLARK/CLARKSCV1.2.6.1/estimate_abundance.sh -F /scratch/rx32940/CLARK/output/result.csv -D $path/CLARK/DB
+$path/CLARK/CLARKSCV1.2.6.1/estimate_abundance.sh -F /scratch/rx32940/CLARK/output/result.csv -D $path/CLARK/DB > /scratch/rx32940/CLARK/output/result_abundance.txt
 
 # databases of discriminative spaced 31-mers
 #$path/CLARK/CLARKSCV1.2.6.1/buildSpacedDB.sh
