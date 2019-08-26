@@ -1,8 +1,8 @@
 #!/bin/bash
 #PBS -q batch                                                           
 #PBS -N run_clark                                            
-#PBS -l nodes=1:ppn=2 -l mem=20gb                                        
-#PBS -l walltime=30:00:00                                                
+#PBS -l nodes=1:ppn=2 -l mem=100gb                                        
+#PBS -l walltime=100:00:00                                                
 #PBS -M rx32940@uga.edu                                                  
 #PBS -m abe                                                              
 #PBS -o /scratch/rx32940/CLARK                       
@@ -14,8 +14,8 @@
 path="/scratch/rx32940"
 
 # set up the database
-#$path/CLARK/CLARKSCV1.2.6.1/set_targets.sh $path/CLARK/DB bacteria viruses --species
-#$path/CLARK/CLARKSCV1.2.6.1/set_targets.sh $path/CLARK/DB bacteria viruses --genus
+$path/CLARK/CLARKSCV1.2.6.1/set_targets.sh $path/CLARK/DB bacteria viruses --species
+$path/CLARK/CLARKSCV1.2.6.1/set_targets.sh $path/CLARK/DB bacteria viruses --genus
 
 #echo "set target done"
 
