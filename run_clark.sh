@@ -21,7 +21,7 @@ echo "set target done"
 
 
 # database of discriminative 31-mers
-$path/CLARK/CLARKSCV1.2.6.1/classify_metagenome.sh -P $path/CLARK/sample.L.txt $path/CLARK/sample.R.txt -R /scratch/rx32940/CLARK/output/result
+$path/CLARK/CLARKSCV1.2.6.1/classify_metagenome.sh -P $path/Metagenomic_taxon_profile/Data/01.Data/hostclean/R22.K/R22.K_1_kneaddata_paired_1.fastq $path/Metagenomic_taxon_profile/Data/01.Data/hostclean/R22.K/R22.K_1_kneaddata_paired_2.fastq -R /scratch/rx32940/CLARK/output/result
 
 echo "classify_metagenome done"
 
