@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -q bahl_salv_q                                                           
-#PBS -N build_spaced_DB                                            
+#PBS -N loop_base_clark                                            
 #PBS -l nodes=1:ppn=2 -l mem=100gb                                        
 #PBS -l walltime=100:00:00                                                
 #PBS -M rx32940@uga.edu                                                  
