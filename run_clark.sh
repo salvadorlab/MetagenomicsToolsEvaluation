@@ -35,8 +35,8 @@ data_path="/scratch/rx32940/Metagenomic_taxon_profile/Data/01.Data/hostclean"
 
 # analyze result from regular clark
 for file in /scratch/rx32940/CLARK/output/*; do 
-    sample_csv=$(basename "$file")
-    $path/CLARK/CLARKSCV1.2.6.1/estimate_abundance.sh -F /scratch/rx32940/CLARK/output/$sample_csv.csv -D $path/CLARK/DB > /scratch/rx32940/CLARK/output/${sample_csv}_abundance.txt
+    sample_csv=$(basename "$file" ".txt.csv")
+    $path/CLARK/CLARKSCV1.2.6.1/estimate_abundance.sh -F /scratch/rx32940/CLARK/output/$sample_csv.txt.csv -D $path/CLARK/DB > /scratch/rx32940/CLARK/output/${sample_csv}_abundance.txt
 done
 
 # databases of discriminative spaced 31-mers
