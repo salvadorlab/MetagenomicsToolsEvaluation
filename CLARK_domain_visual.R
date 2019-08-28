@@ -53,9 +53,10 @@ classified_gather$Domains <- factor(classified_gather$Domains,levels = c("Archae
 #plotting without unknown composition
 classified_plot <- ggplot(classified_gather, aes(x=sample, y= percentage, fill=Domains))+
   geom_bar(stat = "identity") + 
-  geom_text(aes(label=paste(percentage,"%")),size = 2,position = position_stack(vjust = 0.5))+
+  geom_text(aes(label=paste(format(round(percentage, 2), nsmall = 2),"%")),size = 2,position = position_stack(vjust = 0.5))+
   ylab("Relative abundance") +
-  xlab("samples")
+  xlab("samples") +
+  scale_fill_manual(values=c( "limegreen","#FF9999","gold"))
 classified_plot
 ggsave(file="../exclude_UNKNOWN.png",plot = classified_plot)
 
@@ -64,8 +65,9 @@ unclassified_gather$Domains <- factor(unclassified_gather$Domains,levels = c("UN
 #plotting with unknown composition
 unclassified_plot <- ggplot(unclassified_gather, aes(x=sample, y= percentage, fill=Domains))+
   geom_bar(stat = "identity") + 
-  geom_text(aes(label=paste(percentage,"%")),size = 2,position = position_stack(vjust = 0.5))+
+  geom_text(aes(label=paste(format(round(percentage, 2), nsmall = 2),"%")),size = 2,position = position_stack(vjust = 0.5))+
   ylab("Relative Abundance") +
+  scale_fill_manual(values=c("grey",  "limegreen","#FF9999","gold"))+
   xlab("samples")
 unclassified_plot
 ggsave(file="../include_UNKNOWN.png",plot = unclassified_plot)
