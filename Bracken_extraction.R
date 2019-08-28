@@ -3,7 +3,7 @@ library(dplyr)
 library(plyr)
 library(ggplot2)
 
-setwd("/Users/rx32940/Dropbox/5. Rachel's projects/Metagenomic_Analysis/domain/")
+setwd("/Users/rx32940/Dropbox/5. Rachel's projects/Metagenomic_Analysis/KRAKEN2:BRACKEN/Domain")
 
 all_samples <- list.files(".") # list all files in dir
 
@@ -31,11 +31,13 @@ all_tables <- gather(all_tables,"Archaea","Bacteria","Viruses", key="Domain", va
 
 write.csv(all_tables,"genus_classfication_gathered.csv")
 
+all_tables$Domain <- factor(all_tables$Domain, levels = c("Archaea","Viruses","Bacteria"))
 plot <- ggplot(data = all_tables, aes(x=name, y = percentage, fill=Domain)) +
   geom_bar(stat = "identity") +
   geom_text(aes(label=paste(percentage * 100,"%")),size = 2,position = position_stack(vjust = 0.5))+
   ylab("percentage of classfied sequences") +
-  xlab("samples") 
+  xlab("samples") +
+  scale_fill_manual(values=c("limegreen","#FF9999","gold"))
   
 
 plot
