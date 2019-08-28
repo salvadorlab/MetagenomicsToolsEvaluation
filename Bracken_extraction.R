@@ -2,6 +2,7 @@ library(tidyverse)
 library(dplyr)
 library(plyr)
 library(ggplot2)
+
 setwd("/Users/rx32940/Dropbox/5. Rachel's projects/Metagenomic_Analysis/domain/")
 
 all_samples <- list.files(".") # list all files in dir
@@ -34,7 +35,8 @@ plot <- ggplot(data = all_tables, aes(x=name, y = percentage, fill=Domain)) +
   geom_bar(stat = "identity") +
   geom_text(aes(label=paste(percentage * 100,"%")),size = 2,position = position_stack(vjust = 0.5))+
   ylab("percentage of classfied sequences") +
-  xlab("samples")
+  xlab("samples") 
+  
 
 plot
 ggsave(file="domain_classification.png",plot = plot)
