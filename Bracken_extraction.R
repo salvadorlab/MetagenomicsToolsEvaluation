@@ -42,7 +42,7 @@ plot <- ggplot(data = all_tables, aes(x=name, y = percentage, fill=Domain)) +
   
 
 plot
-ggsave(file="domain_classification.png",plot = plot)
+ggsave(file="domain_classification.png",plot = plot,width = 10, height = 6)
 
 
 ##################################################

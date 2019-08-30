@@ -12,7 +12,7 @@ library(factoextra) #for pca visualization
 
 setwd("/Users/rx32940/Dropbox/5. Rachel's projects/Metagenomic_Analysis/CLARK:CLARK(s)")
 
-data_genus <- read_csv("all_samples_1%.csv")
+data_genus <- read_csv("all_samples_0.csv")
 rownames(data_genus) <- data_genus$X1
 data_genus <- select(data_genus, -X1)
 
@@ -27,3 +27,10 @@ eigenvalues_genus
 png("pca_genus_plot.png")
 fviz_pca_ind(pca_genus,col.var="cos2")
 dev.off()
+
+# anaylyze abundance distribution of each sample
+R22.K <- density(data_genus$R22.K)
+R22.L <- density(data_genus$R22.L)
+
+summary(data_genus$R22.K)
+summary(data_genus$R22.L)
