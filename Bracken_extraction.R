@@ -11,6 +11,7 @@ all_tables <-data.frame(Date=as.Date(character()),
                                File=character(), 
                                User=character(), 
                                stringsAsFactors=FALSE)
+#table for percentage only
 for (file in all_samples){
   # read all sample files, row= domain name, col = fraction of totoal reads
   current <- read.table(file,header = T,fill=F,sep="\t",quote="") %>% select(1,7) %>% spread(name,fraction_total_reads) 
@@ -42,3 +43,45 @@ plot <- ggplot(data = all_tables, aes(x=name, y = percentage, fill=Domain)) +
 
 plot
 ggsave(file="domain_classification.png",plot = plot)
+
+
+##################################################
+# for unclassifed vs. Domain classified sequences#
+##################################################
+all_tables_reads <-data.frame(Date=as.Date(character()),
+                        File=character(), 
+                        User=character(), 
+                        stringsAsFactors=FALSE)
+#table for # of reads only
+for (file in all_samples){
+  # read all sample files, row= domain name, col = fraction of totoal reads
+  current <- read.table(file,header = T,fill=F,sep="\t",quote="") %>% select(1,6) %>% spread(name,new_est_reads) 
+  current$name <- file # change row name to sample name
+  assign(file,current) # variable name to sample name, not necessary
+  all_tables_reads <- rbind.fill(all_tables_reads,current) # combine samples
+}
+
+all_tables_reads <- all_tables_reads %>% select(-c(1,2,3))
+#unclassified sequences from Kraken2 result that were excluded from Bracken analysis (only kracken2 results didn't classify into domains but still under root were redistributed)
+all_tables_reads$UNKNOWN <- c(594901, 1305714, 529387, 552439, 582552, 409537, 649297, 1093414, 508946, 2189917, 2710704, 2528341)
+#find the total number of sequences
+all_tables_reads$Total <- all_tables_reads$UNKNOWN + all_tables_reads$Archaea + all_tables_reads$Bacteria + all_tables_reads$Viruses
+#conver into percentage
+all_tables_reads$Archaea <- all_tables_reads$Archaea/all_tables_reads$Total*100
+all_tables_reads$Bacteria <- all_tables_reads$Bacteria/all_tables_reads$Total*100
+all_tables_reads$Viruses<- all_tables_reads$Viruses/all_tables_reads$Total*100
+all_tables_reads$UNKNOWN <- all_tables_reads$UNKNOWN/all_tables_reads$Total*100
+#delete total
+all_tables_reads <- all_tables_reads %>% select(-c("Total"))
+
+
+all_tables_reads <- gather(all_tables_reads,"Archaea","Bacteria","Viruses","UNKNOWN" ,key="Domain", value = "percentage")
+all_tables_reads$Domain <- factor(all_tables_reads$Domain, levels = c("UNKNOWN","Archaea","Viruses","Bacteria"))
+plot_unknown <- ggplot(data = all_tables_reads, aes(x=name, y = percentage, fill=Domain)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label=paste(format(round(percentage, 2), nsmall = 2),"%")),size = 2,position = position_stack(vjust = 0.5))+
+  ylab("Relative Abundance") +
+  xlab("samples") +
+  scale_fill_manual(values=c("grey","limegreen","#FF9999","gold"))
+plot_unknown
+ggsave(file="../domain_classification_unkown.png",plot = plot_unknown,width = 10, height = 6)
