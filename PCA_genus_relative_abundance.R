@@ -28,9 +28,21 @@ png("pca_genus_plot.png")
 fviz_pca_ind(pca_genus,col.var="cos2")
 dev.off()
 
-# anaylyze abundance distribution of each sample
-R22.K <- density(data_genus$R22.K)
-R22.L <- density(data_genus$R22.L)
+##################################################
+# anaylyze abundance distribution of each sample #
+##################################################
 
-summary(data_genus$R22.K)
-summary(data_genus$R22.L)
+summary_tables <- data.frame(Date=as.Date(character()),
+                             File=character(), 
+                             User=character(), 
+                             stringsAsFactors=FALSE)
+# bind summary for each sample to the big summary table column by column
+summary_tables <- rbind.fill(summary_tables,as.data.frame(sapply(data_genus, function(x) as.data.frame(as.list(summary(x)))))) %>% select(-c(1,2,3))
+# add row names
+row.names(summary_tables) <- c("Min.",   "1st Qu.",    "Median",      "Mean",   "3rd Qu.",      "Max." )
+# transpose
+summary_tables <- t(summary_tables)
+
+write.csv(summary_tables,"sample_abundance_distribution.csv")
+
+plot(density(data_genus$R22.K))
