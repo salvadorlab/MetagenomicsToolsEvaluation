@@ -10,9 +10,7 @@ library(factoextra) #for pca visualization
 
 
 
-setwd("/Users/rx32940/Dropbox/5. Rachel's projects/Metagenomic_Analysis/CLARK:CLARK(s)")
-
-data_genus <- read_csv("all_samples_0.csv")
+data_genus <- read_csv("/Users/rx32940/Dropbox/5. Rachel's projects/Metagenomic_Analysis/KRAKEN2:BRACKEN/phylum_composition_combined.csv")
 rownames(data_genus) <- data_genus$X1
 data_genus <- select(data_genus, -X1)
 
