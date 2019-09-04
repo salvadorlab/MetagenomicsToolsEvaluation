@@ -44,6 +44,28 @@ plot <- ggplot(data = all_tables, aes(x=name, y = percentage, fill=Domain)) +
 plot
 ggsave(file="domain_classification.png",plot = plot,width = 10, height = 6)
 
+##################################################
+#            Phylum data extraction             ##
+##################################################
+
+setwd("/Users/rx32940/Dropbox/5. Rachel's projects/Metagenomic_Analysis/KRAKEN2:BRACKEN")
+
+files <- list.files("./phylum/")
+
+for (file in files){
+  
+  current <- read.table(paste("./phylum/",file,sep=""),sep="\t",header=T) %>% 
+    select(-c(2,3,4,5,6))
+  colnames(current)[2] <- file
+  if (file != "R22.K"){
+    all_samples <- full_join(all_samples, current, by = NULL) # combine samples into one table
+  }
+  else{
+    all_samples <- current 
+  }
+}
+
+write.csv(all_samples,"phylum_composition_combined.csv")
 
 ##################################################
 # for unclassifed vs. Domain classified sequences#
