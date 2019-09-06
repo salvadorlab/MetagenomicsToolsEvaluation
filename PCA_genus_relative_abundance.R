@@ -10,9 +10,9 @@ library(factoextra) #for pca visualization
 
 
 
-data_genus <- read_csv("/Users/rx32940/Dropbox/5. Rachel's projects/Metagenomic_Analysis/KRAKEN2:BRACKEN/phylum_composition_combined.csv")
-rownames(data_genus) <- data_genus$X1
-data_genus <- select(data_genus, -X1)
+data_genus <- read_csv("/Users/rx32940/Dropbox/5. Rachel's projects/Metagenomic_Analysis/CLARK:CLARK(s)/all_samples_phylum.csv")
+rownames(data_genus) <- data_genus$Name
+data_genus <- select(data_genus, -Name)
 
 
 data2_genus <- data.frame(lapply(data_genus, function(x) as.numeric(as.character(x))))
@@ -22,7 +22,7 @@ summary(pca_genus)
 
 eigenvalues_genus <- fviz_eig(pca_genus)
 eigenvalues_genus
-png("pca_genus_plot.png")
+png("/Users/rx32940/Dropbox/5. Rachel's projects/Metagenomic_Analysis/CLARK:CLARK(s)/pca_P_plot.png")
 fviz_pca_ind(pca_genus,col.var="cos2")
 dev.off()
 

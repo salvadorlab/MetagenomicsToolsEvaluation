@@ -1,7 +1,7 @@
 library(xlsx)
 library(dplyr)
 
-setwd("/Users/rx32940/Dropbox/5. Rachel's projects/Metagenomic_Analysis/CLARK:CLARK(s)/results")
+setwd("/Users/rx32940/Dropbox/5. Rachel's projects/Metagenomic_Analysis/CLARK:CLARK(s)/results_phylum")
 
 all_files <- list.files(".")
 
@@ -21,6 +21,6 @@ for (file in all_files){
 
 all_samples <- arrange(all_samples,Lineage) 
 
-write.csv(all_samples, "../all_samples.csv")
+write.csv(all_samples, "../all_samples_phylum.csv")
 
 # all_samples.csv was imported into excel file, formatted and saved as all_samples_CLARK.xlsx
