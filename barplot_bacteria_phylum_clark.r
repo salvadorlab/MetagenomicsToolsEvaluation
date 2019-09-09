@@ -2,7 +2,7 @@ library(xlsx)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
-setwd("/Users/rx32940/Dropbox/5. Rachel's projects/Metagenomic_Analysis/CLARK:CLARK(s)/results_phylum")
+setwd("/Users/rx32940/Dropbox/5. Rachel's projects/Metagenomic_Analysis/CLARK:CLARK(s)/results")
 
 all_files <- list.files(".")
 
@@ -38,8 +38,10 @@ unclassified_gather$Name <- factor(unclassified_gather$Name, levels = c("UNKNOWN
 unclassified_gather$samples <- factor(unclassified_gather$samples,levels = c("R22.K","R26.K","R27.K","R28.K","R22.L","R26.L","R27.L","R28.L","R22.S","R26.S","R27.S","R28.S"))
 
 color_palette = c("darkolivegreen4","yellow","#BCF4F5","#A491D3","#EB5E55","#FC9F5B","#FFB7C3","#CFCFEA","#E76B74","#34D1BF","#5B4E77","#EA638C",
-                  "#E8E1EF","#CDACA1","#C7FFDA","#CD8987","#93B5C6","#50FFB1","#083D77","#EBEBD3","#0AD3FF","#B91372","#CBFF8C")
+                  "#E8E1EF","#CDACA1","#C7FFDA","#CD8987","#93B5C6","#50FFB1","#083D77","#EBEBD3","#0AD3FF","#B91372","#CBFF8C","#FFEAD0","#F76F8E","#33658A","#EDD382","#CC2936")
 
-ggplot(unclassified_gather, aes(x=samples, y=percentage, fill=Name))+
+new_plot <- ggplot(unclassified_gather, aes(x=samples, y=percentage, fill=Name))+
   geom_bar(stat = "identity") +
   scale_fill_manual(values = color_palette)
+
+new_plot
