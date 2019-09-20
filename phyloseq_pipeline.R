@@ -37,8 +37,28 @@ rownames(annotation)<-factor(rownames(annotation),levels = c("R22.K","R26.K","R2
 sample_ann <- sample_data(annotation)
 ########################## Clark data transformation done ###################################################### 
 
-setwd("/Users/rx32940/Dropbox/5. Rachel's projects/Metagenomic_Analysis/CLARK:CLARK(s)")
 
+##########################################################
+# KRAKEN2:BRACKEN data                                   #
+##########################################################
+setwd("/Users/rx32940/Dropbox/5. Rachel's projects/Metagenomic_Analysis/KRAKEN2:BRACKEN/genus/data")
+
+
+files <- list.files(".")
+
+for (file in files){
+  current <- read.table(file, sep = "\t", header = T) %>% select(c(1,6))
+  sample_name <- file #extract sample name
+  colnames(current)[2]<- sample_name
+  current[,2] <- as.numeric(as.character(current[,2])) 
+  if (sample_name != "R22.K.tsv"){
+    all_kraken <- full_join(all_kraken, current, by = NULL) # combine samples into one table
+  }
+  else{
+    all_kraken <- current 
+  }
+}
+########################### kraken/bracken #############################################
 
 # create a phyloseq object
 obj <- phyloseq(OTU,TAX,sample_ann)
