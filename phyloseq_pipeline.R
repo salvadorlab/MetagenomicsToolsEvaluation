@@ -35,6 +35,10 @@ annotation <- annotation[,-1]
 annotation <- annotation[c("R22.K","R26.K","R27.K","R28.K","R22.L","R26.L","R27.L","R28.L","R22.S","R26.S","R27.S","R28.S"),]
 rownames(annotation)<-factor(rownames(annotation),levels = c("R22.K","R26.K","R27.K","R28.K","R22.L","R26.L","R27.L","R28.L","R22.S","R26.S","R27.S","R28.S"))
 sample_ann <- sample_data(annotation)
+
+# create a phyloseq object
+obj <- phyloseq(OTU,TAX,sample_ann)
+
 ########################## Clark data transformation done ###################################################### 
 
 
@@ -47,21 +51,43 @@ setwd("/Users/rx32940/Dropbox/5. Rachel's projects/Metagenomic_Analysis/KRAKEN2:
 files <- list.files(".")
 
 for (file in files){
+  
   current <- read.table(file, sep = "\t", header = T) %>% select(c(1,6))
-  sample_name <- file #extract sample name
+  sample <- unlist(strsplit(file,"[.]"))[1]
+  tissue <- unlist(strsplit(file,"[.]"))[2]
+  sample_name <- paste(sample,".",tissue,sep="") #extract sample name
   colnames(current)[2]<- sample_name
   current[,2] <- as.numeric(as.character(current[,2])) 
-  if (sample_name != "R22.K.tsv"){
+  if (sample_name != "R22.K"){
     all_kraken <- full_join(all_kraken, current, by = NULL) # combine samples into one table
   }
   else{
     all_kraken <- current 
   }
 }
-########################### kraken/bracken #############################################
+rownames(all_kraken)<- all_kraken[,1]
+all_kraken <- all_kraken[,-1]
+OTU <- otu_table(all_kraken,taxa_are_rows = T)
+
+# to obtain a tax table, we need to retrieve the lineage for all genus in bracken results
+# use this tool : https://www.ncbi.nlm.nih.gov/Taxonomy/TaxIdentifier/tax_identifier.cgi
+
+# extract all_kraken table first for the ordered list
+write.csv(all_kraken,"../all_bracken_combined.csv") # copy the genus names to the tool above for lineages
+
+# samples annotation
+annotation <- read.csv("../../../Samples_annotation.csv",header = T)
+rownames(annotation) <- annotation$X
+annotation <- annotation[,-1]
+annotation <- annotation[c("R22.K","R26.K","R27.K","R28.K","R22.L","R26.L","R27.L","R28.L","R22.S","R26.S","R27.S","R28.S"),]
+rownames(annotation)<-factor(rownames(annotation),levels = c("R22.K","R26.K","R27.K","R28.K","R22.L","R26.L","R27.L","R28.L","R22.S","R26.S","R27.S","R28.S"))
+sample_ann <- sample_data(annotation)
+
 
 # create a phyloseq object
-obj <- phyloseq(OTU,TAX,sample_ann)
+obj <- phyloseq(OTU,sample_ann)
+########################### kraken/bracken #############################################
+
 
 # plot absolute abundance bar plot
 plot_bar(obj,fill="Domain")
@@ -72,7 +98,7 @@ random_tree = rtree(ntaxa(obj), rooted=TRUE, tip.label=taxa_names(obj))
 plot(random_tree)
 
 # plot heatmap
-plot_heatmap(obj_Tree,taxa.label = "Domain")
+plot_heatmap(obj)
 
 # alpha diversity of the samples
 estimate_richness(obj)
