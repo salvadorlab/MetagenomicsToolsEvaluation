@@ -17,7 +17,7 @@ DATA="/scratch/rx32940/Metagenomic_taxon_profile/Data"
 # echo "bowtie-build done"
 
 for file in $DATA/rawProcessed/*; do
-    SAMPLE=$(basename "$file")
+    SAMPLE=$(basename "$file" ".fna")
     mkdir $SAMPLE
     bowtie2 -f --reorder -x $DATA/host_DB -U $file --un $DATA/hostCleaned/$SAMPLE/  # -x ask for the basename of the index files
 
