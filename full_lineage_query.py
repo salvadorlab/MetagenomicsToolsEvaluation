@@ -13,8 +13,20 @@ response = Entrez.read(handle)
 
 for entry in response:
     sci_name = entry.get('ScientificName')
-    lineage_taxa = entry.get('Lineage').split(';')
-    lineages = sci_name+'\t'+ '\t'.join(lineage_taxa) +"\n"
+    lineage_taxa = entry.get('LineageEx')
+    lineages=""
+    for dict in lineage_taxa:
+        if dict['Rank'] == "superkingdom":
+            lineages = lineages + "Domain:" + dict['ScientificName'] + "\t"
+        if dict['Rank'] == "phylum":
+            lineages = lineages + "phylum:" + dict['ScientificName'] + "\t"
+        if dict['Rank'] == "family":
+            lineages = lineages + "family:" + dict['ScientificName'] + "\t"
+        if dict['Rank'] == "genus":
+            lineages = lineages + "genus:" + dict['ScientificName'] + "\t"
+    #lineages = lineage_taxa[]
+    lineages = lineages + sci_name +"\n"
+  
 
     with open(path + "full_lineage.txt","a+") as f:
         f.write(lineages)

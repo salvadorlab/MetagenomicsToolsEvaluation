@@ -1,6 +1,7 @@
 library("phyloseq")
 library(dplyr)
 library(ggplot2)
+library(xlsx)
 
 ##########################################################
 # Clark data                                             #
@@ -65,15 +66,33 @@ for (file in files){
     all_kraken <- current 
   }
 }
-rownames(all_kraken)<- all_kraken[,1]
+rownames<- all_kraken[,1]
 all_kraken <- all_kraken[,-1]
+all_kraken <- all_kraken %>%
+  mutate_if(is.numeric,coalesce,0) # if there are NA, replace with 0
+rownames(all_kraken) <- rownames
 OTU <- otu_table(all_kraken,taxa_are_rows = T)
+
 
 # to obtain a tax table, we need to retrieve the lineage for all genus in bracken results
 # use this tool : https://www.ncbi.nlm.nih.gov/Taxonomy/TaxIdentifier/tax_identifier.cgi
 
 # extract all_kraken table first for the ordered list
 write.csv(all_kraken,"../all_bracken_combined.csv") # copy the genus names to the tool above for lineages
+
+# TAX
+tax_table <- read.xlsx("/Users/rx32940/Dropbox/5. Rachel's projects/Metagenomic_Analysis/KRAKEN2:BRACKEN/genus/full_lineage.xlsx",1,header = FALSE)
+
+tax_table$X1 <- sapply(tax_table$X1, function(x) unlist(strsplit(as.character(x),"[:]"))[2])
+tax_table$X2 <- sapply(tax_table$X2, function(x) unlist(strsplit(as.character(x),"[:]"))[2])
+tax_table$X3 <- sapply(tax_table$X3, function(x) unlist(strsplit(as.character(x),"[:]"))[2])
+rownames(tax_table) <- tax_table$X4
+colnames(tax_table) <- c("Domain","Phylum","Family","Genus")
+tax_table <- as.matrix(tax_table) # taxonomy table need to be in matrix format
+# taxonomy table
+TAX <- tax_table(tax_table)
+
+
 
 # samples annotation
 annotation <- read.csv("../../../Samples_annotation.csv",header = T)
@@ -85,7 +104,7 @@ sample_ann <- sample_data(annotation)
 
 
 # create a phyloseq object
-obj <- phyloseq(OTU,sample_ann)
+obj <- phyloseq(OTU,TAX,sample_ann)
 ########################### kraken/bracken #############################################
 
 
@@ -147,7 +166,8 @@ sign_diff$Genus <- factor(as.character(sign_diff$Genus), levels=names(x))
 
 #plot for log fold change
 quartz() # for "polygon edge not found" error
-log_plot <- ggplot(sign_diff, aes(x=Genus, y=log2FoldChange, color=Phylum)) + # try taxonomy level for x and y axes
+sign_diff <- data.frame(sign_diff)
+log_plot <- ggplot(sign_diff, aes(x=rownames(sign_diff), y=log2FoldChange,color=Phylum)) + # try taxonomy level for x and y axes
   geom_point(size=6) + 
   theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))
 log_plot
