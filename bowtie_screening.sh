@@ -1,5 +1,5 @@
 #!/bin/bash
-#PBS -q highmem                                                          
+#PBS -q highmem_q                                                        
 #PBS -N hostclean                                           
 #PBS -l nodes=1:ppn=2 -l mem=100gb                                        
 #PBS -l walltime=100:00:00                                                
