@@ -140,7 +140,7 @@ packageVersion("DESeq2")
 
 # major sample covariate, Tissue, as the study design factor. comparing samples composition taken from different tissues
 head(sample_ann$Subject) # can also do an analysis with respect to Subject
-deseq_obj <- phyloseq_to_deseq2(obj,  ~ Tissue ) # format into DESEQ object
+deseq_obj <- phyloseq_to_deseq2(obj,  ~ Subject ) # format into DESEQ object
 deseq_analysis <- DESeq(deseq_obj, test="Wald", fitType = "parametric")
 
 # analysis DESeq results
@@ -167,7 +167,7 @@ sign_diff$Genus <- factor(as.character(sign_diff$Genus), levels=names(x))
 #plot for log fold change
 quartz() # for "polygon edge not found" error
 sign_diff <- data.frame(sign_diff)
-log_plot <- ggplot(sign_diff, aes(x=rownames(sign_diff), y=log2FoldChange,color=Phylum)) + # try taxonomy level for x and y axes
+log_plot <- ggplot(sign_diff, aes(x=Genus, y=log2FoldChange,color=Phylum)) + # try taxonomy level for x and y axes
   geom_point(size=6) + 
   theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))
 log_plot
