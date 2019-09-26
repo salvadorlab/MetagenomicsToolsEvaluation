@@ -16,13 +16,12 @@ DATA="/scratch/rx32940/Metagenomic_taxon_profile/Data"
 # bowtie2-build $DATA/refSeq/rn6.fa $DATA/host_DB # build index for reference genome, in .bt2 format
 # echo "bowtie-build done"
 
-for file in $DATA/rawProcessed/*; do
-    SAMPLE=$(basename "$file" ".fna")
-    mkdir $DATA/hostCleaned/$SAMPLE
 
-    echo "$SAMPLE start"
-    bowtie2 -f --reorder -x $DATA/host_DB -U $file --un $DATA/hostCleaned/$SAMPLE/$SAMPLE.fna  # -x ask for the basename of the index files
+SAMPLE="mgm4860394"
+mkdir $DATA/hostCleaned/$SAMPLE
 
-    echo "$SAMPLE done"
-done
+echo "$SAMPLE start"
+bowtie2 -f --reorder -x $DATA/host_DB -U $DATA/rawProcessed/$SAMPLE.fna --un $DATA/hostCleaned/$SAMPLE/$SAMPLE.fna  # -x ask for the basename of the index files
+echo "$SAMPLE done"
+
 
