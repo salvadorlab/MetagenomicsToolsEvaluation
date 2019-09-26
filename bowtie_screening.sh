@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -q highmem_q                                                        
-#PBS -N mgm4860394_hostclean                                           
+#PBS -N mgm4860572                                           
 #PBS -l nodes=1:ppn=4 -l mem=200gb                                        
 #PBS -l walltime=100:00:00                                                
 #PBS -M rx32940@uga.edu                                                  
@@ -9,7 +9,9 @@
 #PBS -e /scratch/rx32940/Metagenomic_taxon_profile                         
 #PBS -j oe     
 
-
+# This code need to be run on the cluster multi-threaded
+# each sample need to have a job submit separately
+# change job name above and value of the SAMPLE variable below form mgm4860390-mgm4860401 and also mgm4860572
 module load Bowtie2/2.3.4.1-foss-2016b
 
 DATA="/scratch/rx32940/Metagenomic_taxon_profile/Data"
@@ -17,7 +19,7 @@ DATA="/scratch/rx32940/Metagenomic_taxon_profile/Data"
 # echo "bowtie-build done"
 
 
-SAMPLE="mgm4860394"
+SAMPLE="mgm4860572"
 mkdir $DATA/hostCleaned/$SAMPLE
 
 echo "$SAMPLE start"
