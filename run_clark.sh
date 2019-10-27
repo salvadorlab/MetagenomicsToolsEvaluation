@@ -2,7 +2,7 @@
 #PBS -q highmem_q                                                          
 #PBS -N species_classify                                           
 #PBS -l nodes=1:ppn=4 -l mem=400gb                                        
-#PBS -l walltime=30:00:00                                                
+#PBS -l walltime=200:00:00                                                
 #PBS -M rx32940@uga.edu                                                  
 #PBS -m abe                                                              
 #PBS -o /scratch/rx32940/CLARK                       
@@ -41,6 +41,7 @@ echo "classify_metagenome done"
 # done
 
 # databases of discriminative spaced 31-mers
-$path/CLARK/CLARKSCV1.2.6.1/buildSpacedDB.sh
+cd /scratch/rx32940/CLARK/CLARKSCV1.2.6.1/./
+./buildSpacedDB.sh
 
 $path/CLARK/CLARKSCV1.2.6.1/classify_metagenome.sh -P $path/Metagenomic_taxon_profile/Data/01.Data/hostclean/R22.K/R22.K_1_kneaddata_paired_1.fastq $path/Metagenomic_taxon_profile/Data/01.Data/hostclean/R22.K/R22.K_1_kneaddata_paired_2.fastq -R /scratch/rx32940/CLARK/output/result --spaced
