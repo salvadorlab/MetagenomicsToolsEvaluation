@@ -34,10 +34,10 @@ RATDB='/scratch/rx32940/kraken/RATDB'
 # kraken2-build --build --threads 4 --db $RATDB
 
 # build kmer distribution for bracken standard database
-$DIR/bracken/Bracken-2.5/bracken-build -d $DBNAME -t 4 -k 35 -l 100 -x /scratch/rx32940/kraken/kraken2/kraken2
+$DIR/bracken/Bracken-2.5/bracken-build -d $DBNAME -t 4 -k 35 -l 100 -x /scratch/rx32940/kraken/kraken2/
 
 # build kmer distribution for bracken custom database
-#$DIR/bracken/Bracken-2.5/bracken-build -d $RATDB -t 4 -k 35 -l 100 -x /scratch/rx32940/kraken/kraken2/kraken2
+#$DIR/bracken/Bracken-2.5/bracken-build -d $RATDB -t 4 -k 35 -l 100 -x /scratch/rx32940/kraken/kraken2/
 
 #to classify sample with standard database
 for dir in $DIR/Data/01.Data/hostclean/*; do
