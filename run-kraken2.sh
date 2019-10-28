@@ -10,9 +10,8 @@
 
 module load BLAST+/2.7.1-foss-2016b-Python-2.7.14 # for dust masker and segmasker
 
-PATH='/scratch/rx32940/kraken'
-DATA='/scratch/rx32940/Metagenomic_taxon_profile/Data/01.Data/hostclean'
-BRACKEN_DIR='/scratch/rx32940/Metagenomic_taxon_profile/bracken/Bracken-2.5'
+KPATH='/scratch/rx32940/kraken' # can not use PATH as variable name
+DIR='/scratch/rx32940/Metagenomic_taxon_profile'
 DBNAME='/scratch/rx32940/kraken/DB'
 RATDB='/scratch/rx32940/kraken/RATDB'
 
@@ -20,30 +19,30 @@ RATDB='/scratch/rx32940/kraken/RATDB'
 #kraken2-build --standard --threads 4 --db $DBNAME
 
 #build library with rat reference genome
-kraken2-build --download-taxonomy --db $RATDB
+# kraken2-build --download-taxonomy --db $RATDB
 
-kraken2-build --download-library bacteria --db $RATDB
+# kraken2-build --download-library bacteria --db $RATDB
 
-kraken2-build --download-library archaea --db $RATDB
+# kraken2-build --download-library archaea --db $RATDB
 
-kraken2-build --download-library viral --db $RATDB
+# kraken2-build --download-library viral --db $RATDB
 
-kraken2-build --download-library UniVec_Core --db $RATDB
+# kraken2-build --download-library UniVec_Core --db $RATDB
 
-kraken2-build --add-to-library /scratch/rx32940/kraken/GCF_000001895.5_Rnor_6.0_genomic.fna --db $RATDB
+# kraken2-build --add-to-library /scratch/rx32940/kraken/GCF_000001895.5_Rnor_6.0_genomic.fna --db $RATDB
 
-kraken2-build --build --threads 4 --db $RATDB
+# kraken2-build --build --threads 4 --db $RATDB
 
-# to classify sample with standard database
-# for dir in $DATA/*; do
+#to classify sample with standard database
+for dir in $DIR/Data/01.Data/hostclean/*; do
+    sample=$(basename "$dir")
+    kraken2 --use-names --db $DBNAME --threads 4 --report $KPATH/output/kraken_out/$sample.kreport --paired $DIR/Data/01.Data/hostclean/$sample/${sample}_1_kneaddata_paired_1.fastq $DIR/Data/01.Data/hostclean/$sample/${sample}_1_kneaddata_paired_2.fastq > $KPATH/output/kraken_out/$sample.txt
+    $DIR/bracken/Bracken-2.5/bracken -d $DBNAME -i $KPATH/output/kraken_out/$sample.kreport -o $KPATH/output/bracken_out/phylum/$sample -l P -t 10
+done
+
+# to classify sample with custom database
+# for dir in $DIR/Data/01.Data/hostclean/*; do
 #     sample=$(basename "$dir")
-#     kraken2 --use-names --db $DBNAME --threads 4 --report $PATH/output/kraken_out/$sample.kreport --paired $DATA/$sample/${sample}_1_kneaddata_paired_1.fastq $DATA/$sample/${sample}_1_kneaddata_paired_2.fastq > $PATH/output/kraken_output/$sample.txt
-#     $BRACKEN_DIR/bracken -d $DBNAME -i $PATH/output/kraken_out/$sample.kreport -o $PATH/output/bracken_out/phylum/$sample -l P -t 10
-# done
-
-# # to classify sample with custom database
-# for dir in $DATA/*; do
-#     sample=$(basename "$dir")
-#     kraken2 --use-names --db $RATDB --threads 4 --report $PATH/output/kraken_out/$sample.kreport --paired $DATA/$sample/${sample}_1_kneaddata_paired_1.fastq $DATA/$sample/${sample}_1_kneaddata_paired_2.fastq > $PATH/output/kraken_output/$sample.txt
-#     $BRACKEN_DIR/bracken -d $RATDB -i $PATH/output/kraken_out/$sample.kreport -o $PATH/output/bracken_out/phylum/$sample -l P -t 10
+#     kraken2 --use-names --db $RATDB --threads 4 --report $KPATH/output/custom_out/$sample.kreport --paired $DIR/Data/01.Data/hostclean/$sample/${sample}_1_kneaddata_paired_1.fastq $DIR/Data/01.Data/hostclean/$sample/${sample}_1_kneaddata_paired_2.fastq > $KPATH/output/custom_out/$sample.txt
+#     $DIR/bracken/Bracken-2.5/bracken -d $RATDB -i $KPATH/output/custom_out/$sample.kreport -o $KPATH/output/custom_bracken/phylum/$sample -l P -t 10
 # done
