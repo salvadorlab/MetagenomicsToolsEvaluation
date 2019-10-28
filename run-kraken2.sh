@@ -33,11 +33,18 @@ RATDB='/scratch/rx32940/kraken/RATDB'
 
 # kraken2-build --build --threads 4 --db $RATDB
 
+# build kmer distribution for bracken standard database
+$DIR/bracken/Bracken-2.5/bracken-build -d $DBNAME -t 4 -k 35 -l 100 -x /scratch/rx32940/kraken/kraken2/kraken2
+
+# build kmer distribution for bracken custom database
+#$DIR/bracken/Bracken-2.5/bracken-build -d $RATDB -t 4 -k 35 -l 100 -x /scratch/rx32940/kraken/kraken2/kraken2
+
 #to classify sample with standard database
 for dir in $DIR/Data/01.Data/hostclean/*; do
     sample=$(basename "$dir")
     kraken2 --use-names --db $DBNAME --threads 4 --report $KPATH/output/kraken_out/$sample.kreport --paired $DIR/Data/01.Data/hostclean/$sample/${sample}_1_kneaddata_paired_1.fastq $DIR/Data/01.Data/hostclean/$sample/${sample}_1_kneaddata_paired_2.fastq > $KPATH/output/kraken_out/$sample.txt
     $DIR/bracken/Bracken-2.5/bracken -d $DBNAME -i $KPATH/output/kraken_out/$sample.kreport -o $KPATH/output/bracken_out/phylum/$sample -l P -t 10
+    $DIR/bracken/Bracken-2.5/bracken -d $DBNAME -i $KPATH/output/kraken_out/$sample.kreport -o $KPATH/output/bracken_out/genus/$sample -l P -t 10
 done
 
 # to classify sample with custom database
@@ -45,4 +52,5 @@ done
 #     sample=$(basename "$dir")
 #     kraken2 --use-names --db $RATDB --threads 4 --report $KPATH/output/custom_out/$sample.kreport --paired $DIR/Data/01.Data/hostclean/$sample/${sample}_1_kneaddata_paired_1.fastq $DIR/Data/01.Data/hostclean/$sample/${sample}_1_kneaddata_paired_2.fastq > $KPATH/output/custom_out/$sample.txt
 #     $DIR/bracken/Bracken-2.5/bracken -d $RATDB -i $KPATH/output/custom_out/$sample.kreport -o $KPATH/output/custom_bracken/phylum/$sample -l P -t 10
+#     $DIR/bracken/Bracken-2.5/bracken -d $RATDB -i $KPATH/output/custom_out/$sample.kreport -o $KPATH/output/custom_bracken/genus/$sample -l P -t 10
 # done
