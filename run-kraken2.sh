@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -q highmem_q                                                            
-#PBS -N build_rat_db                                            
+#PBS -N D_S_bracken                                            
 #PBS -l nodes=1:ppn=4 -l mem=200gb                                        
 #PBS -l walltime=60:00:00                                                
 #PBS -M rx32940@uga.edu                                                  
@@ -50,7 +50,9 @@ RATDB='/scratch/rx32940/kraken/RATDB'
 # to classify sample with custom database
 for dir in $DIR/Data/01.Data/hostclean/*; do
     sample=$(basename "$dir")
-    kraken2 --use-names --db $RATDB --threads 4 --report $KPATH/output/custom_out/$sample.kreport --paired $DIR/Data/01.Data/hostclean/$sample/${sample}_1_kneaddata_paired_1.fastq $DIR/Data/01.Data/hostclean/$sample/${sample}_1_kneaddata_paired_2.fastq > $KPATH/output/custom_out/$sample.txt
-    $DIR/bracken/Bracken-2.5/bracken -d $RATDB -i $KPATH/output/custom_out/$sample.kreport -o $KPATH/output/custom_bracken/phylum/$sample -l P -t 10
-    $DIR/bracken/Bracken-2.5/bracken -d $RATDB -i $KPATH/output/custom_out/$sample.kreport -o $KPATH/output/custom_bracken/genus/$sample -l G -t 10
+    #kraken2 --use-names --db $RATDB --threads 4 --report $KPATH/output/custom_out/$sample.kreport --paired $DIR/Data/01.Data/hostclean/$sample/${sample}_1_kneaddata_paired_1.fastq $DIR/Data/01.Data/hostclean/$sample/${sample}_1_kneaddata_paired_2.fastq > $KPATH/output/custom_out/$sample.txt
+    #$DIR/bracken/Bracken-2.5/bracken -d $RATDB -i $KPATH/output/custom_out/$sample.kreport -o $KPATH/output/custom_bracken/phylum/$sample -l P -t 10
+    #$DIR/bracken/Bracken-2.5/bracken -d $RATDB -i $KPATH/output/custom_out/$sample.kreport -o $KPATH/output/custom_bracken/genus/$sample -l G -t 10
+    $DIR/bracken/Bracken-2.5/bracken -d $RATDB -i $KPATH/output/custom_out/$sample.kreport -o $KPATH/output/custom_bracken/species/$sample -l S -t 10
+    $DIR/bracken/Bracken-2.5/bracken -d $RATDB -i $KPATH/output/custom_out/$sample.kreport -o $KPATH/output/custom_bracken/domain/$sample -l D -t 10
 done
