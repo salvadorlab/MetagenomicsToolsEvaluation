@@ -15,7 +15,7 @@ path="/scratch/rx32940"
 data_path="/scratch/rx32940/Metagenomic_taxon_profile/Data/01.Data/hostclean"
 
 # set up the database
-# $path/CLARK/CLARKSCV1.2.6.1/set_targets.sh $path/CLARK/DB custom
+$path/CLARK/CLARKSCV1.2.6.1/set_targets.sh $path/CLARK/DB custom --genus
 # $path/CLARK/CLARKSCV1.2.6.1/set_targets.sh $path/CLARK/DB bacteria viruses --domain
 # $path/CLARK/CLARKSCV1.2.6.1/set_targets.sh $path/CLARK/DB bacteria viruses --species
 # $path/CLARK/CLARKSCV1.2.6.1/set_targets.sh $path/CLARK/DB bacteria viruses --phylum
@@ -32,7 +32,7 @@ echo "set target done"
 #     $path/CLARK/CLARKSCV1.2.6.1/classify_metagenome.sh -P $data_path/$sample/${sample}_1_kneaddata_paired_1.fastq $data_path/$sample/${sample}_1_kneaddata_paired_2.fastq -R $path/CLARK/output/species/$sample.txt
 # done
 
-$path/CLARK/CLARKSCV1.2.6.1/classify_metagenome.sh -P $path/Metagenomic_taxon_profile/Data/01.Data/hostclean/R22.K/R22.K_1_kneaddata_paired_1.fastq $path/Metagenomic_taxon_profile/Data/01.Data/hostclean/R22.K/R22.K_1_kneaddata_paired_2.fastq -R /scratch/rx32940/CLARK/CLARKSCV1.2.6.1/result_domain
+$path/CLARK/CLARKSCV1.2.6.1/classify_metagenome.sh -P $path/Metagenomic_taxon_profile/Data/01.Data/hostclean/R22.K/R22.K_1_kneaddata_paired_1.fastq $path/Metagenomic_taxon_profile/Data/01.Data/hostclean/R22.K/R22.K_1_kneaddata_paired_2.fastq -R /scratch/rx32940/CLARK/CLARKSCV1.2.6.1/result_genus
 
 echo "classify_metagenome done"
 
@@ -48,6 +48,6 @@ cd /scratch/rx32940/CLARK/CLARKSCV1.2.6.1/./
 
 echo "spaced database built"
 
-$path/CLARK/CLARKSCV1.2.6.1/classify_metagenome.sh -P $path/Metagenomic_taxon_profile/Data/01.Data/hostclean/R22.K/R22.K_1_kneaddata_paired_1.fastq $path/Metagenomic_taxon_profile/Data/01.Data/hostclean/R22.K/R22.K_1_kneaddata_paired_2.fastq -R /scratch/rx32940/CLARK/output/result_domain --spaced
+$path/CLARK/CLARKSCV1.2.6.1/classify_metagenome.sh -P $path/Metagenomic_taxon_profile/Data/01.Data/hostclean/R22.K/R22.K_1_kneaddata_paired_1.fastq $path/Metagenomic_taxon_profile/Data/01.Data/hostclean/R22.K/R22.K_1_kneaddata_paired_2.fastq -R /scratch/rx32940/CLARK/output/genus_custom_spaced --spaced
 
 echo "spaced classification done"
