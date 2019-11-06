@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -q highmem_q                                                          
-#PBS -N prebuilt_R27.K_species                                          
-#PBS -l nodes=1:ppn=8 -l mem=500gb                                        
+#PBS -N prebuilt_spaced_genus_test                                          
+#PBS -l nodes=1:ppn=12 -l mem=700gb                                        
 #PBS -l walltime=200:00:00                                                
 #PBS -M rx32940@uga.edu                                                  
 #PBS -m abe                                                              
@@ -18,9 +18,9 @@ data_path="/scratch/rx32940/Metagenomic_taxon_profile/Data/01.Data/hostclean"
 # $path/CLARK/CLARKSCV1.2.6.1/set_targets.sh $path/CLARK/DB custom --genus
 # $path/CLARK/CLARKSCV1.2.6.1/set_targets.sh $path/CLARK/DB custom --phylum
 # $path/CLARK/CLARKSCV1.2.6.1/set_targets.sh $path/CLARK/DB custom --species
-$path/CLARK/CLARKSCV1.2.6.1/set_targets.sh $path/CLARK/DB bacteria viruses --species
+# $path/CLARK/CLARKSCV1.2.6.1/set_targets.sh $path/CLARK/DB bacteria viruses --species
 # $path/CLARK/CLARKSCV1.2.6.1/set_targets.sh $path/CLARK/DB bacteria viruses --phylum
-# $path/CLARK/CLARKSCV1.2.6.1/set_targets.sh $path/CLARK/DB bacteria viruses --genus
+$path/CLARK/CLARKSCV1.2.6.1/set_targets.sh $path/CLARK/DB bacteria viruses --genus
 
 echo "set target done"
 
@@ -33,9 +33,9 @@ echo "set target done"
 #     $path/CLARK/CLARKSCV1.2.6.1/classify_metagenome.sh -P $data_path/$sample/${sample}_1_kneaddata_paired_1.fastq $data_path/$sample/${sample}_1_kneaddata_paired_2.fastq -R $path/CLARK/output/species/$sample.txt
 # done
 
-$path/CLARK/CLARKSCV1.2.6.1/classify_metagenome.sh -P $path/Metagenomic_taxon_profile/Data/01.Data/hostclean/R27.K/R27.K_1_kneaddata_paired_1.fastq $path/Metagenomic_taxon_profile/Data/01.Data/hostclean/R27.K/R27.K_1_kneaddata_paired_2.fastq -R /scratch/rx32940/CLARK/output/prebuilt/species/regular/R27.K.txt
+#$path/CLARK/CLARKSCV1.2.6.1/classify_metagenome.sh -P $path/Metagenomic_taxon_profile/Data/01.Data/hostclean/R27.K/R27.K_1_kneaddata_paired_1.fastq $path/Metagenomic_taxon_profile/Data/01.Data/hostclean/R27.K/R27.K_1_kneaddata_paired_2.fastq -R /scratch/rx32940/CLARK/output/prebuilt/species/regular/R27.K.txt
 
-echo "classify_metagenome done"
+#echo "classify_metagenome done"
 
 #analyze result from regular clark
 # for file in /scratch/rx32940/CLARK/output/*; do 
@@ -49,6 +49,6 @@ cd /scratch/rx32940/CLARK/CLARKSCV1.2.6.1/./
 
 echo "spaced database built"
 
-$path/CLARK/CLARKSCV1.2.6.1/classify_metagenome.sh -n 8 -P $path/Metagenomic_taxon_profile/Data/01.Data/hostclean/R27.K/R27.K_1_kneaddata_paired_1.fastq $path/Metagenomic_taxon_profile/Data/01.Data/hostclean/R27.K/R27.K_1_kneaddata_paired_2.fastq -R /scratch/rx32940/CLARK/output/prebuilt/species/spaced/R27.K_spaced --spaced
+$path/CLARK/CLARKSCV1.2.6.1/classify_metagenome.sh -n 12 -P $path/Metagenomic_taxon_profile/Data/01.Data/hostclean/R22.K/R22.K_1_kneaddata_paired_1.fastq $path/Metagenomic_taxon_profile/Data/01.Data/hostclean/R22.K/R22.K_1_kneaddata_paired_2.fastq -R /scratch/rx32940/CLARK/output/prebuilt/genus/spaced/R22.K_spaced --spaced
 
 echo "spaced classification done"
