@@ -3,7 +3,7 @@ library(dplyr)
 library(plyr)
 library(ggplot2)
 
-setwd("/Users/rx32940/Dropbox/5. Rachel's projects/Metagenomic_Analysis/KRAKEN2:BRACKEN/Domain")
+setwd("/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/Kraken2-standard/custom/species/results")
 
 all_samples <- list.files(".") # list all files in dir
 
@@ -24,8 +24,8 @@ for (file in all_samples){
 all_tables <- all_tables %>% select(-c(1,2,3))
 all_tables[is.na(all_tables)] <- 0
 row.names(all_tables) <- all_samples
-#all_tables <- t(all_tables)
-write.csv(all_tables,"genus_classfication.csv")
+all_tables <- t(all_tables)
+write.csv(all_tables,"../species_classfication.csv")
 
 #keys <- colnames(all_tables)[!(colnames(all_tables) == "sample")]
 all_tables <- gather(all_tables,"Archaea","Bacteria","Viruses", key="Domain", value = "percentage")

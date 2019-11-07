@@ -2,24 +2,24 @@ library(xlsx)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
-setwd("/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/Kraken2-standard/custom/phylum/results")
+setwd("/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/Kraken2-standard/custom/genus/results")
 
 all_files <- list.files(".")
 
 
-# top 10 phylum + rest added to "other" category + Chordata sequences
+# top 20 phylum + rest added to "other" category + Chordata sequences
 for (file in all_files){
   current <- read.table(file,header = T,fill=F,sep="\t",quote="") 
   
   current <- current[order(current$new_est_reads,decreasing = T),]%>% select(1,7) #order with actual read, because proportion was rounded
   colnames(current)[2] <- file 
   
-  sum_rest <- summarise(current,sum_rest = sum(current[-c(1:10),2]))#sum rest percentage except for the top 10 phylum
+  sum_rest <- summarise(current,sum_rest = sum(current[-c(1:20),2]))#sum rest percentage except for the top 20 phylum
   sum_rest$name <- "other"# name the sum as other
   colnames(sum_rest)[1] <- file # change the summed fraction(current name is "sum_rest") colname to name for rbind
   
-  top_10 <- head(current,11) # top 10 phylum and rat
-  current <- rbind(sum_rest,top_10) #bind sum of others to top 10 phylum and rat
+  top_20 <- head(current,21) # top 20 phylum and rat
+  current <- rbind(sum_rest,top_20) #bind sum of others to top 20 phylum and rat
   
   if (file != "R22.K"){
     prop_combined <- full_join(prop_combined, current, by = NULL) # combine samples into one table
@@ -29,6 +29,14 @@ for (file in all_files){
   }
   
 }
+
+# create a table to show top ten species for each sample 
+prop_combined[is.na(prop_combined)] <- 0
+rownames(prop_combined) <- prop_combined$name
+prop_combined <- prop_combined[,-2]
+write.csv(prop_combined, "../top_20_genus_for_each_sample.csv")
+
+
 keys_to_gather <- colnames(prop_combined)[-2] #exclude Name column from rest of the sample names
 prop_combined_gather <- gather(prop_combined, keys_to_gather, key = "samples", value = "percentage") #gather so can plot stacked bar plot
 uniq_phylum <- unique(prop_combined_gather$name)[-c(1,2)] # unique phylums exclude UNKNOWN and other(this list is for ordering purpose happening next)
