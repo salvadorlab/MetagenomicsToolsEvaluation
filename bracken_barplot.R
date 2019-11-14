@@ -2,7 +2,7 @@ library(xlsx)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
-setwd("/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/Kraken2-standard/custom/genus/results")
+setwd("/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/Kraken2-standard/custom/phylum/results")
 
 all_files <- list.files(".")
 
@@ -14,12 +14,12 @@ for (file in all_files){
   current <- current[order(current$new_est_reads,decreasing = T),]%>% select(1,7) #order with actual read, because proportion was rounded
   colnames(current)[2] <- file 
   
-  sum_rest <- summarise(current,sum_rest = sum(current[-c(1:20),2]))#sum rest percentage except for the top 20 phylum
-  sum_rest$name <- "other"# name the sum as other
-  colnames(sum_rest)[1] <- file # change the summed fraction(current name is "sum_rest") colname to name for rbind
+  #sum_rest <- summarise(current,sum_rest = sum(current[-c(1:20),2]))#sum rest percentage except for the top 20 phylum
+  #sum_rest$name <- "other"# name the sum as other
+  #colnames(sum_rest)[1] <- file # change the summed fraction(current name is "sum_rest") colname to name for rbind
   
-  top_20 <- head(current,21) # top 20 phylum and rat
-  current <- rbind(sum_rest,top_20) #bind sum of others to top 20 phylum and rat
+ # top_20 <- head(current,21) # top 20 phylum and rat
+  #current <- rbind(sum_rest,top_20) #bind sum of others to top 20 phylum and rat
   
   if (file != "R22.K"){
     prop_combined <- full_join(prop_combined, current, by = NULL) # combine samples into one table
@@ -33,14 +33,14 @@ for (file in all_files){
 # create a table to show top ten species for each sample 
 prop_combined[is.na(prop_combined)] <- 0
 rownames(prop_combined) <- prop_combined$name
-prop_combined <- prop_combined[,-2]
-write.csv(prop_combined, "../top_20_genus_for_each_sample.csv")
+prop_combined <- prop_combined[,-1]
+write.csv(prop_combined, "../bracken_%_custom_phylum.csv")
 
 
-keys_to_gather <- colnames(prop_combined)[-2] #exclude Name column from rest of the sample names
+keys_to_gather <- colnames(prop_combined) #exclude Name column from rest of the sample names
 prop_combined_gather <- gather(prop_combined, keys_to_gather, key = "samples", value = "percentage") #gather so can plot stacked bar plot
-uniq_phylum <- unique(prop_combined_gather$name)[-c(1,2)] # unique phylums exclude UNKNOWN and other(this list is for ordering purpose happening next)
-prop_combined_gather$name <- factor(prop_combined_gather$name, levels = c("Chordata","other", uniq_phylum)) #order the bar plot so UNKNOWN and other can separate from rest of phylum
+uniq_phylum <- unique(rownames(prop_combined))[-c(1)] # unique phylums exclude UNKNOWN and other(this list is for ordering purpose happening next)
+prop_combined_gather$samples <- factor(prop_combined_gather$samples, levels = c("Chordata", uniq_phylum)) #order the bar plot so UNKNOWN and other can separate from rest of phylum
 prop_combined_gather$samples <- factor(prop_combined_gather$samples,levels = c("R22.K","R26.K","R27.K","R28.K","R22.L","R26.L","R27.L","R28.L","R22.S","R26.S","R27.S","R28.S"))
 
 color_palette <- c("darkolivegreen4","yellow","cyan2","darkseagreen1","coral","#50FFB1","#083D77","#EBEBD3","#0AD3FF","lavender","lightpink","#BCF4F5","#A491D3","#EB5E55","#FC9F5B","#FFB7C3","#CFCFEA","#E76B74","#34D1BF","#5B4E77","#EA638C",
