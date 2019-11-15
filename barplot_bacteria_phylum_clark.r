@@ -3,7 +3,7 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(ggforce) # package help zoom in on ggplot 
-setwd("/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/Clark-s/genus/results")
+setwd("/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/Clark/genus/results")
 
 all_files <- list.files(".")
 
@@ -11,10 +11,10 @@ all_files <- list.files(".")
 # to add up domain percentage, ignore genus
 for (file in all_files){
   current <- read.csv(file,header = T) %>% select(1,4)
-  current_total <- sum(as.numeric(as.character(current$Count))) -current$Count[length(current$Count)]
+  #current_total <- sum(as.numeric(as.character(current$Count))) -current$Count[length(current$Count)]
   
-  current <- current %>% mutate(percentage=as.numeric(as.numeric(as.character(current$Count))/current_total * 100)) %>% select(1,3)
-  current <- current[order(current$percentage,decreasing = T),]
+  #current <- current %>% mutate(percentage=as.numeric(as.numeric(as.character(current$Count))/current_total * 100)) %>% select(1,3)
+  current <- current[order(current$Count,decreasing = T),]
   colnames(current)[2] <- sample_name <- unlist(strsplit(file,"_"))[1]
   
   sum_rest <- summarise(current,sum_rest = sum(as.numeric(as.character(current[-c(1:6),2]))))#sum rest percentage except for the top 10 phylum
@@ -37,9 +37,9 @@ keys_to_gather <- colnames(unclassified)[-2] #exclude Name column from rest of t
 unclassified <- unclassified[-c(3),] # to remove the unknown row from classified only proportions
 
 #write.table(unclassified, "../classifiedOnly_count_clark_genus_custom.csv",quote=FALSE,sep=",",row.names = FALSE)
-write.table(unclassified, "../classifiedOnly_percentage_clark_genus_custom.csv",quote=FALSE,sep=",",row.names = FALSE)
+#write.table(unclassified, "../classifiedOnly_percentage_clark_genus_custom.csv",quote=FALSE,sep=",",row.names = FALSE)
 
-unclassified_gather <- gather(unclassified, keys_to_gather, key = "samples", value = "Percentage") #gather so can plot stacked bar plot
+unclassified_gather <- gather(unclassified, keys_to_gather, key = "samples", value = "Reads") #gather so can plot stacked bar plot
 unclassified_gather[is.na(unclassified_gather)] <- 0
 uniq_phylum <- unique(unclassified_gather$Name)[-c(1:2)] # unique phylums exclude Chrodata and other(this list is for ordering purpose happening next)
 unclassified_gather$Name <- factor(unclassified_gather$Name, levels = c("Rattus","other",uniq_phylum)) #order the bar plot so UNKNOWN and other can separate from rest of phylum
@@ -50,13 +50,13 @@ color_palette <- c("darkolivegreen4","yellow","cyan2","darkseagreen1","coral","#
                    "antiquewhite","chartreuse2","coral","darkgoldenrod1","cyan2","darkseagreen1","lavender","lightpink","#CD8987","#93B5C6")
 
 
-new_plot <- ggplot(unclassified_gather, aes(x=samples, y=as.numeric(Percentage), fill=Name))+
+new_plot <- ggplot(unclassified_gather, aes(x=samples, y=as.numeric(Reads), fill=Name))+
   geom_bar(stat = "identity") +
   scale_fill_manual(values = color_palette)+
-  facet_zoom(ylim = c(0,10),show.area = FALSE)+ # library(ggforce), zoom in at part of the plot (too little in proportion, hard to see)
+  facet_zoom(ylim = c(0,100000),show.area = FALSE)+ # library(ggforce), zoom in at part of the plot (too little in proportion, hard to see)
   ylab("Reads")+
   ggtitle("Clark-s Genus Level Relative Abundance with Custom Database") +
   theme(axis.text.x = element_text(angle = 90))
 new_plot
 
-ggsave("../clark-s_genus_custom_Relative.png",new_plot)
+ggsave("../clark_genus_custom_Absolute.png",new_plot)
