@@ -11,13 +11,13 @@ library(ggplot2)
 #tutorial for pca
 # http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/118-principal-component-analysis-in-r-prcomp-vs-princomp/#prcomp-and-princomp-functions
 
-setwd("/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/Clark-s/genus")
+setwd("/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/Kraken2-standard/custom/genus")
 
-data_genus <- read.csv("./classifiedOnly_count_clarks_genus_custom.csv",sep = ",",header=TRUE)
-rownames(data_genus) <- data_genus$Name
-data_genus <- select(data_genus, -Name) 
-#data_genus <-  select(data_genus, -X) 
-data_genus <- data_genus[-c(1:2),]
+data_genus <- read.csv("./bracken_count_custom_phylum.csv",sep = ",",header=TRUE)
+rownames(data_genus) <- data_genus$X
+#data_genus <- select(data_genus, -Name) 
+data_genus <-  select(data_genus, -X) 
+data_genus <- data_genus[-c(1),]
 
 
 data2_genus <- data.frame(lapply(data_genus, function(x) as.numeric(as.character(x))))
@@ -25,16 +25,16 @@ data2_genus <-t(data2_genus)
 data2_genus[is.na(data2_genus)] <- 0
 data2_genus <- as.data.frame(data2_genus)
 data2_genus$Tissues <- as.list(rep(c("Kidney","Lung","Spleen"),4))
-pca_genus <- prcomp(data2_genus[,-c(438)],center=TRUE,scale. = TRUE)
+pca_genus <- prcomp(data2_genus[,-c(624)],center=TRUE,scale. = TRUE) # do PCA analysis without Tissue column
 summary(pca_genus)
 data2_genus$Tissues <- factor(unlist(data2_genus$Tissues))
 class(data2_genus$Tissues) <- "factor"
-plot <- autoplot(pca_genus,data = data2_genus,colour ="Tissues",label=TRUE) 
+plot <- autoplot(pca_genus,data = data2_genus,colour ="Tissues",label = TRUE, label.hjust = 2) 
 
-plot <- plot + ggtitle("PCA Analysis for Clark-s in the Genus Level") +
+plot <- plot + ggtitle("PCA Analysis for Clark in the Genus Level") +
   theme_bw()
 plot
-ggsave("./pca_G_plot_clarks.png",plot)
+ggsave("./pca_G_plot_kraken2.png",plot)
 
 eigenvalues_genus <- fviz_eig(pca_genus)
 eigenvalues_genus
