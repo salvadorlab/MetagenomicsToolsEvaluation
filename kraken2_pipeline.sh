@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -q highmem_q                                                            
-#PBS -N kraken2_db_build                                           
-#PBS -l nodes=1:ppn=24 -l mem=300gb                                        
+#PBS -N submit_minikraken                                           
+#PBS -l nodes=1:ppn=2 -l mem=10gb                                        
 #PBS -l walltime=300:00:00                                                
 #PBS -M rx32940@uga.edu                                                  
 #PBS -m abe                                                              
@@ -10,15 +10,27 @@
 #PBS -j oe   
 
 cd $PBS_O_WORKDIR
+DBNAME="/scratch/rx32940/kraken2_052020/kraken2/kraken2_db"
+seq_path="/scratch/rx32940/kraken2_052020"
+DATABASE="/scratch/rx32940/kraken2_052020/kneaddata/ref_db"
+outpath="/scratch/rx32940/kraken2_052020/kraken2"
 
-# build database for host reference (refseq for R.rattus and R.norvegicus_Rnor_6.0) for kneaddate cleaning
+###############################################################################
+# 
+# KneadData
+# - Trimmomatic
+# - Bowtie
+# output:
+# no pair end reads after host clean, all surviving reads found in the unmatched_1
+# 
+################################################################################
+
+# # build database for host reference (refseq for R.rattus and R.norvegicus_Rnor_6.0) for kneaddate cleaning
 # bowtie2-build $seq_path/kneaddata/reference_seq/GCF_000001895.5_Rnor_6.0_genomic.fna $seq_path/kneaddata/ref_db/Rnor_6.0
 # bowtie2-build $seq_path/kneaddata/reference_seq/GCF_011064425.1_Rrattus_CSIRO_v1_genomic.fna $seq_path/kneaddata/ref_db/Rrattus
 
-# host clean with KneadData (downloaded to sapelo2 home dir: pip install --user kneaddate)
+# # host clean with KneadData (downloaded to sapelo2 home dir: pip install --user kneaddate)
 
-# seq_path="/scratch/rx32940/kraken2_052020"
-# DATABASE="/scratch/rx32940/kraken2_052020/kneaddata/ref_db"
 
 # for sample in $seq_path/Data/rawdata/*;
 # do
@@ -68,9 +80,57 @@ cd $PBS_O_WORKDIR
 #     echo "waiting"
 # done
 
-# kraken2-2.0.8-beta most recent released version
-module load BLAST+/2.7.1-foss-2016b-Python-2.7.14
-DBNAME="/scratch/rx32940/kraken2_052020/kraken2/kraken2_db"
-# build kraken2 standard database 9rsync doesn't work with dustmask, so use ftp)
-# software code also fixed with this: https://github.com/DerrickWood/kraken/issues/114
-/scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.8-beta/kraken2-build --standard --threads 24 --db $DBNAME --use-ftp
+###############################################################################
+# 
+# Kraken2-build (v2.0.9-beta)
+# - standard database 
+# - minikraken (minikraken_8GB_20200312)
+# 
+################################################################################
+
+# # kraken2-2.0.8-beta most recent released version
+# module load BLAST+/2.7.1-foss-2016b-Python-2.7.14
+
+# # build kraken2 standard database 
+# /scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2-build --standard --threads 24 --db $DBNAME
+
+###############################################################################
+# 
+# Kraken2
+# - input:
+#       hostcleaned unmatched_1 sequences for each sample from Kneaddata output
+# - DB: minikraken (minikraken_8GB_20200312)
+# 
+################################################################################
+
+for subject in $seq_path/kneaddata/hostclean_seq/*;
+do
+    (
+    sample="$(basename "$subject" | awk -F"_" '{print $1}')"
+
+    sapelo2_header="#PBS -q bahl_salv_q\n#PBS -N kraken2_${sample}_mini\n
+            #PBS -l nodes=1:ppn=24 -l mem=20gb\n
+            #PBS -l walltime=100:00:00\n
+            #PBS -M rx32940@uga.edu\n                                                  
+            #PBS -m abe\n                                                            
+            #PBS -o /scratch/rx32940\n                      
+            #PBS -e /scratch/rx32940\n                        
+            #PBS -j oe\n
+            "
+    echo $sample
+
+
+    echo -e $sapelo2_header > $seq_path/qsub_kraken2.sh
+    echo "/scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2 \
+    --use-names --db $DBNAME/minikraken_8GB_20200312 --threads 24 \
+    --report $outpath/mini_output/$sample.kreport \
+    $seq_path/kneaddata/hostclean_seq/${sample}_1_kneaddata_unmatched_1.fastq \
+    > $outpath/mini_output/$sample.txt" >> $seq_path/qsub_kraken2.sh
+
+    qsub $seq_path/qsub_kraken2.sh
+
+    ) & 
+
+    wait
+    echo "waiting"
+done
