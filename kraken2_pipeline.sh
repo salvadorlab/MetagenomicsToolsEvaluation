@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -q highmem_q                                                            
-#PBS -N submit_minikraken                                           
-#PBS -l nodes=1:ppn=2 -l mem=10gb                                        
+#PBS -N kraken-standard                                           
+#PBS -l nodes=1:ppn=24 -l mem=300gb                                        
 #PBS -l walltime=300:00:00                                                
 #PBS -M rx32940@uga.edu                                                  
 #PBS -m abe                                                              
@@ -88,11 +88,11 @@ outpath="/scratch/rx32940/kraken2_052020/kraken2"
 # 
 ################################################################################
 
-# # kraken2-2.0.8-beta most recent released version
-# module load BLAST+/2.7.1-foss-2016b-Python-2.7.14
+# kraken2-2.0.8-beta most recent released version
+module load BLAST+/2.7.1-foss-2016b-Python-2.7.14
 
-# # build kraken2 standard database 
-# /scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2-build --standard --threads 24 --db $DBNAME
+# build kraken2 standard database 
+/scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2-build --standard --threads 24 --db $DBNAME/standard
 
 ###############################################################################
 # 
@@ -100,6 +100,47 @@ outpath="/scratch/rx32940/kraken2_052020/kraken2"
 # - input:
 #       hostcleaned unmatched_1 sequences for each sample from Kneaddata output
 # - DB: minikraken (minikraken_8GB_20200312)
+# 
+################################################################################
+
+# for subject in $seq_path/kneaddata/hostclean_seq/*;
+# do
+#     (
+#     sample="$(basename "$subject" | awk -F"_" '{print $1}')"
+
+#     sapelo2_header="#PBS -q bahl_salv_q\n#PBS -N kraken2_${sample}_mini\n
+#             #PBS -l nodes=1:ppn=24 -l mem=20gb\n
+#             #PBS -l walltime=100:00:00\n
+#             #PBS -M rx32940@uga.edu\n                                                  
+#             #PBS -m abe\n                                                            
+#             #PBS -o /scratch/rx32940\n                      
+#             #PBS -e /scratch/rx32940\n                        
+#             #PBS -j oe\n
+#             "
+#     echo $sample
+
+
+#     echo -e $sapelo2_header > $seq_path/qsub_kraken2.sh
+#     echo "/scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2 \
+#     --use-names --db $DBNAME/minikraken_8GB_20200312 --threads 24 \
+#     --report $outpath/mini_output/$sample.kreport \
+#     $seq_path/kneaddata/hostclean_seq/${sample}_1_kneaddata_unmatched_1.fastq \
+#     > $outpath/mini_output/$sample.txt" >> $seq_path/qsub_kraken2.sh
+
+#     qsub $seq_path/qsub_kraken2.sh
+
+#     ) & 
+
+#     wait
+#     echo "waiting"
+# done
+
+###############################################################################
+# 
+# Kraken2
+# - input:
+#       hostcleaned unmatched_1 sequences for each sample from Kneaddata output
+# - DB: standard DB (built on 6/10/2020)
 # 
 ################################################################################
 
@@ -122,10 +163,10 @@ do
 
     echo -e $sapelo2_header > $seq_path/qsub_kraken2.sh
     echo "/scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2 \
-    --use-names --db $DBNAME/minikraken_8GB_20200312 --threads 24 \
-    --report $outpath/mini_output/$sample.kreport \
+    --use-names --db $DBNAME/standard --threads 24 \
+    --report $outpath/standard_output/$sample.kreport \
     $seq_path/kneaddata/hostclean_seq/${sample}_1_kneaddata_unmatched_1.fastq \
-    > $outpath/mini_output/$sample.txt" >> $seq_path/qsub_kraken2.sh
+    > $outpath/standard_output/$sample.txt" >> $seq_path/qsub_kraken2.sh
 
     qsub $seq_path/qsub_kraken2.sh
 
