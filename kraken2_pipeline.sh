@@ -144,34 +144,34 @@ module load BLAST+/2.7.1-foss-2016b-Python-2.7.14
 # 
 ################################################################################
 
-for subject in $seq_path/kneaddata/hostclean_seq/*;
-do
-    (
-    sample="$(basename "$subject" | awk -F"_" '{print $1}')"
+# for subject in $seq_path/kneaddata/hostclean_seq/*;
+# do
+#     (
+#     sample="$(basename "$subject" | awk -F"_" '{print $1}')"
 
-    sapelo2_header="#PBS -q bahl_salv_q\n#PBS -N kraken2_${sample}_mini\n
-            #PBS -l nodes=1:ppn=24 -l mem=20gb\n
-            #PBS -l walltime=100:00:00\n
-            #PBS -M rx32940@uga.edu\n                                                  
-            #PBS -m abe\n                                                            
-            #PBS -o /scratch/rx32940\n                      
-            #PBS -e /scratch/rx32940\n                        
-            #PBS -j oe\n
-            "
-    echo $sample
+#     sapelo2_header="#PBS -q bahl_salv_q\n#PBS -N kraken2_${sample}_mini\n
+#             #PBS -l nodes=1:ppn=24 -l mem=20gb\n
+#             #PBS -l walltime=100:00:00\n
+#             #PBS -M rx32940@uga.edu\n                                                  
+#             #PBS -m abe\n                                                            
+#             #PBS -o /scratch/rx32940\n                      
+#             #PBS -e /scratch/rx32940\n                        
+#             #PBS -j oe\n
+#             "
+#     echo $sample
 
 
-    echo -e $sapelo2_header > $seq_path/qsub_kraken2.sh
-    echo "/scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2 \
-    --use-names --db $DBNAME/standard --threads 24 \
-    --report $outpath/standard_output/$sample.kreport \
-    $seq_path/kneaddata/hostclean_seq/${sample}_1_kneaddata_unmatched_1.fastq \
-    > $outpath/standard_output/$sample.txt" >> $seq_path/qsub_kraken2.sh
+#     echo -e $sapelo2_header > $seq_path/qsub_kraken2.sh
+#     echo "/scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2 \
+#     --use-names --db $DBNAME/standard --threads 24 \
+#     --report $outpath/standard_output/$sample.kreport \
+#     $seq_path/kneaddata/hostclean_seq/${sample}_1_kneaddata_unmatched_1.fastq \
+#     > $outpath/standard_output/$sample.txt" >> $seq_path/qsub_kraken2.sh
 
-    qsub $seq_path/qsub_kraken2.sh
+#     qsub $seq_path/qsub_kraken2.sh
 
-    ) & 
+#     ) & 
 
-    wait
-    echo "waiting"
-done
+#     wait
+#     echo "waiting"
+# done
