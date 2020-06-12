@@ -1,8 +1,8 @@
 #!/bin/bash
 #PBS -q highmem_q                                                            
-#PBS -N kraken-standard                                           
-#PBS -l nodes=1:ppn=24 -l mem=300gb                                        
-#PBS -l walltime=300:00:00                                                
+#PBS -N submit-kraken2                                        
+#PBS -l nodes=1:ppn=2 -l mem=20gb                                        
+#PBS -l walltime=10:00:00                                                
 #PBS -M rx32940@uga.edu                                                  
 #PBS -m abe                                                              
 #PBS -o /scratch/rx32940/
@@ -88,11 +88,12 @@ outpath="/scratch/rx32940/kraken2_052020/kraken2"
 # 
 ################################################################################
 
-# kraken2-2.0.8-beta most recent released version
-module load BLAST+/2.7.1-foss-2016b-Python-2.7.14
+# # kraken2-2.0.8-beta most recent released version
+# module load BLAST+/2.7.1-foss-2016b-Python-2.7.14
 
-# build kraken2 standard database 
-/scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2-build --standard --threads 24 --db $DBNAME/standard
+# # build kraken2 standard database 
+# # changed kraken2 src according to this: https://github.com/DerrickWood/kraken/issues/114
+# /scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2-build --standard --threads 24 --db $DBNAME/standard
 
 ###############################################################################
 # 
@@ -135,43 +136,43 @@ module load BLAST+/2.7.1-foss-2016b-Python-2.7.14
 #     echo "waiting"
 # done
 
-###############################################################################
-# 
+##############################################################################
+
 # Kraken2
 # - input:
 #       hostcleaned unmatched_1 sequences for each sample from Kneaddata output
 # - DB: standard DB (built on 6/10/2020)
-# 
-################################################################################
 
-# for subject in $seq_path/kneaddata/hostclean_seq/*;
-# do
-#     (
-#     sample="$(basename "$subject" | awk -F"_" '{print $1}')"
+###############################################################################
 
-#     sapelo2_header="#PBS -q bahl_salv_q\n#PBS -N kraken2_${sample}_mini\n
-#             #PBS -l nodes=1:ppn=24 -l mem=20gb\n
-#             #PBS -l walltime=100:00:00\n
-#             #PBS -M rx32940@uga.edu\n                                                  
-#             #PBS -m abe\n                                                            
-#             #PBS -o /scratch/rx32940\n                      
-#             #PBS -e /scratch/rx32940\n                        
-#             #PBS -j oe\n
-#             "
-#     echo $sample
+for subject in $seq_path/kneaddata/hostclean_seq/*;
+do
+    (
+    sample="$(basename "$subject" | awk -F"_" '{print $1}')"
+    # need large memory for each job to load the hash table
+    sapelo2_header="#PBS -q highmem_q\n#PBS -N kraken2_${sample}_standard\n
+            #PBS -l nodes=1:ppn=12 -l mem=150gb\n
+            #PBS -l walltime=100:00:00\n
+            #PBS -M rx32940@uga.edu\n                                                  
+            #PBS -m abe\n                                                            
+            #PBS -o /scratch/rx32940\n                      
+            #PBS -e /scratch/rx32940\n                        
+            #PBS -j oe\n
+            "
+    echo $sample
 
 
-#     echo -e $sapelo2_header > $seq_path/qsub_kraken2.sh
-#     echo "/scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2 \
-#     --use-names --db $DBNAME/standard --threads 24 \
-#     --report $outpath/standard_output/$sample.kreport \
-#     $seq_path/kneaddata/hostclean_seq/${sample}_1_kneaddata_unmatched_1.fastq \
-#     > $outpath/standard_output/$sample.txt" >> $seq_path/qsub_kraken2.sh
+    echo -e $sapelo2_header > $seq_path/qsub_kraken2.sh
+    echo "/scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2 \
+    --use-names --db $DBNAME/standard --threads 24 \
+    --report $outpath/standard_output/$sample.kreport \
+    $seq_path/kneaddata/hostclean_seq/${sample}_1_kneaddata_unmatched_1.fastq \
+    > $outpath/standard_output/$sample.txt" >> $seq_path/qsub_kraken2.sh
 
-#     qsub $seq_path/qsub_kraken2.sh
+    qsub $seq_path/qsub_kraken2.sh
 
-#     ) & 
+    ) & 
 
-#     wait
-#     echo "waiting"
-# done
+    wait
+    echo "waiting"
+done
