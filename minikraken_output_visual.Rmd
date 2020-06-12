@@ -1,0 +1,48 @@
+---
+title: "minikraken_analysis"
+author: "Rachel Xu"
+date: "6/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+```
+### PATH to minikraken output result:
+```{r}
+path = "/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/minikraken"
+setwd(path)
+```
+
+Kraken2 kreport:
+    1) Absolute Reads
+    2) root: celluar organism (Eukaryota + Bacteria) + Viruses
+    3) all_reads: Eukaryota + Bacteria + Viruses + unclassified 
+```{r}
+absolute_path = paste(path,"/absolute/",sep="")
+files <- list.files(absolute_path)
+
+
+i=0
+for (file in files){
+  current_sample <- read.csv(paste(absolute_path,file,sep=""),sep="\t",header=FALSE)
+  domain_absolute <- current_sample %>% subset(V4 == "D" | V4 == "U") %>% select(c(V6,V2))
+  transpose_domain <- data.frame(t(domain_absolute))
+  colnames(transpose_domain) <- transpose_domain["V6",] 
+  transpose_domain <- transpose_domain[2,]
+  print(transpose_domain)
+  if (i == 0){
+    domain_all_samples <-  transpose_domain
+    print(domain_all_samples)
+  } else {
+    domain_all_samples <- rbind(domain_all_samples, transpose_domain)
+    print(domain_all_samples)
+  }
+  i = i + 1
+}
+
+```
