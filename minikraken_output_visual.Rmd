@@ -4,19 +4,25 @@ author: "Rachel Xu"
 date: "6/11/2020"
 output: html_document
 ---
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-```{r}
-library(dplyr)
-```
 ### PATH to minikraken output result:
 ```{r}
 path = "/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/minikraken"
 setwd(path)
 ```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = path)
+```
+
+```{r}
+library(dplyr)
+library(magrittr)
+library(ggplot2)
+library(tidyverse)
+library(plotly)
+```
+
 
 Kraken2 kreport:
     1) Absolute Reads
@@ -28,21 +34,48 @@ files <- list.files(absolute_path)
 
 
 i=0
+
+# iterate through all sample's result for Domain info
 for (file in files){
   current_sample <- read.csv(paste(absolute_path,file,sep=""),sep="\t",header=FALSE)
-  domain_absolute <- current_sample %>% subset(V4 == "D" | V4 == "U") %>% select(c(V6,V2))
-  transpose_domain <- data.frame(t(domain_absolute))
-  colnames(transpose_domain) <- transpose_domain["V6",] 
-  transpose_domain <- transpose_domain[2,]
-  print(transpose_domain)
-  if (i == 0){
-    domain_all_samples <-  transpose_domain
-    print(domain_all_samples)
+  domain_absolute <- current_sample %>% subset(V4 == "D" | V4 == "U") %>% mutate(trimed = trimws(V6))  %>% select(c(trimed,V2))
+  
+  colnames(domain_absolute) <- c("Domain", unlist(strsplit(file,".",fixed = TRUE))[1])
+
+  
+  if (i == 0){ # if is the first sample, make the table the aggregated data table
+    domain_all_samples <-  domain_absolute
+
   } else {
-    domain_all_samples <- rbind(domain_all_samples, transpose_domain)
-    print(domain_all_samples)
+    domain_all_samples <- full_join(domain_all_samples, domain_absolute,by="Domain")
+
   }
   i = i + 1
 }
 
+save(domain_all_samples, file ="minikraken_absolute_domain.Rdata")
+
+domain_all_samples[is.na(domain_all_samples)] <- 0
+keys_to_gather <- colnames(domain_all_samples)[-1] # gather samples, exclude "Domain" from colnames
+
+# prepare dataframe for ggplot
+domain_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
+
+order <- unique(domain_all_samples$samples)
+domain_all_samples$samples <- factor(domain_all_samples$samples, levels = order)
+domain_all_samples$Domain <- factor(domain_all_samples$Domain, level=unique(domain_all_samples$Domain))
+domain_all_samples
+
 ```
+
+```{r}
+
+plot <- ggplot(domain_all_samples, aes(x=samples,y=Reads,fill=Domain)) +
+  geom_bar(stat="identity") + 
+  labs(title = "Metagenomic Reads Classification with MiniKraken Database", y="Number of Reads", x = "Samples")
+
+ggplotly(plot)
+
+```
+
+### Compare to classification results with standard database, the amount of reads classified with minikraken database was much lesser. Thus minikraken2 is not able to produce a reliable results compare to using kraken2's standard databases
