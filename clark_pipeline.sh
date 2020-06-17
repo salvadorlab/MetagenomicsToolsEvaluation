@@ -1,8 +1,8 @@
 #!/bin/bash
 #PBS -q highmem_q                                                            
 #PBS -N clark_classify                                        
-#PBS -l nodes=1:ppn=15 -l mem=300gb                                        
-#PBS -l walltime=150:00:00                                                
+#PBS -l nodes=1:ppn=12 -l mem=800gb                                        
+#PBS -l walltime=100:00:00                                                
 #PBS -M rx32940@uga.edu                                                  
 #PBS -m abe                                                              
 #PBS -o /scratch/rx32940/
@@ -43,11 +43,12 @@ seq_path="/scratch/rx32940/clark_0613/hostclean_seq"
 $path/CLARKSCV1.2.6.1/set_targets.sh $DB/standard custom bacteria viruses human --phylum
 # # $path/CLARKSCV1.2.6.1/set_targets.sh $DB/standard Custom --genus
 
+$path/CLARKSCV1.2.6.1/classify_metagenome.sh -n 12 -O $seq_path/R22.K_1_kneaddata_unmatched_1.fastq -R $path/output_phylum/R22.K
 # classify each sequence
-for file in $seq_path/*; do
-    sample=$(basename "$file" "_1_kneaddata_unmatched_1.fastq")
-    $path/CLARKSCV1.2.6.1/classify_metagenome.sh -n 24 -O $seq_path/${sample}_1_kneaddata_unmatched_1.fastq -R $path/output_phylum/$sample
-done
+# for file in $seq_path/*; do
+#     sample=$(basename "$file" "_1_kneaddata_unmatched_1.fastq")
+#     $path/CLARKSCV1.2.6.1/classify_metagenome.sh -n 24 -O $seq_path/${sample}_1_kneaddata_unmatched_1.fastq -R $path/output_phylum/$sample
+# done
 
 echo "classify_metagenome done"
 
