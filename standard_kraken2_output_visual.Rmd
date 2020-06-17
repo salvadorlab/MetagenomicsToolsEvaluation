@@ -21,6 +21,7 @@ library(magrittr)
 library(ggplot2)
 library(tidyverse)
 library(plotly)
+library("phyloseq")
 ```
 
 ## Kraken2 kreport:
@@ -186,5 +187,52 @@ plot <- ggplot(genus_all_samples, aes(x=samples,y=Reads,fill=genus)) +
   theme(axis.title = element_text(size=1), axis.text.x = element_text(angle=90))
 
 ggplotly(plot)
+
+```
+
+## Phyloseq Package for Downstream Analysis
+
+### Data Wrangling to format for phyloseq analysis
+```{r}
+absolute_path = paste(path,"/absolute/",sep="")
+files <- list.files(absolute_path)
+
+
+i=0
+
+# iterate through all sample's result for Domain info
+for (file in files){
+  current_sample <- read.csv(paste(absolute_path,file,sep=""),sep="\t",header=FALSE)
+  bacteria_profile <- current_sample %>% mutate(trimed = trimws(V6))  %>% select(c(trimed,V4,V2)) %>% subset(V4 == "D"| V4 == "K"|V4 == "P"|V4 == "C"|V4 == "O"| V4 == "F"| V4 == "G")# only keep rank that has certain taxonomy
+  rownames(bacteria_profile) <- NULL # reorder rownames after subsetting
+  # select all taxa below Bacteria, thus excluding unclassified, root and Eukaryota
+  bacteria_profile <- bacteria_profile[as.numeric(rownames(bacteria_profile)) >= which(bacteria_profile["trimed"] == "Bacteria"),] 
+  colnames(bacteria_profile) <- c("OTU","rank",unlist(strsplit(file,".",fixed = TRUE))[1])
+  
+  if (i == 0){ # if is the first sample, make the table the aggregated data table
+    all_samples_w_taxa <-  bacteria_profile
+
+  } else {
+    all_samples_w_taxa <- full_join(all_samples_w_taxa, bacteria_profile,by=c("rank","OTU"))
+
+  }
+  i = i + 1
+}
+
+all_samples_w_taxa[is.na(all_samples_w_taxa)] <- 0 # all otu with NA reads fill in with 0
+# some OTU has the same name in different rank, thus cause duplications
+duplicated_otu <- all_samples_w_taxa$OTU[duplicated(all_samples_w_taxa$OTU)]
+
+# make OTU with same name in different rank with rank indicator by adding "_rank"
+all_samples_w_taxa$OTU <- ifelse(all_samples_w_taxa$OTU %in% duplicated_otu, paste(all_samples_w_taxa$OTU,all_samples_w_taxa$rank,sep="_"),all_samples_w_taxa$OTU)
+
+# make the OTU names the rownames
+rownames(all_samples_w_taxa) <- all_samples_w_taxa$OTU 
+all_samples_w_taxa <- all_samples_w_taxa[,-1] 
+```
+
+```{r}
+otu_tab <- all_samples_w_taxa[,-1] # get rid of the rank column to form an otu table
+OTU <- otu_table(all_samples_w_taxa,taxa_are_rows = T)
 
 ```

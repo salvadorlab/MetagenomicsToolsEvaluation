@@ -46,7 +46,7 @@ obj <- phyloseq(OTU,TAX,sample_ann)
 ##########################################################
 # KRAKEN2:BRACKEN data                                   #
 ##########################################################
-setwd("/Users/rx32940/Dropbox/5. Rachel's projects/Metagenomic_Analysis/KRAKEN2:BRACKEN/genus/data")
+setwd("/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/KRAKEN2:BRACKEN/genus/data")
 
 
 files <- list.files(".")
