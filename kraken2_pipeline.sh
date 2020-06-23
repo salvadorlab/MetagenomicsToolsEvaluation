@@ -1,8 +1,8 @@
 #!/bin/bash
 #PBS -q highmem_q                                                            
-#PBS -N submit-kraken2                                        
-#PBS -l nodes=1:ppn=2 -l mem=20gb                                        
-#PBS -l walltime=10:00:00                                                
+#PBS -N ratonly_kraken2                                        
+#PBS -l nodes=1:ppn=24 -l mem=300gb                                        
+#PBS -l walltime=20:00:00                                                
 #PBS -M rx32940@uga.edu                                                  
 #PBS -m abe                                                              
 #PBS -o /scratch/rx32940/
@@ -85,15 +85,44 @@ outpath="/scratch/rx32940/kraken2_052020/kraken2"
 # Kraken2-build (v2.0.9-beta)
 # - standard database 
 # - minikraken (minikraken_8GB_20200312)
+# - custom database (includes two Rattus sequences)
 # 
 ################################################################################
 
 # # kraken2-2.0.8-beta most recent released version
-# module load BLAST+/2.7.1-foss-2016b-Python-2.7.14
+module load BLAST+/2.7.1-foss-2016b-Python-2.7.14
 
 # # build kraken2 standard database 
 # # changed kraken2 src according to this: https://github.com/DerrickWood/kraken/issues/114
 # /scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2-build --standard --threads 24 --db $DBNAME/standard
+
+# added rattus to standard kraken2 custom database
+# cp -r standard/ custom
+# /scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2-build --add-to-library $DBNAME/rattus_seq/GCF_000001895.5_Rnor_6.0_genomic.fna --db $DBNAME/custom
+# /scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2-build --add-to-library $DBNAME/rattus_seq/GCF_011064425.1_Rrattus_CSIRO_v1_genomic.fna --db $DBNAME/custom
+
+
+# build custom db by adding rattus reference genomes
+# best approach to ensure rsync works is to download each library one by one in an interactive session (open multiple interactive session)
+# but final building step still need to submit a script
+# /scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2-build --download-taxonomy --db $DBNAME/rat_only 
+
+# /scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2-build --download-library human --db $DBNAME/rat_only 
+
+# /scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2-build --download-library bacteria --db $DBNAME/rat_only 
+
+# /scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2-build --download-library archaea --db $DBNAME/rat_only 
+
+# /scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2-build --download-library viral --db $DBNAME/rat_only 
+
+# /scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2-build --download-library UniVec_Core --db $DBNAME/rat_only 
+
+# /scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2-build --add-to-library $DBNAME/rattus_seq/GCF_000001895.5_Rnor_6.0_genomic.fna --db $DBNAME/rat_only
+
+# /scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2-build --add-to-library $DBNAME/rattus_seq/GCF_011064425.1_Rrattus_CSIRO_v1_genomic.fna --db $DBNAME/rat_only
+
+# echo "adding done"
+/scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2-build --build --threads 24 --db $DBNAME/rat_only
 
 ###############################################################################
 # 
@@ -145,34 +174,76 @@ outpath="/scratch/rx32940/kraken2_052020/kraken2"
 
 ###############################################################################
 
-for subject in $seq_path/kneaddata/hostclean_seq/*;
-do
-    (
-    sample="$(basename "$subject" | awk -F"_" '{print $1}')"
-    # need large memory for each job to load the hash table
-    sapelo2_header="#PBS -q highmem_q\n#PBS -N kraken2_${sample}_standard\n
-            #PBS -l nodes=1:ppn=12 -l mem=150gb\n
-            #PBS -l walltime=100:00:00\n
-            #PBS -M rx32940@uga.edu\n                                                  
-            #PBS -m abe\n                                                            
-            #PBS -o /scratch/rx32940\n                      
-            #PBS -e /scratch/rx32940\n                        
-            #PBS -j oe\n
-            "
-    echo $sample
+# for subject in $seq_path/kneaddata/hostclean_seq/*;
+# do
+#     (
+#     sample="$(basename "$subject" | awk -F"_" '{print $1}')"
+#     # need large memory for each job to load the hash table
+#     sapelo2_header="#PBS -q highmem_q\n#PBS -N kraken2_${sample}_standard\n
+#             #PBS -l nodes=1:ppn=12 -l mem=150gb\n
+#             #PBS -l walltime=100:00:00\n
+#             #PBS -M rx32940@uga.edu\n                                                  
+#             #PBS -m abe\n                                                            
+#             #PBS -o /scratch/rx32940\n                      
+#             #PBS -e /scratch/rx32940\n                        
+#             #PBS -j oe\n
+#             "
+#     echo $sample
 
 
-    echo -e $sapelo2_header > $seq_path/qsub_kraken2.sh
-    echo "/scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2 \
-    --use-names --db $DBNAME/standard --threads 24 \
-    --report $outpath/standard_output/$sample.kreport \
-    $seq_path/kneaddata/hostclean_seq/${sample}_1_kneaddata_unmatched_1.fastq \
-    > $outpath/standard_output/$sample.txt" >> $seq_path/qsub_kraken2.sh
+#     echo -e $sapelo2_header > $seq_path/qsub_kraken2.sh
+#     echo "/scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2 \
+#     --use-names --db $DBNAME/standard --threads 24 \
+#     --report $outpath/standard_output/$sample.kreport \
+#     $seq_path/kneaddata/hostclean_seq/${sample}_1_kneaddata_unmatched_1.fastq \
+#     > $outpath/standard_output/$sample.txt" >> $seq_path/qsub_kraken2.sh
 
-    qsub $seq_path/qsub_kraken2.sh
+#     qsub $seq_path/qsub_kraken2.sh
 
-    ) & 
+#     ) & 
 
-    wait
-    echo "waiting"
-done
+#     wait
+#     echo "waiting"
+# done
+
+##############################################################################
+
+# Kraken2
+# - input:
+#       hostcleaned unmatched_1 sequences for each sample from Kneaddata output
+# - DB: custom DB (built on 6/22/2020)
+# - added reference genomes for Rattus rattus and Rattus nor
+
+###############################################################################
+
+# for subject in $seq_path/kneaddata/hostclean_seq/*;
+# do
+#     (
+#     sample="$(basename "$subject" | awk -F"_" '{print $1}')"
+#     # need large memory for each job to load the hash table
+#     sapelo2_header="#PBS -q highmem_q\n#PBS -N kraken2_${sample}_custom\n
+#             #PBS -l nodes=1:ppn=12 -l mem=150gb\n
+#             #PBS -l walltime=20:00:00\n
+#             #PBS -M rx32940@uga.edu\n                                                  
+#             #PBS -m abe\n                                                            
+#             #PBS -o /scratch/rx32940\n                      
+#             #PBS -e /scratch/rx32940\n                        
+#             #PBS -j oe\n
+#             "
+#     echo $sample
+
+
+#     echo -e $sapelo2_header > $seq_path/qsub_kraken2.sh
+#     echo "/scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2 \
+#     --use-names --db $DBNAME/custom --threads 12 \
+#     --report $outpath/custom_output/$sample.kreport \
+#     $seq_path/kneaddata/hostclean_seq/${sample}_1_kneaddata_unmatched_1.fastq \
+#     > $outpath/custom_output/$sample.txt" >> $seq_path/qsub_kraken2.sh
+
+#     qsub $seq_path/qsub_kraken2.sh
+
+#     ) & 
+
+#     wait
+#     echo "waiting"
+# done
