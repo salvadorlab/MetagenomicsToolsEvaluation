@@ -1,8 +1,8 @@
 #!/bin/bash
 #PBS -q highmem_q                                                            
-#PBS -N clark_classify                                        
-#PBS -l nodes=1:ppn=15 -l mem=300gb                                        
-#PBS -l walltime=150:00:00                                                
+#PBS -N clark_results                                        
+#PBS -l nodes=1:ppn=12 -l mem=500gb                                        
+#PBS -l walltime=20:00:00                                                
 #PBS -M rx32940@uga.edu                                                  
 #PBS -m abe                                                              
 #PBS -o /scratch/rx32940/
@@ -40,21 +40,25 @@ seq_path="/scratch/rx32940/clark_0613/hostclean_seq"
 #
 ###################################################################
 
-$path/CLARKSCV1.2.6.1/set_targets.sh $DB/standard custom bacteria viruses human --phylum
-# # $path/CLARKSCV1.2.6.1/set_targets.sh $DB/standard Custom --genus
+# $path/CLARKSCV1.2.6.1/set_targets.sh $DB/standard custom bacteria viruses human --phylum 
+# $path/CLARKSCV1.2.6.1/set_targets.sh $DB/standard custom bacteria viruses human --genus
+$path/CLARKSCV1.2.6.1/set_targets.sh $DB/standard custom bacteria viruses human --species
+
+# use one sample to build the discriminative database
+$path/CLARKSCV1.2.6.1/classify_metagenome.sh -n 12 -O $seq_path/R22.K_1_kneaddata_unmatched_1.fastq -R $path/output_species/R22.K
 
 # classify each sequence
-for file in $seq_path/*; do
-    sample=$(basename "$file" "_1_kneaddata_unmatched_1.fastq")
-    $path/CLARKSCV1.2.6.1/classify_metagenome.sh -n 24 -O $seq_path/${sample}_1_kneaddata_unmatched_1.fastq -R $path/output_phylum/$sample
-done
+# for file in $seq_path/*; do
+#     sample=$(basename "$file" "_1_kneaddata_unmatched_1.fastq")
+#     $path/CLARKSCV1.2.6.1/classify_metagenome.sh -n 24 -O $seq_path/${sample}_1_kneaddata_unmatched_1.fastq -R $path/output_genus/$sample
+# done
 
-echo "classify_metagenome done"
+# echo "classify_metagenome done"
 
-#analyze result from clark
-# for file in /scratch/rx32940/CLARK/output/prebuilt/phylum/regular/*; do 
+# analyze result from clark
+# for file in /scratch/rx32940/clark_0613/output_genus/*; do 
 #    sample_csv=$(basename "$file" ".csv")
-#   $path/CLARK/CLARKSCV1.2.6.1/estimate_abundance.sh -F /scratch/rx32940/CLARK/output/prebuilt/phylum/regular/$sample_csv.csv -D $path/CLARK/DB > /scratch/rx32940/CLARK/output/abundance/phylum/prebuilt/${sample_csv}_abundance.txt
+#    $path/CLARKSCV1.2.6.1/estimate_abundance.sh -F /scratch/rx32940/clark_0613/output_genus/$sample_csv.csv -D $DB/standard > /scratch/rx32940/clark_0613/output_genus/${sample_csv}_abundance.txt
 # done
 
 # echo "regular abundance estimation done"
