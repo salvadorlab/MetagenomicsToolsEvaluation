@@ -46,7 +46,7 @@ do
             species="Rnor_6.0"
             fi
 
-        sapelo2_header="#PBS -q bahl_salv_q\n#PBS -N hostclean_$tissue_id\n
+        sapelo2_header="#PBS -q highmem_q\n#PBS -N hostclean_$tissue_id\n
         #PBS -l nodes=1:ppn=12 -l mem=100gb\n
         #PBS -l walltime=100:00:00\n
         #PBS -M rx32940@uga.edu\n                                                  

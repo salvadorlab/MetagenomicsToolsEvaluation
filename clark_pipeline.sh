@@ -1,8 +1,8 @@
 #!/bin/bash
 #PBS -q highmem_q                                                            
-#PBS -N clark_results                                        
-#PBS -l nodes=1:ppn=12 -l mem=500gb                                        
-#PBS -l walltime=20:00:00                                                
+#PBS -N clark_ratdb                                        
+#PBS -l nodes=1:ppn=1 -l mem=800gb                                        
+#PBS -l walltime=300:00:00                                                
 #PBS -M rx32940@uga.edu                                                  
 #PBS -m abe                                                              
 #PBS -o /scratch/rx32940/
@@ -33,6 +33,9 @@ seq_path="/scratch/rx32940/clark_0613/hostclean_seq"
 # build custom database after added Univec_core
 # $path/CLARKSCV1.2.6.1/set_targets.sh $DB/standard custom 
 
+# reset custom db, added refseq for Rattus into custom db along with univec_core
+# no need to set_targets separately with custom db. straight set_target with rest of the db, default is species level
+# set targets is species level, provide full taxonomic lineage in the report. can do conversion in R to speed up the analysis
 ###################################################################
 #
 # Setting Taxonomy rank
@@ -45,7 +48,7 @@ seq_path="/scratch/rx32940/clark_0613/hostclean_seq"
 $path/CLARKSCV1.2.6.1/set_targets.sh $DB/standard custom bacteria viruses human --species
 
 # use one sample to build the discriminative database
-$path/CLARKSCV1.2.6.1/classify_metagenome.sh -n 12 -O $seq_path/R22.K_1_kneaddata_unmatched_1.fastq -R $path/output_species/R22.K
+$path/CLARKSCV1.2.6.1/classify_metagenome.sh -n 1 -O $seq_path/R22.K_1_kneaddata_unmatched_1.fastq -R $path/output_species/R22.K
 
 # classify each sequence
 # for file in $seq_path/*; do
