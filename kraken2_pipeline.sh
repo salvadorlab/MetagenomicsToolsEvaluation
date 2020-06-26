@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -q highmem_q                                                            
-#PBS -N ratonly_kraken2                                        
-#PBS -l nodes=1:ppn=24 -l mem=300gb                                        
+#PBS -N hostclean_submit                                        
+#PBS -l nodes=1:ppn=1 -l mem=10gb                                        
 #PBS -l walltime=20:00:00                                                
 #PBS -M rx32940@uga.edu                                                  
 #PBS -m abe                                                              
@@ -32,53 +32,53 @@ outpath="/scratch/rx32940/kraken2_052020/kraken2"
 # # host clean with KneadData (downloaded to sapelo2 home dir: pip install --user kneaddate)
 
 
-# for sample in $seq_path/Data/rawdata/*;
-# do
-#     (
-#         sample_id="$(basename "$sample" | awk -F"." '{print $1}')"
-#         tissue_id="$(basename "$sample")"
-#         species="species"
+for sample in $seq_path/Data/rawdata/*;
+do
+    (
+        sample_id="$(basename "$sample" | awk -F"." '{print $1}')"
+        tissue_id="$(basename "$sample")"
+        species="species"
 
-#         if [ "$sample_id" == "R28" ] ; 
-#         then 
-#             species="Rrattus"
-#         else 
-#             species="Rnor_6.0"
-#             fi
+        if [ "$sample_id" == "R28" ] ; 
+        then 
+            species="Rrattus"
+        else 
+            species="Rnor_6.0"
+            fi
 
-#         sapelo2_header="#PBS -q bahl_salv_q\n#PBS -N hostclean_$tissue_id\n
-#         #PBS -l nodes=1:ppn=12 -l mem=20gb\n
-#         #PBS -l walltime=100:00:00\n
-#         #PBS -M rx32940@uga.edu\n                                                  
-#         #PBS -m abe\n                                                            
-#         #PBS -o /scratch/rx32940\n                      
-#         #PBS -e /scratch/rx32940\n                        
-#         #PBS -j oe\n
-#         "
-#         echo $sample
-#         echo $species
+        sapelo2_header="#PBS -q bahl_salv_q\n#PBS -N hostclean_$tissue_id\n
+        #PBS -l nodes=1:ppn=12 -l mem=100gb\n
+        #PBS -l walltime=100:00:00\n
+        #PBS -M rx32940@uga.edu\n                                                  
+        #PBS -m abe\n                                                            
+        #PBS -o /scratch/rx32940\n                      
+        #PBS -e /scratch/rx32940\n                        
+        #PBS -j oe\n
+        "
+        echo $sample
+        echo $species
 
-#         echo -e $sapelo2_header > $seq_path/qsub_kneaddata.sh 
+        echo -e $sapelo2_header > $seq_path/qsub_kneaddata.sh 
 
-#         modules="module load Bowtie2/2.3.5.1-foss-2018a\n
-#         module load Trimmomatic/0.36-Java-1.8.0_144\n
-#         module load FastQC/0.11.8-Java-1.8.0_144\n 
-#         module load SAMtools/1.10-GCC-8.2.0-2.31.1"
+        modules="module load Bowtie2/2.3.5.1-foss-2018a\n
+        module load Trimmomatic/0.36-Java-1.8.0_144\n
+        module load FastQC/0.11.8-Java-1.8.0_144\n 
+        module load SAMtools/1.10-GCC-8.2.0-2.31.1"
 
-#         echo -e $modules >> $seq_path/qsub_kneaddata.sh 
+        echo -e $modules >> $seq_path/qsub_kneaddata.sh 
         
-#         echo "kneaddata -t 12 -v --trimmomatic /usr/local/apps/eb/Trimmomatic/0.33-Java-1.8.0_144 \
-#         --input $sample/*_1.fq.gz --input $sample/*_1.fq.gz \
-#         -db $DATABASE/$species --output $seq_path/kneaddata/hostclean_self" >> $seq_path/qsub_kneaddata.sh
+        echo "kneaddata -t 12 -v --trimmomatic /usr/local/apps/eb/Trimmomatic/0.33-Java-1.8.0_144 \
+        --input $sample/*_1.fq.gz --input $sample/*_2.fq.gz \
+        -db $DATABASE/$species --output $seq_path/kneaddata/hostclean_self" >> $seq_path/qsub_kneaddata.sh
     
-#         qsub $seq_path/qsub_kneaddata.sh
+        qsub $seq_path/qsub_kneaddata.sh
 
-#         echo "submit $sample"
-#     ) &
+        echo "submit $sample"
+    ) &
 
-#     wait 
-#     echo "waiting"
-# done
+    wait 
+    echo "waiting"
+done
 
 ###############################################################################
 # 
@@ -90,7 +90,7 @@ outpath="/scratch/rx32940/kraken2_052020/kraken2"
 ################################################################################
 
 # # kraken2-2.0.8-beta most recent released version
-module load BLAST+/2.7.1-foss-2016b-Python-2.7.14
+# module load BLAST+/2.7.1-foss-2016b-Python-2.7.14
 
 # # build kraken2 standard database 
 # # changed kraken2 src according to this: https://github.com/DerrickWood/kraken/issues/114
@@ -122,7 +122,7 @@ module load BLAST+/2.7.1-foss-2016b-Python-2.7.14
 # /scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2-build --add-to-library $DBNAME/rattus_seq/GCF_011064425.1_Rrattus_CSIRO_v1_genomic.fna --db $DBNAME/rat_only
 
 # echo "adding done"
-/scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2-build --build --threads 24 --db $DBNAME/rat_only
+# /scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2-build --build --threads 24 --db $DBNAME/rat_only
 
 ###############################################################################
 # 
