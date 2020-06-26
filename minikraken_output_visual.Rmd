@@ -72,7 +72,8 @@ domain_all_samples
 
 plot <- ggplot(domain_all_samples, aes(x=samples,y=Reads,fill=Domain)) +
   geom_bar(stat="identity") + 
-  labs(title = "Metagenomic Reads Classification with MiniKraken Database", y="Number of Reads", x = "Samples")
+  labs(title = "Metagenomic Reads Classification with MiniKraken Database", y="Number of Reads", x = "Samples")+ 
+  theme(axis.text.x=element_text(angle=45))
 
 ggplotly(plot)
 
