@@ -1,8 +1,8 @@
 #!/bin/bash
 #PBS -q highmem_q                                                            
-#PBS -N hostclean_submit                                        
+#PBS -N submit_mini                                        
 #PBS -l nodes=1:ppn=1 -l mem=10gb                                        
-#PBS -l walltime=20:00:00                                                
+#PBS -l walltime=300:00:00                                                
 #PBS -M rx32940@uga.edu                                                  
 #PBS -m abe                                                              
 #PBS -o /scratch/rx32940/
@@ -32,53 +32,53 @@ outpath="/scratch/rx32940/kraken2_052020/kraken2"
 # # host clean with KneadData (downloaded to sapelo2 home dir: pip install --user kneaddate)
 
 
-for sample in $seq_path/Data/rawdata/*;
-do
-    (
-        sample_id="$(basename "$sample" | awk -F"." '{print $1}')"
-        tissue_id="$(basename "$sample")"
-        species="species"
+# for sample in $seq_path/Data/rawdata/*;
+# do
+#     (
+#         sample_id="$(basename "$sample" | awk -F"." '{print $1}')"
+#         tissue_id="$(basename "$sample")"
+#         species="species"
 
-        if [ "$sample_id" == "R28" ] ; 
-        then 
-            species="Rrattus"
-        else 
-            species="Rnor_6.0"
-            fi
+#         if [ "$sample_id" == "R28" ] ; 
+#         then 
+#             species="Rrattus"
+#         else 
+#             species="Rnor_6.0"
+#             fi
 
-        sapelo2_header="#PBS -q highmem_q\n#PBS -N hostclean_$tissue_id\n
-        #PBS -l nodes=1:ppn=12 -l mem=100gb\n
-        #PBS -l walltime=100:00:00\n
-        #PBS -M rx32940@uga.edu\n                                                  
-        #PBS -m abe\n                                                            
-        #PBS -o /scratch/rx32940\n                      
-        #PBS -e /scratch/rx32940\n                        
-        #PBS -j oe\n
-        "
-        echo $sample
-        echo $species
+#         sapelo2_header="#PBS -q highmem_q\n#PBS -N hostclean_$tissue_id\n
+#         #PBS -l nodes=1:ppn=12 -l mem=100gb\n
+#         #PBS -l walltime=100:00:00\n
+#         #PBS -M rx32940@uga.edu\n                                                  
+#         #PBS -m abe\n                                                            
+#         #PBS -o /scratch/rx32940\n                      
+#         #PBS -e /scratch/rx32940\n                        
+#         #PBS -j oe\n
+#         "
+#         echo $sample
+#         echo $species
 
-        echo -e $sapelo2_header > $seq_path/qsub_kneaddata.sh 
+#         echo -e $sapelo2_header > $seq_path/qsub_kneaddata.sh 
 
-        modules="module load Bowtie2/2.3.5.1-foss-2018a\n
-        module load Trimmomatic/0.36-Java-1.8.0_144\n
-        module load FastQC/0.11.8-Java-1.8.0_144\n 
-        module load SAMtools/1.10-GCC-8.2.0-2.31.1"
+#         modules="module load Bowtie2/2.3.5.1-foss-2018a\n
+#         module load Trimmomatic/0.36-Java-1.8.0_144\n
+#         module load FastQC/0.11.8-Java-1.8.0_144\n 
+#         module load SAMtools/1.10-GCC-8.2.0-2.31.1"
 
-        echo -e $modules >> $seq_path/qsub_kneaddata.sh 
+#         echo -e $modules >> $seq_path/qsub_kneaddata.sh 
         
-        echo "kneaddata -t 12 -v --trimmomatic /usr/local/apps/eb/Trimmomatic/0.33-Java-1.8.0_144 \
-        --input $sample/*_1.fq.gz --input $sample/*_2.fq.gz \
-        -db $DATABASE/$species --output $seq_path/kneaddata/hostclean_self" >> $seq_path/qsub_kneaddata.sh
+#         echo "kneaddata -t 12 -v --trimmomatic /usr/local/apps/eb/Trimmomatic/0.33-Java-1.8.0_144 \
+#         --input $sample/*_1.fq.gz --input $sample/*_2.fq.gz \
+#         -db $DATABASE/$species --output $seq_path/kneaddata/hostclean_self" >> $seq_path/qsub_kneaddata.sh
     
-        qsub $seq_path/qsub_kneaddata.sh
+#         qsub $seq_path/qsub_kneaddata.sh
 
-        echo "submit $sample"
-    ) &
+#         echo "submit $sample"
+#     ) &
 
-    wait 
-    echo "waiting"
-done
+#     wait 
+#     echo "waiting"
+# done
 
 ###############################################################################
 # 
@@ -128,42 +128,45 @@ done
 # 
 # Kraken2
 # - input:
-#       hostcleaned unmatched_1 sequences for each sample from Kneaddata output
+#       hostcleaned sequences for each sample from Kneaddata output
 # - DB: minikraken (minikraken_8GB_20200312)
 # 
 ################################################################################
 
-# for subject in $seq_path/kneaddata/hostclean_seq/*;
-# do
-#     (
-#     sample="$(basename "$subject" | awk -F"_" '{print $1}')"
+cat /scratch/rx32940/kraken2_052020/kneaddata/metagenomic_samples.txt | \
+while read sample;
+do
+    (
+    # no longer read from dir, but from the list of a sample file
+    # sample="$(basename "$subject" | awk -F"_" '{print $1}')"
 
-#     sapelo2_header="#PBS -q bahl_salv_q\n#PBS -N kraken2_${sample}_mini\n
-#             #PBS -l nodes=1:ppn=24 -l mem=20gb\n
-#             #PBS -l walltime=100:00:00\n
-#             #PBS -M rx32940@uga.edu\n                                                  
-#             #PBS -m abe\n                                                            
-#             #PBS -o /scratch/rx32940\n                      
-#             #PBS -e /scratch/rx32940\n                        
-#             #PBS -j oe\n
-#             "
-#     echo $sample
+    sapelo2_header="#PBS -q bahl_salv_q\n#PBS -N kraken2_${sample}_mini\n
+            #PBS -l nodes=1:ppn=24 -l mem=20gb\n
+            #PBS -l walltime=100:00:00\n
+            #PBS -M rx32940@uga.edu\n                                                  
+            #PBS -m abe\n                                                            
+            #PBS -o /scratch/rx32940\n                      
+            #PBS -e /scratch/rx32940\n                        
+            #PBS -j oe\n
+            "
+    echo $sample
 
 
-#     echo -e $sapelo2_header > $seq_path/qsub_kraken2.sh
-#     echo "/scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2 \
-#     --use-names --db $DBNAME/minikraken_8GB_20200312 --threads 24 \
-#     --report $outpath/mini_output/$sample.kreport \
-#     $seq_path/kneaddata/hostclean_seq/${sample}_1_kneaddata_unmatched_1.fastq \
-#     > $outpath/mini_output/$sample.txt" >> $seq_path/qsub_kraken2.sh
+    echo -e $sapelo2_header > $seq_path/qsub_kraken2.sh
+    echo "/scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2 \
+    --use-names --db $DBNAME/minikraken_8GB_20200312 --threads 24 \
+    --report $outpath/mini_output/$sample.kreport \
+    --paired $seq_path/kneaddata/hostclean_seq/${sample}_1_kneaddata_paired_1.fastq \
+    $seq_path/kneaddata/hostclean_seq/${sample}_1_kneaddata_paired_2.fastq \
+    > $outpath/mini_output/$sample.txt" >> $seq_path/qsub_kraken2.sh
 
-#     qsub $seq_path/qsub_kraken2.sh
+    qsub $seq_path/qsub_kraken2.sh
 
-#     ) & 
+    ) & 
 
-#     wait
-#     echo "waiting"
-# done
+    wait
+    echo "waiting"
+done
 
 ##############################################################################
 
