@@ -63,7 +63,7 @@ keys_to_gather <- colnames(domain_all_samples)[-1] # gather samples, exclude "Do
 domain_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
 
 order <- unique(domain_all_samples$samples)
-domain_all_samples$samples <- factor(domain_all_samples$samples, levels = order)
+domain_all_samples$samples <- factor(domain_all_samples$samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
 domain_all_samples$Domain <- factor(domain_all_samples$Domain, level=unique(domain_all_samples$Domain))
 domain_all_samples
 
@@ -97,7 +97,7 @@ i=0
 for (file in files){
   current_sample <- read.csv(paste(absolute_path,file,sep=""),sep="\t",header=FALSE)
   phylum_absolute <- current_sample %>% subset(V4 == "P") %>% mutate(trimed = trimws(V6))  %>% select(c(trimed,V2))
-  phylum_absolute <- phylum_absolute %>% subset(c(trimed!="Chordata")) # deselect phylum belongs to Eukrayota
+  phylum_absolute <- phylum_absolute %>% subset(c(trimed!="Chordata")) %>% subset(V2 >= 100)# deselect phylum belongs to Eukrayota
   colnames(phylum_absolute) <- c("Phylum", unlist(strsplit(file,".",fixed = TRUE))[1])
   
   if (i == 0){ # if is the first sample, make the table the aggregated data table
@@ -118,8 +118,8 @@ keys_to_gather <- colnames(phylum_all_samples)[-1] # gather samples, exclude "Ph
 # prepare dataframe for ggplot
 phylum_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
 
-order <- unique(phylum_all_samples$samples)
-phylum_all_samples$samples <- factor(phylum_all_samples$samples, levels = order)
+
+phylum_all_samples$samples <- factor(phylum_all_samples$samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
 phylum_all_samples$Phylum <- factor(phylum_all_samples$Phylum, level=unique(phylum_all_samples$Phylum))
 phylum_all_samples
 ```
@@ -151,7 +151,7 @@ i=0
 for (file in files){
   current_sample <- read.csv(paste(absolute_path,file,sep=""),sep="\t",header=FALSE)
   genus_absolute <- current_sample %>% subset(V4 == "G") %>% mutate(trimed = trimws(V6))  %>% select(c(trimed,V2))
-  genus_absolute <- genus_absolute %>% subset(c(trimed!="Homo")) # deselect genus belongs to Eukrayota
+  genus_absolute <- genus_absolute %>% subset(c(trimed!="Homo")) %>% subset(V2 >= 100) # deselect genus belongs to Eukrayota
   colnames(genus_absolute) <- c("genus", unlist(strsplit(file,".",fixed = TRUE))[1])
   
   if (i == 0){ # if is the first sample, make the table the aggregated data table
@@ -173,7 +173,7 @@ keys_to_gather <- colnames(genus_all_samples)[-1] # gather samples, exclude "gen
 genus_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
 
 order <- unique(genus_all_samples$samples)
-genus_all_samples$samples <- factor(genus_all_samples$samples, levels = order)
+genus_all_samples$samples <- factor(genus_all_samples$samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
 genus_all_samples$genus <- factor(genus_all_samples$genus, level=unique(genus_all_samples$genus))
 genus_all_samples
 ```

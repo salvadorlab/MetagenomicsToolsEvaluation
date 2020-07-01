@@ -62,8 +62,8 @@ keys_to_gather <- colnames(domain_all_samples)[-1] # gather samples, exclude "Do
 # prepare dataframe for ggplot
 domain_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
 
-order <- unique(domain_all_samples$samples)
-domain_all_samples$samples <- factor(domain_all_samples$samples, levels = order)
+
+domain_all_samples$samples <- factor(domain_all_samples$samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
 domain_all_samples$Domain <- factor(domain_all_samples$Domain, level=unique(domain_all_samples$Domain))
 domain_all_samples
 
@@ -75,4 +75,109 @@ plot <- ggplot(domain_all_samples, aes(x=samples,y=Reads,fill=Domain)) +
   labs(title = "Metagenomic Reads Classification with Customized Kraken2 DB (Domain)", y="Number of Reads", x = "Samples")
 
 ggplotly(plot)
+```
+
+### Classify phylum, excluding unclassified and Eukaryote reads to increase local resolution
+    - added reads filter, excluding phylum with reads less or equal to 10
+```{r}
+absolute_path = paste(path,"/absolute/",sep="")
+files <- list.files(absolute_path)
+
+
+i=0
+
+# iterate through all sample's result for Domain info
+for (file in files){
+  current_sample <- read.csv(paste(absolute_path,file,sep=""),sep="\t",header=FALSE)
+  phylum_absolute <- current_sample %>% subset(V4 == "P") %>% mutate(trimed = trimws(V6))  %>% select(c(trimed,V2))
+  phylum_absolute <- phylum_absolute %>% subset(c(trimed!="Chordata")) %>% subset( V2 >= 100) # deselect phylum belongs to Eukrayota
+  colnames(phylum_absolute) <- c("Phylum", unlist(strsplit(file,".",fixed = TRUE))[1])
+  
+  if (i == 0){ # if is the first sample, make the table the aggregated data table
+    phylum_all_samples <-  phylum_absolute
+
+  } else {
+    phylum_all_samples <- full_join(phylum_all_samples, phylum_absolute,by="Phylum")
+
+  }
+  i = i + 1
+}
+
+# save(phylum_all_samples, file ="standard_absolute_phylum_micro_only.Rdata")
+
+phylum_all_samples[is.na(phylum_all_samples)] <- 0
+keys_to_gather <- colnames(phylum_all_samples)[-1] # gather samples, exclude "Phylum" from colnames
+
+# prepare dataframe for ggplot
+phylum_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
+
+
+phylum_all_samples$samples <- factor(phylum_all_samples$samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
+phylum_all_samples$Phylum <- factor(phylum_all_samples$Phylum, level=unique(phylum_all_samples$Phylum))
+phylum_all_samples
+```
+
+```{r}
+
+
+plot <- ggplot(phylum_all_samples, aes(x=samples,y=Reads,fill=Phylum)) +
+  geom_bar(stat="identity") + 
+  labs(title = "Metagenomic Reads Classification with Standard Kraken2 DB (Phylum) - Microorganism Only", y="Number of Reads", x = "Samples") + 
+  theme(axis.title = element_text(size=1), axis.text.x = element_text(angle=90))
+
+ggplotly(plot)
+
+```
+
+### Classify genus, excluding unclassified and Eukaryote reads to increase local resolution
+- added reads filter, excluding genus with reads less or equal to 100
+```{r}
+absolute_path = paste(path,"/absolute/",sep="")
+files <- list.files(absolute_path)
+
+
+i=0
+
+# iterate through all sample's result for Domain info
+for (file in files){
+  current_sample <- read.csv(paste(absolute_path,file,sep=""),sep="\t",header=FALSE)
+  genus_absolute <- current_sample %>% subset(V4 == "G") %>% mutate(trimed = trimws(V6))  %>% select(c(trimed,V2))
+  genus_absolute <- genus_absolute %>% subset(trimed!="Rattus" & trimed !="Homo") %>% subset(V2 >= 100) # deselect genus belongs to Eukrayota
+  colnames(genus_absolute) <- c("genus", unlist(strsplit(file,".",fixed = TRUE))[1])
+  
+  if (i == 0){ # if is the first sample, make the table the aggregated data table
+    genus_all_samples <-  genus_absolute
+
+  } else {
+    genus_all_samples <- full_join(genus_all_samples, genus_absolute,by="genus")
+
+  }
+  i = i + 1
+}
+
+# save(genus_all_samples, file ="standard_absolute_genus_micro_only.Rdata")
+
+genus_all_samples[is.na(genus_all_samples)] <- 0
+keys_to_gather <- colnames(genus_all_samples)[-1] # gather samples, exclude "genus" from colnames
+
+# prepare dataframe for ggplot
+genus_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
+
+
+genus_all_samples$samples <- factor(genus_all_samples$samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
+genus_all_samples$genus <- factor(genus_all_samples$genus, level=unique(genus_all_samples$genus))
+genus_all_samples
+```
+
+```{r}
+
+
+plot <- ggplot(genus_all_samples, aes(x=samples,y=Reads,fill=genus)) +
+  geom_bar(stat="identity") + 
+  labs(title = "Metagenomic Reads Classification with Standard Kraken2 DB (Genus) - Microorganism Only", y="Number of Reads", x = "Samples") + 
+  theme(axis.title = element_text(size=1), axis.text.x = element_text(angle=90),legend.text=element_text(size=5),legend.key.size = unit(0.2,"line"))
+
+ggplotly(plot)
+# plot
+
 ```
