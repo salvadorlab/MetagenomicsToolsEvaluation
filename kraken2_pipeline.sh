@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -q highmem_q                                                            
-#PBS -N submit_mini                                        
+#PBS -N submit-rat                                      
 #PBS -l nodes=1:ppn=1 -l mem=10gb                                        
 #PBS -l walltime=300:00:00                                                
 #PBS -M rx32940@uga.edu                                                  
@@ -94,7 +94,8 @@ outpath="/scratch/rx32940/kraken2_052020/kraken2"
 
 # # build kraken2 standard database 
 # # changed kraken2 src according to this: https://github.com/DerrickWood/kraken/issues/114
-# /scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2-build --standard --threads 24 --db $DBNAME/standard
+# /scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2-build --standard --threads 12 --db $DBNAME/standard
+# /scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2-build --build --threads 12 --db $DBNAME/standard
 
 # added rattus to standard kraken2 custom database
 # cp -r standard/ custom
@@ -133,40 +134,40 @@ outpath="/scratch/rx32940/kraken2_052020/kraken2"
 # 
 ################################################################################
 
-cat /scratch/rx32940/kraken2_052020/kneaddata/metagenomic_samples.txt | \
-while read sample;
-do
-    (
-    # no longer read from dir, but from the list of a sample file
-    # sample="$(basename "$subject" | awk -F"_" '{print $1}')"
+# cat /scratch/rx32940/kraken2_052020/kneaddata/metagenomic_samples.txt | \
+# while read sample;
+# do
+#     (
+#     # no longer read from dir, but from the list of a sample file
+#     # sample="$(basename "$subject" | awk -F"_" '{print $1}')"
 
-    sapelo2_header="#PBS -q bahl_salv_q\n#PBS -N kraken2_${sample}_mini\n
-            #PBS -l nodes=1:ppn=24 -l mem=20gb\n
-            #PBS -l walltime=100:00:00\n
-            #PBS -M rx32940@uga.edu\n                                                  
-            #PBS -m abe\n                                                            
-            #PBS -o /scratch/rx32940\n                      
-            #PBS -e /scratch/rx32940\n                        
-            #PBS -j oe\n
-            "
-    echo $sample
+#     sapelo2_header="#PBS -q bahl_salv_q\n#PBS -N kraken2_${sample}_mini\n
+#             #PBS -l nodes=1:ppn=24 -l mem=20gb\n
+#             #PBS -l walltime=100:00:00\n
+#             #PBS -M rx32940@uga.edu\n                                                  
+#             #PBS -m abe\n                                                            
+#             #PBS -o /scratch/rx32940\n                      
+#             #PBS -e /scratch/rx32940\n                        
+#             #PBS -j oe\n
+#             "
+#     echo $sample
 
 
-    echo -e $sapelo2_header > $seq_path/qsub_kraken2.sh
-    echo "/scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2 \
-    --use-names --db $DBNAME/minikraken_8GB_20200312 --threads 24 \
-    --report $outpath/mini_output/$sample.kreport \
-    --paired $seq_path/kneaddata/hostclean_seq/${sample}_1_kneaddata_paired_1.fastq \
-    $seq_path/kneaddata/hostclean_seq/${sample}_1_kneaddata_paired_2.fastq \
-    > $outpath/mini_output/$sample.txt" >> $seq_path/qsub_kraken2.sh
+#     echo -e $sapelo2_header > $seq_path/qsub_kraken2.sh
+#     echo "/scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2 \
+#     --use-names --db $DBNAME/minikraken_8GB_20200312 --threads 24 \
+#     --report $outpath/mini_output/$sample.kreport \
+#     --paired $seq_path/kneaddata/hostclean_seq/${sample}_1_kneaddata_paired_1.fastq \
+#     $seq_path/kneaddata/hostclean_seq/${sample}_1_kneaddata_paired_2.fastq \
+#     > $outpath/mini_output/$sample.txt" >> $seq_path/qsub_kraken2.sh
 
-    qsub $seq_path/qsub_kraken2.sh
+#     qsub $seq_path/qsub_kraken2.sh
 
-    ) & 
+#     ) & 
 
-    wait
-    echo "waiting"
-done
+#     wait
+#     echo "waiting"
+# done
 
 ##############################################################################
 
@@ -177,10 +178,11 @@ done
 
 ###############################################################################
 
-# for subject in $seq_path/kneaddata/hostclean_seq/*;
+# cat /scratch/rx32940/kraken2_052020/kneaddata/metagenomic_samples.txt | \
+# while read sample;
 # do
 #     (
-#     sample="$(basename "$subject" | awk -F"_" '{print $1}')"
+#     # sample="$(basename "$subject" | awk -F"_" '{print $1}')"
 #     # need large memory for each job to load the hash table
 #     sapelo2_header="#PBS -q highmem_q\n#PBS -N kraken2_${sample}_standard\n
 #             #PBS -l nodes=1:ppn=12 -l mem=150gb\n
@@ -196,9 +198,10 @@ done
 
 #     echo -e $sapelo2_header > $seq_path/qsub_kraken2.sh
 #     echo "/scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2 \
-#     --use-names --db $DBNAME/standard --threads 24 \
+#     --use-names --db $DBNAME/standard --threads 12 \
 #     --report $outpath/standard_output/$sample.kreport \
-#     $seq_path/kneaddata/hostclean_seq/${sample}_1_kneaddata_unmatched_1.fastq \
+#     --paired $seq_path/kneaddata/hostclean_seq/${sample}_1_kneaddata_paired_1.fastq \
+#     $seq_path/kneaddata/hostclean_seq/${sample}_1_kneaddata_paired_2.fastq \
 #     > $outpath/standard_output/$sample.txt" >> $seq_path/qsub_kraken2.sh
 
 #     qsub $seq_path/qsub_kraken2.sh
@@ -219,34 +222,36 @@ done
 
 ###############################################################################
 
-# for subject in $seq_path/kneaddata/hostclean_seq/*;
-# do
-#     (
-#     sample="$(basename "$subject" | awk -F"_" '{print $1}')"
-#     # need large memory for each job to load the hash table
-#     sapelo2_header="#PBS -q highmem_q\n#PBS -N kraken2_${sample}_custom\n
-#             #PBS -l nodes=1:ppn=12 -l mem=150gb\n
-#             #PBS -l walltime=20:00:00\n
-#             #PBS -M rx32940@uga.edu\n                                                  
-#             #PBS -m abe\n                                                            
-#             #PBS -o /scratch/rx32940\n                      
-#             #PBS -e /scratch/rx32940\n                        
-#             #PBS -j oe\n
-#             "
-#     echo $sample
+cat /scratch/rx32940/kraken2_052020/kneaddata/metagenomic_samples.txt | \
+while read sample;
+do
+    (
+    # sample="$(basename "$subject" | awk -F"_" '{print $1}')"
+    # need large memory for each job to load the hash table
+    sapelo2_header="#PBS -q highmem_q\n#PBS -N kraken2_${sample}_rat\n
+            #PBS -l nodes=1:ppn=12 -l mem=150gb\n
+            #PBS -l walltime=20:00:00\n
+            #PBS -M rx32940@uga.edu\n                                                  
+            #PBS -m abe\n                                                            
+            #PBS -o /scratch/rx32940\n                      
+            #PBS -e /scratch/rx32940\n                        
+            #PBS -j oe\n
+            "
+    echo $sample
 
 
-#     echo -e $sapelo2_header > $seq_path/qsub_kraken2.sh
-#     echo "/scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2 \
-#     --use-names --db $DBNAME/custom --threads 12 \
-#     --report $outpath/custom_output/$sample.kreport \
-#     $seq_path/kneaddata/hostclean_seq/${sample}_1_kneaddata_unmatched_1.fastq \
-#     > $outpath/custom_output/$sample.txt" >> $seq_path/qsub_kraken2.sh
+    echo -e $sapelo2_header > $seq_path/qsub_kraken2.sh
+    echo "/scratch/rx32940/kraken2_052020/kraken2/kraken2-2.0.9-beta/kraken2 \
+    --use-names --db $DBNAME/rat_only --threads 12 \
+    --report $outpath/rat_only_output/$sample.kreport \
+    --paired $seq_path/kneaddata/hostclean_seq/${sample}_1_kneaddata_paired_1.fastq \
+    $seq_path/kneaddata/hostclean_seq/${sample}_1_kneaddata_paired_2.fastq \
+    > $outpath/rat_only_output/$sample.txt" >> $seq_path/qsub_kraken2.sh
 
-#     qsub $seq_path/qsub_kraken2.sh
+    qsub $seq_path/qsub_kraken2.sh
 
-#     ) & 
+    ) & 
 
-#     wait
-#     echo "waiting"
-# done
+    wait
+    echo "waiting"
+done

@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -q highmem_q                                                            
-#PBS -N clark_ratdb                                        
+#PBS -N clark-spaced-db                                       
 #PBS -l nodes=1:ppn=1 -l mem=800gb                                        
 #PBS -l walltime=300:00:00                                                
 #PBS -M rx32940@uga.edu                                                  
@@ -48,24 +48,26 @@ seq_path="/scratch/rx32940/clark_0613/hostclean_seq"
 $path/CLARKSCV1.2.6.1/set_targets.sh $DB/standard custom bacteria viruses human --species
 
 # use one sample to build the discriminative database
-$path/CLARKSCV1.2.6.1/classify_metagenome.sh -n 1 -O $seq_path/R22.K_1_kneaddata_unmatched_1.fastq -R $path/output_species/R22.K
+$path/CLARKSCV1.2.6.1/classify_metagenome.sh -n 1 -P $seq_path/R22.K_1_kneaddata_paired_1.fastq $seq_path/R22.K_1_kneaddata_paired_2.fastq -R $path/output_species/R22.K
 
 # classify each sequence
-# for file in $seq_path/*; do
-#     sample=$(basename "$file" "_1_kneaddata_unmatched_1.fastq")
-#     $path/CLARKSCV1.2.6.1/classify_metagenome.sh -n 24 -O $seq_path/${sample}_1_kneaddata_unmatched_1.fastq -R $path/output_genus/$sample
+# cat /scratch/rx32940/kraken2_052020/kneaddata/metagenomic_samples.txt | \
+# while read sample;
+# do
+#    #  sample=$(basename "$file" "_1_kneaddata_unmatched_1.fastq")
+#     $path/CLARKSCV1.2.6.1/classify_metagenome.sh -n 24 -P $seq_path/${sample}_1_kneaddata_paired_1.fastq $seq_path/${sample}_1_kneaddata_paired_2.fastq -R $path/output_species/$sample
 # done
 
-# echo "classify_metagenome done"
+# $path/CLARKSCV1.2.6.1/classify_metagenome.sh -n 12 -P $path/samples.R.txt $path/samples.L.txt -R $path/output_species/samples.results.txt
 
 # analyze result from clark
-# for file in /scratch/rx32940/clark_0613/output_genus/*; do 
+# for file in /scratch/rx32940/clark_0613/output_species/*; do 
 #    sample_csv=$(basename "$file" ".csv")
-#    $path/CLARKSCV1.2.6.1/estimate_abundance.sh -F /scratch/rx32940/clark_0613/output_genus/$sample_csv.csv -D $DB/standard > /scratch/rx32940/clark_0613/output_genus/${sample_csv}_abundance.txt
+#    $path/CLARKSCV1.2.6.1/estimate_abundance.sh -F /scratch/rx32940/clark_0613/output_species/$sample_csv.csv -D $DB/standard > /scratch/rx32940/clark_0613/output_species/${sample_csv}_abundance.txt
 # done
 
 # echo "regular abundance estimation done"
 
 # build spaced database for clark-s 
-# cd $path/CLARKSCV1.2.6.1
-# ./buildSpacedDB.sh
+cd $path/CLARKSCV1.2.6.1
+./buildSpacedDB.sh
