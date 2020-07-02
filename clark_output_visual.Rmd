@@ -22,6 +22,7 @@ library(dplyr)
 library(ggplot2)
 library(tidyverse)
 library(plotly)
+library(magrittr)
 
 
 ```
@@ -31,11 +32,15 @@ Read **phylum** Taxa count into _phylum_full_table_
 phylum_path <- paste(path, "phylum/" , sep="")
 files <- list.files(phylum_path)
 
+
+
 i=0
 for (file in files){
   sample_name <- unlist(strsplit(file, ".",fixed=T))[1]
-  sample_record <- read.csv(paste(phylum_path, file,sep=""))
-  taxa_count <- sample_record %>% select(c("Name","Count")) %>% subset(Name != "Chordata" & Name != "UNKNOWN")
+  sample_record <- read.csv(paste(phylum_path, file,sep=""), header = TRUE)
+  taxa_count <- sample_record %>% select(c("ï..Name","Count")) %>% subset(Count >= 100)
+  colnames(taxa_count) <- c("Name","Count")
+  taxa_count %<>% subset(Name != "Chordata" & Name != "UNKNOWN")
   rownames(taxa_count) <- NULL
   colnames(taxa_count) <- c("Name", sample_name)
   if (i == 0){
@@ -53,14 +58,15 @@ sample_keys <- colnames(phylum_full_table)[-1]
 phylum_full_table %<>% gather(sample_keys,key="Samples", value="Read_Count")
 
 order <- unique(phylum_full_table$Samples)
-phylum_full_table$Samples <- factor(phylum_full_table$Samples, levels = order)
+phylum_full_table$Samples <- factor(phylum_full_table$Samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
 ```
 
 ```{r}
 
 phylum_plot <- ggplot(phylum_full_table, aes(x=Samples,y=Read_Count, fill=Name)) + 
   geom_bar(stat="identity") +
-  theme(axis.text.x = element_text(angle=90))
+  theme(axis.text.x = element_text(angle=90))+
+  labs(title = "Metagenomic Reads Classification with Clark(non-Rat) DB (Phylum)", y= "Number of Reads", x="Samples" )
 
 ggplotly(phylum_plot)
 ```
@@ -74,7 +80,12 @@ i=0
 for (file in files){
   sample_name <- unlist(strsplit(file, ".",fixed=T))[1]
   sample_record <- read.csv(paste(genus_path, file,sep=""))
-  taxa_count <- sample_record %>% select(c("Name","Count")) %>% subset(Name != "Homo" & Name != "UNKNOWN")
+  taxa_count <- sample_record %>% select(c("ï..Name","Count"))
+  colnames(taxa_count) <- c("Name","Count")
+  taxa_count %<>% 
+    subset(Name != "Homo" & Name != "UNKNOWN") %>% 
+    subset(Count >= 100) 
+  
   rownames(taxa_count) <- NULL
   colnames(taxa_count) <- c("Name", sample_name)
   if (i == 0){
@@ -92,14 +103,16 @@ sample_keys <- colnames(genus_full_table)[-1]
 genus_full_table %<>% gather(sample_keys,key="Samples", value="Read_Count")
 
 order <- unique(genus_full_table$Samples)
-genus_full_table$Samples <- factor(genus_full_table$Samples, levels = order)
+genus_full_table$Samples <- factor(genus_full_table$Samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
 ```
 
 ```{r}
 
 genus_plot <- ggplot(genus_full_table, aes(x=Samples,y=Read_Count, fill=Name)) + 
   geom_bar(stat="identity") +
-  theme(axis.text.x = element_text(angle=90))
+  theme(axis.text.x = element_text(angle=90)) +
+  labs(title = "Metagenomic Reads Classification with Clark(non-Rat) DB (Genus)", y= "Number of Reads",
+       x="Samples")
 
 ggplotly(genus_plot)
 ```
@@ -131,13 +144,18 @@ key_sample <- colnames(domain_full_table)[-1]
 domain_full_table %<>% gather(key_sample, key = Samples, value = Domain_counts)
 order <- c("UNKNOWN", "Eukaryota","Bacteria","Archaea","Viruses")
 domain_full_table$Name <- factor(domain_full_table$Name, levels = order)
+domain_full_table$Samples <- factor(domain_full_table$Samples, levels= c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
 
 ```
 
 ```{r}
 
 plot_domain <- ggplot(domain_full_table, aes(x=Samples, y=Domain_counts, fill=Name)) +
-  geom_bar(stat="identity")
+  geom_bar(stat="identity") + 
+  theme(axis.text.x=element_text(angle=90)) +
+  labs(title = "Metagenomic Reads Classification with Clark(non-Rat) DB (Domain)", y= "Number of Reads",
+       x="Samples")
+
 
 ggplotly(plot_domain)
 
