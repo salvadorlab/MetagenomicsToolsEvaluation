@@ -6,7 +6,7 @@ output: html_document
 ---
 ### PATH to minikraken output result:
 ```{r}
-path = "/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/minikraken"
+path = "/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/minikraken"
 setwd(path)
 ```
 
