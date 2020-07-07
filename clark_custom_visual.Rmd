@@ -1,0 +1,190 @@
+---
+title: "clark_custom_visual"
+output: html_document
+---
+
+# set the working directory to the Dropbox path where data files are storing at
+```{r setup, include=FALSE}
+custom_path="/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/"
+
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = custom_path)
+```
+
+# Libraries imported for analysis
+```{r}
+
+library(dplyr)
+library(magrittr)
+library(tidyverse)
+library(plotly)
+
+
+```
+
+### since only species level classification has been done for clark (with rat analysis), we will extract Domain information with clark's species results
+
+```{r}
+
+species_path <- paste(custom_path, "species_custom/" , sep="")
+files <- list.files(species_path)
+
+
+
+i=0
+for (file in files){
+  sample_name <- unlist(strsplit(file, ".",fixed=T))[1]
+  sample_record <- read.csv(paste(species_path, file,sep=""), header = TRUE)
+  # get the domain column
+  taxa_count <- sample_record %>% group_by(Lineage) %>% mutate(Domain = sum(Count)) %>% select("Lineage","Domain")
+  taxa_count <- unique(taxa_count)
+  colnames(taxa_count) <- c("Name","Count")
+  
+  # taxa_count %<>% subset(Name != "Chordata" & Name != "UNKNOWN")
+  rownames(taxa_count) <- NULL # reset row number
+  colnames(taxa_count) <- c("Name", sample_name)
+  if (i == 0){
+    domain_full_table <- taxa_count
+  } else {
+    domain_full_table <- full_join(domain_full_table, taxa_count,by = "Name")
+  }
+  i = i + 1
+}
+
+domain_full_table[is.na(domain_full_table)] <- 0
+domain_full_table
+ 
+sample_keys <- colnames(domain_full_table)[-1]
+domain_full_table %<>% gather(sample_keys,key="Samples", value="Read_Count")
+
+order <- unique(domain_full_table$Samples)
+domain_full_table$Samples <- factor(domain_full_table$Samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
+
+domain_full_table$Name <- factor(domain_full_table$Name, levels = c("UNKNOWN", "Eukaryota","Bacteria","Viruses","Archaea"))
+```
+
+# Plot Domain level taxaonomy count with UNKNOWN and Eukaryota to have an overall picture of the samples
+```{r}
+plot_domain <- ggplot(domain_full_table, aes(x=Samples, y=Read_Count, fill=Name)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x=element_text(angle=90)) +
+  labs(title = "Metagenomic Reads Classification with Clark(with Rat) DB (Domain)", y= "Number of Reads",
+       x="Samples")
+
+plot_domain
+# ggplotly(plot_domain)
+
+
+```
+
+
+# Plot Phylum level abundance without Eukaryota and Unknown information for better visualization 
+```{r}
+species_path <- paste(custom_path, "species_custom/" , sep="")
+files <- list.files(species_path)
+
+
+i=0
+for (file in files){
+  sample_name <- unlist(strsplit(file, ".",fixed=T))[1]
+  sample_record <- read.csv(paste(species_path, file,sep=""), header = TRUE)
+  # get the domain column
+  taxa_count <- sample_record %>% group_by(X) %>% mutate(Phylum = sum(Count)) %>% select("X","Phylum") %>% subset(Phylum >= 100)
+  taxa_count <- unique(taxa_count)
+  colnames(taxa_count) <- c("Name","Count")
+  
+  taxa_count %<>% subset(Name != "Chordata" & Name != "")
+  rownames(taxa_count) <- NULL # reset row number
+  colnames(taxa_count) <- c("Name", sample_name)
+  if (i == 0){
+    phylum_full_table <- taxa_count
+  } else {
+    phylum_full_table <- full_join(phylum_full_table, taxa_count,by = "Name")
+  }
+  i = i + 1
+}
+
+phylum_full_table[is.na(phylum_full_table)] <- 0
+phylum_full_table
+ 
+sample_keys <- colnames(phylum_full_table)[-1]
+phylum_full_table %<>% gather(sample_keys,key="Samples", value="Read_Count")
+
+order <- unique(phylum_full_table$Samples)
+phylum_full_table$Samples <- factor(phylum_full_table$Samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
+
+
+
+```
+
+
+
+# Plot Domain level taxaonomy count with UNKNOWN and Eukaryota to have an overall picture of the samples
+```{r}
+
+plot_phylum <- ggplot(phylum_full_table, aes(x=Samples, y=Read_Count, fill=Name)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x=element_text(angle=90)) +
+  labs(title = "Metagenomic Reads Classification with Clark(with Rat) DB (Phylum)", y= "Number of Reads",
+       x="Samples")
+
+plot_phylum
+
+# ggplotly(plot_phylum)
+
+
+```
+### genus level classification 
+```{r}
+species_path <- paste(custom_path, "species_custom/" , sep="")
+files <- list.files(species_path)
+
+
+i=0
+for (file in files){
+  sample_name <- unlist(strsplit(file, ".",fixed=T))[1]
+  sample_record <- read.csv(paste(species_path, file,sep=""), header = TRUE)
+  # get the domain column
+  taxa_count <- sample_record %>% group_by(X.4) %>% mutate(Genus = sum(Count)) %>% select("X.4","Genus") %>% subset(Genus >= 300)
+  taxa_count <- unique(taxa_count)
+  colnames(taxa_count) <- c("Name","Count")
+  
+  taxa_count %<>% subset(Name != "Homo" & Name != "Rattus" & Name != "")
+  rownames(taxa_count) <- NULL # reset row number
+  colnames(taxa_count) <- c("Name", sample_name)
+  if (i == 0){
+    genus_full_table <- taxa_count
+  } else {
+    genus_full_table <- full_join(genus_full_table, taxa_count,by = "Name")
+  }
+  i = i + 1
+}
+
+genus_full_table[is.na(genus_full_table)] <- 0
+genus_full_table
+ 
+sample_keys <- colnames(genus_full_table)[-1]
+genus_full_table %<>% gather(sample_keys,key="Samples", value="Read_Count")
+
+order <- unique(genus_full_table$Samples)
+genus_full_table$Samples <- factor(genus_full_table$Samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
+
+```
+
+
+### Plot Genus level absolute abundance
+```{r}
+
+plot_genus <- ggplot(genus_full_table, aes(x=Samples, y=Read_Count, fill=Name)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x=element_text(angle=90)) +
+  labs(title = "Metagenomic Reads Classification with Clark(with Rat) DB (Genus)", y= "Number of Reads",
+       x="Samples") +
+  theme(legend.text = element_text(size =8 ),legend.key.size =unit(0.5,"cm"))
+
+plot_genus
+
+# ggplotly(plot_phylum)
+
+
+```

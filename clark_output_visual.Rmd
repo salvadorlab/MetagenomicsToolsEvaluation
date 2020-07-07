@@ -65,10 +65,11 @@ phylum_full_table$Samples <- factor(phylum_full_table$Samples, levels = c("R22_K
 
 phylum_plot <- ggplot(phylum_full_table, aes(x=Samples,y=Read_Count, fill=Name)) + 
   geom_bar(stat="identity") +
-  theme(axis.text.x = element_text(angle=90))+
+  theme(axis.text.x = element_text(angle=90),legend.text = element_text(size = 8),legend.key.size = unit(0.5,"cm"))+
   labs(title = "Metagenomic Reads Classification with Clark(non-Rat) DB (Phylum)", y= "Number of Reads", x="Samples" )
 
-ggplotly(phylum_plot)
+phylum_plot
+# ggplotly(phylum_plot)
 ```
 
 Read **genus** Taxa count into _genus_full_table_
@@ -84,7 +85,7 @@ for (file in files){
   colnames(taxa_count) <- c("Name","Count")
   taxa_count %<>% 
     subset(Name != "Homo" & Name != "UNKNOWN") %>% 
-    subset(Count >= 100) 
+    subset(Count >= 300) 
   
   rownames(taxa_count) <- NULL
   colnames(taxa_count) <- c("Name", sample_name)
@@ -110,11 +111,13 @@ genus_full_table$Samples <- factor(genus_full_table$Samples, levels = c("R22_K",
 
 genus_plot <- ggplot(genus_full_table, aes(x=Samples,y=Read_Count, fill=Name)) + 
   geom_bar(stat="identity") +
-  theme(axis.text.x = element_text(angle=90)) +
+  theme(axis.text.x = element_text(angle=90),legend.key.size = unit(0.5,"cm"), legend.text = element_text(size = 8)) +
   labs(title = "Metagenomic Reads Classification with Clark(non-Rat) DB (Genus)", y= "Number of Reads",
        x="Samples")
 
-ggplotly(genus_plot)
+genus_plot
+
+# ggplotly(genus_plot)
 ```
 
 Get **Domain** classification from genus results
@@ -155,8 +158,8 @@ plot_domain <- ggplot(domain_full_table, aes(x=Samples, y=Domain_counts, fill=Na
   theme(axis.text.x=element_text(angle=90)) +
   labs(title = "Metagenomic Reads Classification with Clark(non-Rat) DB (Domain)", y= "Number of Reads",
        x="Samples")
+plot_domain
 
-
-ggplotly(plot_domain)
+# ggplotly(plot_domain)
 
 ```
