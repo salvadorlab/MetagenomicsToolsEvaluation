@@ -1,0 +1,16 @@
+---
+title: "clarks_visual"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# set the working directory to the Dropbox path where data files are storing at
+```{r setup, include=FALSE}
+custom_path="/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/"
+
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = custom_path)
+```
