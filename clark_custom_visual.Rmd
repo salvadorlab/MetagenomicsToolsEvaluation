@@ -5,7 +5,7 @@ output: html_document
 
 # set the working directory to the Dropbox path where data files are storing at
 ```{r setup, include=FALSE}
-custom_path="/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/"
+custom_path="/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/"
 
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_knit$set(root.dir = custom_path)
