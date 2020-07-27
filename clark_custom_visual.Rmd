@@ -61,11 +61,14 @@ order <- unique(domain_full_table$Samples)
 domain_full_table$Samples <- factor(domain_full_table$Samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
 
 domain_full_table$Name <- factor(domain_full_table$Name, levels = c("UNKNOWN", "Eukaryota","Bacteria","Viruses","Archaea"))
+
+domain_full_table %>% group_by(Samples) %>% 
+  mutate(Total = sum(Read_Count), Percentage = Read_Count/Total) -> domain_major
 ```
 
 # Plot Domain level taxaonomy count with UNKNOWN and Eukaryota to have an overall picture of the samples
 ```{r}
-plot_domain <- ggplot(domain_full_table, aes(x=Samples, y=Read_Count, fill=Name)) +
+plot_domain <- ggplot(domain_major, aes(x=Samples, y=Read_Count, fill=Name)) +
   geom_bar(stat="identity") + 
   theme(axis.text.x=element_text(angle=90)) +
   labs(title = "Metagenomic Reads Classification with Clark(with Rat) DB (Domain)", y= "Number of Reads",
@@ -73,7 +76,16 @@ plot_domain <- ggplot(domain_full_table, aes(x=Samples, y=Read_Count, fill=Name)
 
 plot_domain
 # ggplotly(plot_domain)
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Relative/clark_cus_domain_rel.png")
+########Relative Plot#################
 
+domain_relative <- ggplot(domain_major, aes(x=Samples, y=Percentage, fill=Name)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x=element_text(angle=90)) +
+  labs(title = "Metagenomic Relative Abundance Classification with Clark(with Rat) DB (Domain)",
+       x="Samples") +  scale_y_continuous(labels = scales::percent_format()) 
+domain_relative
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Relative/clark_cus_domain_rel.png")
 
 ```
 
@@ -113,6 +125,9 @@ phylum_full_table %<>% gather(sample_keys,key="Samples", value="Read_Count")
 order <- unique(phylum_full_table$Samples)
 phylum_full_table$Samples <- factor(phylum_full_table$Samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
 
+phylum_full_table %>% group_by(Samples) %>% 
+  mutate(Total = sum(Read_Count), Percentage = Read_Count/Total) %>%
+  subset(Percentage >= 0.001)-> phylum_major
 
 
 ```
@@ -122,15 +137,28 @@ phylum_full_table$Samples <- factor(phylum_full_table$Samples, levels = c("R22_K
 # Plot Domain level taxaonomy count with UNKNOWN and Eukaryota to have an overall picture of the samples
 ```{r}
 
-plot_phylum <- ggplot(phylum_full_table, aes(x=Samples, y=Read_Count, fill=Name)) +
-  geom_bar(stat="identity") + 
-  theme(axis.text.x=element_text(angle=90)) +
-  labs(title = "Metagenomic Reads Classification with Clark(with Rat) DB (Phylum)", y= "Number of Reads",
-       x="Samples")
+phylum_plot <- ggplot(phylum_major, aes(x=Samples,y=Read_Count, fill=Name)) + 
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_text(angle=90),legend.text = element_text(size = 8),legend.key.size = unit(0.4,"cm"),plot.caption = element_text(hjust = 0, face= "italic"))+
+  labs(title = "Metagenomic Reads Classification with Clark(with Rat) DB (Phylum)", y= "Number of Reads", x="Samples" , caption= "*For the purpose of visualization, only taxa classified with more than 1% in composition will be shown") 
 
-plot_phylum
+phylum_plot
+# ggplotly(phylum_plot)
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Absolute/clark_cus_phylum.png")
 
 # ggplotly(plot_phylum)
+
+########Relative Plot#################
+
+
+phylum_relative <- ggplot(phylum_major, aes(x=Samples,y=Percentage, fill=Name)) + 
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_text(angle=90),legend.text = element_text(size = 8),legend.key.size = unit(0.4,"cm"),plot.caption = element_text(hjust = 0, face= "italic"))+
+  labs(title = "Metagenomic Relative Abundancen with Clark(with Rat) DB (Phylum)", y= "Percentage", x="Samples" , caption= "*For the purpose of visualization, only taxa classified with more than 1% in composition will be shown")+scale_y_continuous(labels = scales::percent_format()) 
+
+phylum_relative
+# ggplotly(phylum_plot)
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Relative/clark_cus_phylum_rel.png")
 
 
 ```
@@ -161,7 +189,7 @@ for (file in files){
 }
 
 genus_full_table[is.na(genus_full_table)] <- 0
-genus_full_table
+# genus_full_table
  
 sample_keys <- colnames(genus_full_table)[-1]
 genus_full_table %<>% gather(sample_keys,key="Samples", value="Read_Count")
@@ -169,22 +197,37 @@ genus_full_table %<>% gather(sample_keys,key="Samples", value="Read_Count")
 order <- unique(genus_full_table$Samples)
 genus_full_table$Samples <- factor(genus_full_table$Samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
 
+genus_full_table%>% group_by(Samples) %>% 
+  mutate(Total = sum(Read_Count), Percentage = Read_Count/Total) %>%
+  subset(Percentage >= 0.01)->major_genus
 ```
 
 
 ### Plot Genus level absolute abundance
 ```{r}
 
-plot_genus <- ggplot(genus_full_table, aes(x=Samples, y=Read_Count, fill=Name)) +
-  geom_bar(stat="identity") + 
-  theme(axis.text.x=element_text(angle=90)) +
-  labs(title = "Metagenomic Reads Classification with Clark(with Rat) DB (Genus)", y= "Number of Reads",
-       x="Samples") +
-  theme(legend.text = element_text(size =8 ),legend.key.size =unit(0.5,"cm"))
+genus_plot <- ggplot(major_genus, aes(x=Samples,y=Read_Count, fill=Name)) + 
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_text(angle=90),legend.key.size = unit(0.4,"cm"), legend.text = element_text(size = 8),plot.caption = element_text(hjust = 0, face= "italic")) +
+  labs(title = "Metagenomic Reads Classification with Clar(with Rat) DB (Genus)", y= "Number of Reads",
+       x="Samples", caption= "*For the purpose of visualization, only taxa classified with more than 10% in composition will be shown")
 
-plot_genus
+genus_plot
 
-# ggplotly(plot_phylum)
+# ggplotly(genus_plot)
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Absolute/clark_cus_genus.png")
+
+########Relative Plot#################
+
+
+genus_relative <- ggplot(major_genus, aes(x=Samples,y=Percentage, fill=Name)) + 
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_text(angle=90),legend.text = element_text(size = 8),legend.key.size = unit(0.4,"cm"),plot.caption = element_text(hjust = 0, face= "italic"))+
+  labs(title = "Metagenomic Relative Abundancen with Clark(with Rat) DB (Genus)", y= "Percentage", x="Samples" , caption= "*For the purpose of visualization, only taxa classified with more than 10% in composition will be shown")+scale_y_continuous(labels = scales::percent_format()) 
+
+genus_relative
+# ggplotly(phylum_plot)
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Relative/clark_cus_genus_rel.png")
 
 
 ```

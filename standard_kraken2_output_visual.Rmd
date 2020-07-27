@@ -140,7 +140,8 @@ phylum_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
 
 phylum_all_samples$samples <- factor(phylum_all_samples$samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
 phylum_all_samples$Phylum <- factor(phylum_all_samples$Phylum, level=unique(phylum_all_samples$Phylum))
-phylum_all_samples
+phylum_all_samples %>% group_by(samples) %>%
+  mutate(Total=sum(Reads), Percentage = Reads/Total) %>% subset(Percentage >= 0.010) ->major_phylum
 ```
 
 
@@ -148,29 +149,28 @@ phylum_all_samples
 ```{r}
 
 
-plot <- ggplot(phylum_all_samples, aes(x=samples,y=Reads,fill=Phylum)) +
+
+plot <- ggplot(major_phylum, aes(x=samples,y=Reads,fill=Phylum)) +
   geom_bar(stat="identity") + 
-  labs(title = "Metagenomic Reads Classification with Standard Kraken2 DB (Phylum)", y="Number of Reads", x = "Samples", caption = "* For the purpose of visualization, only taxa classified with more than 100 reads will be shown") + 
-  theme(axis.title = element_text(size=1), axis.text.x = element_text(angle=90), legend.key.size =unit(0.5,"cm")) 
+  labs(title = "Metagenomic Reads Classification with Standard Kraken2 DB (Phylum)", y="Number of Reads", x = "Samples", caption = "* For the purpose of visualization, only taxa classified with more 1% in composition will be shown") + 
+  theme(axis.title = element_text(size=1), axis.text.x = element_text(angle=90))
+
 plot
 
 ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Absolute/kraken2_std_phylum.png")
-#### plot relative abundance 
-phylum_all_samples %>%
-  group_by(samples) %>%
-  mutate(Total=sum(Reads)) %>%
-  mutate(Relative=Reads/Total) ->phylum_relative
 
 
-relative_plot <- ggplot(phylum_relative, aes(x=samples,y=Relative,fill=Phylum)) +
+
+
+relative_plot <- ggplot(major_phylum, aes(x=samples,y=Percentage,fill=Phylum)) +
   geom_bar(stat="identity") + 
-  labs(title = "Metagenomic Relative Abundance with Standard Kraken2 DB (Phylum)", y="Percentage", x = "Samples", caption = "* For the purpose of visualization, only taxa classified with more than 100 reads will be shown") + 
-  theme(axis.title = element_text(size=1), axis.text.x = element_text(angle=90), legend.key.size =unit(0.5,"cm")) +
+  labs(title = "Metagenomic Relative Abundance with Standard Kraken2 DB (Phylum)", y="Percentage", x = "Samples", caption = "* For the purpose of visualization, only taxa classified with more than 1% in composition will be shown") + 
+  theme(axis.title = element_text(size=1), axis.text.x = element_text(angle=90), legend.key.size =unit(0.5,"cm"),plot.caption = element_text(hjust = 0, face= "italic")) +
   scale_y_continuous(labels = scales::percent_format()) +
   theme(axis.text.x=element_text(angle=90)) + 
-  scale_color_brewer(palette="Set2")
+  scale_color_brewer(palette="rainbow")
 relative_plot
-
+# ggplotly(relative_plot)
 ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Relative/kraken2_std_phylum_rel.png")
 
 ```
@@ -212,18 +212,33 @@ genus_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
 order <- unique(genus_all_samples$samples)
 genus_all_samples$samples <- factor(genus_all_samples$samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
 genus_all_samples$genus <- factor(genus_all_samples$genus, level=unique(genus_all_samples$genus))
-genus_all_samples
+genus_all_samples %>% group_by(samples) %>%
+  mutate(Total=sum(Reads), Percentage = Reads/Total) %>% subset(Percentage >= 0.010) ->major_genus
 ```
 
 ```{r}
 
 
-plot <- ggplot(genus_all_samples, aes(x=samples,y=Reads,fill=genus)) +
+plot <- ggplot(major_genus, aes(x=samples,y=Reads,fill=genus)) +
   geom_bar(stat="identity") + 
-  labs(title = "Metagenomic Reads Classification with Standard Kraken2 DB (Genus) - Microorganism Only", y="Number of Reads", x = "Samples") + 
-  theme(axis.title = element_text(size=1), axis.text.x = element_text(angle=90))
+  labs(title = "Metagenomic Reads Classification with Standard Kraken2 DB (Genus)", y="Number of Reads", x = "Samples", caption = "* For the purpose of visualization, only taxa classified with more than 1% in composition will be shown") + 
+  theme(axis.title = element_text(size=1), axis.text.x = element_text(angle=90),legend.text=element_text(size=8),legend.key.size = unit(0.5,"line"))
 
-ggplotly(plot)
+plot
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Absolute/kraken2_std_genus.png")
+
+
+
+relative_plot <- ggplot(major_genus, aes(x=samples,y=Percentage,fill=genus)) +
+  geom_bar(stat="identity") + 
+  labs(title = "Metagenomic Relative Abundance with Standard Kraken2 DB (Genus)", y="Percentage", x = "Samples", caption = "*For the purpose of visualization, only taxa classified with more than 10% in composition will be shown") + 
+  theme(axis.title = element_text(size=1), axis.text.x = element_text(angle=90), legend.key.size=unit(0.5,"cm"),plot.caption = element_text(hjust = 0, face= "italic"),legend.box = unit(8,"cm")) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme(axis.text.x=element_text(angle=90)) + 
+  scale_color_brewer(palette="rainbow")
+relative_plot
+# ggplotly(relative_plot)
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Relative/kraken2_std_genus_rel.png")
 
 ```
 
