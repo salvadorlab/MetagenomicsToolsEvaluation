@@ -6,7 +6,7 @@ output: html_document
 ---
 ### PATH to minikraken output result:
 ```{r}
-path = "/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/standard"
+path = "/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/standard"
 setwd(path)
 ```
 
@@ -16,12 +16,15 @@ knitr::opts_knit$set(root.dir = path)
 ```
 
 ```{r}
+# if (!requireNamespace("BiocManager", quietly = TRUE))
+#     install.packages("BiocManager")
+# BiocManager::install("phyloseq")
 library(dplyr)
 library(magrittr)
 library(ggplot2)
 library(tidyverse)
 library(plotly)
-library("phyloseq")
+library(phyloseq)
 ```
 
 ## Kraken2 kreport:
@@ -74,10 +77,26 @@ domain_all_samples
 
 plot <- ggplot(domain_all_samples, aes(x=samples,y=Reads,fill=Domain)) +
   geom_bar(stat="identity") + 
-  labs(title = "Metagenomic Reads Classification with Standard Kraken2 DB (Domain)", y="Number of Reads", x = "Samples")
+  labs(title = "Metagenomic Reads Classification with Standard Kraken2 DB (Domain)", y="Number of Reads", x = "Samples")+
+  theme(axis.text.x=element_text(angle=90))
+plot
+# ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Absolute/kraken2_std_domain.png")
 
-ggplotly(plot)
+#### plot relative abundance 
+domain_all_samples %>%
+  group_by(samples) %>%
+  mutate(Total=sum(Reads)) %>%
+  mutate(Relative=Reads/Total) -> domain_relative
 
+
+relative_plot <- ggplot(domain_relative, aes(x=samples,y=Relative,fill=Domain)) +
+  geom_bar(stat="identity") + 
+  labs(title = "Metagenomic Relative Abundance with Standard Kraken2 DB (Domain)", y="Percentage", x = "Samples")+
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme(axis.text.x=element_text(angle=90))
+relative_plot
+
+# ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Relative/kraken2_std_domain_rel.png")
 ```
 
 ## From the results above, we can conclude that most of the reads in a metagenomic sample was not able to identified or belongs to the Eukaryota. 
@@ -97,7 +116,7 @@ i=0
 for (file in files){
   current_sample <- read.csv(paste(absolute_path,file,sep=""),sep="\t",header=FALSE)
   phylum_absolute <- current_sample %>% subset(V4 == "P") %>% mutate(trimed = trimws(V6))  %>% select(c(trimed,V2))
-  phylum_absolute <- phylum_absolute %>% subset(c(trimed!="Chordata")) %>% subset(V2 >= 100)# deselect phylum belongs to Eukrayota
+  phylum_absolute <- phylum_absolute %>% subset(c(trimed!="Chordata")) %>%  subset(V2 >= 100)# deselect phylum belongs to Eukrayota
   colnames(phylum_absolute) <- c("Phylum", unlist(strsplit(file,".",fixed = TRUE))[1])
   
   if (i == 0){ # if is the first sample, make the table the aggregated data table
@@ -131,10 +150,28 @@ phylum_all_samples
 
 plot <- ggplot(phylum_all_samples, aes(x=samples,y=Reads,fill=Phylum)) +
   geom_bar(stat="identity") + 
-  labs(title = "Metagenomic Reads Classification with Standard Kraken2 DB (Phylum) - Microorganism Only", y="Number of Reads", x = "Samples") + 
-  theme(axis.title = element_text(size=1), axis.text.x = element_text(angle=90))
+  labs(title = "Metagenomic Reads Classification with Standard Kraken2 DB (Phylum)", y="Number of Reads", x = "Samples", caption = "* For the purpose of visualization, only taxa classified with more than 100 reads will be shown") + 
+  theme(axis.title = element_text(size=1), axis.text.x = element_text(angle=90), legend.key.size =unit(0.5,"cm")) 
+plot
 
-ggplotly(plot)
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Absolute/kraken2_std_phylum.png")
+#### plot relative abundance 
+phylum_all_samples %>%
+  group_by(samples) %>%
+  mutate(Total=sum(Reads)) %>%
+  mutate(Relative=Reads/Total) ->phylum_relative
+
+
+relative_plot <- ggplot(phylum_relative, aes(x=samples,y=Relative,fill=Phylum)) +
+  geom_bar(stat="identity") + 
+  labs(title = "Metagenomic Relative Abundance with Standard Kraken2 DB (Phylum)", y="Percentage", x = "Samples", caption = "* For the purpose of visualization, only taxa classified with more than 100 reads will be shown") + 
+  theme(axis.title = element_text(size=1), axis.text.x = element_text(angle=90), legend.key.size =unit(0.5,"cm")) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme(axis.text.x=element_text(angle=90)) + 
+  scale_color_brewer(palette="Set2")
+relative_plot
+
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Relative/kraken2_std_phylum_rel.png")
 
 ```
 
