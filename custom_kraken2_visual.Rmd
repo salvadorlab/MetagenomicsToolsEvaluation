@@ -6,7 +6,7 @@ output: html_document
 ---
 ### PATH to custom output result:
 ```{r}
-path = "/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/custom"
+path = "/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/custom"
 setwd(path)
 ```
 
@@ -76,7 +76,7 @@ plot <- ggplot(domain_all_samples, aes(x=samples,y=Reads,fill=Domain)) +
   theme(axis.text.x=element_text(angle=90))
 
 plot
-ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Absolute/kraken2_cus_domain.png")
+# ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Absolute/kraken2_cus_domain.png")
 
 #### plot relative abundance 
 domain_all_samples %>%
@@ -91,7 +91,7 @@ relative_plot <- ggplot(domain_relative, aes(x=samples,y=Relative,fill=Domain)) 
   scale_y_continuous(labels = scales::percent_format()) +
   theme(axis.text.x=element_text(angle=90))
 relative_plot
-ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Relative/kraken2_cus_domain_rel.png")
+# ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Relative/kraken2_cus_domain_rel.png")
 ```
 
 ### Classify phylum, excluding unclassified and Eukaryote reads to increase local resolution
@@ -148,7 +148,7 @@ plot <- ggplot(major_phylum, aes(x=samples,y=Reads,fill=Phylum)) +
 
 plot
 
-ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Absolute/kraken2_cus_phylum.png")
+# ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Absolute/kraken2_cus_phylum.png")
 
 
 
@@ -162,7 +162,7 @@ relative_plot <- ggplot(major_phylum, aes(x=samples,y=Percentage,fill=Phylum)) +
   scale_color_brewer(palette="rainbow")
 relative_plot
 # ggplotly(relative_plot)
-ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Relative/kraken2_cus_phylum_rel.png")
+# ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Relative/kraken2_cus_phylum_rel.png")
 
 ```
 
@@ -218,7 +218,7 @@ plot <- ggplot(major_genus, aes(x=samples,y=Reads,fill=genus)) +
   theme(axis.title = element_text(size=1), axis.text.x = element_text(angle=90),legend.text=element_text(size=8),legend.key.size = unit(0.5,"line"))
 
 plot
-ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Absolute/kraken2_cus_genus.png")
+# ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Absolute/kraken2_cus_genus.png")
 
 
 
@@ -231,7 +231,7 @@ relative_plot <- ggplot(major_genus, aes(x=samples,y=Percentage,fill=genus)) +
   scale_color_brewer(palette="rainbow")
 relative_plot
 # ggplotly(relative_plot)
-ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Relative/kraken2_cus_genus_rel.png")
+# ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Relative/kraken2_cus_genus_rel.png")
 
 
 ```
