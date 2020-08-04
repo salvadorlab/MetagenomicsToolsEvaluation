@@ -6,7 +6,7 @@ output: html_document
 ---
 ### PATH to custom output result:
 ```{r}
-path = "/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/custom"
+path = "/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/custom"
 setwd(path)
 ```
 
@@ -129,7 +129,7 @@ for (file in files){
   i = i + 1
 }
 
-# save(phylum_all_samples, file ="standard_absolute_phylum_micro_only.Rdata")
+save(phylum_all_samples, file ="standard_absolute_phylum_micro_only.Rdata")
 
 phylum_all_samples[is.na(phylum_all_samples)] <- 0
 keys_to_gather <- colnames(phylum_all_samples)[-1] # gather samples, exclude "Phylum" from colnames
@@ -137,11 +137,17 @@ keys_to_gather <- colnames(phylum_all_samples)[-1] # gather samples, exclude "Ph
 # prepare dataframe for ggplot
 phylum_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
 
+all_phylums <- unique(phylum_all_samples$Phylum) # all phylums classified
+# phylums I want to factored into order so they can be assigned with a specific color during plotting
+order_phylum <- c("Proteobacteria","Actinobacteria","Cyanobacteria","Firmicutes","Bacteroidetes","Uroviricota","Tenericutes","Spirochaetes","Fusobacteria","Chlamydiae","Aquificae","Chloroflexi","Thermotogae","Artverviricota","Peploviricota","Deinococcus-Thermus","Planctomycetes") 
+remaining_phylum <- all_phylums %>% data.frame() %>% subset(!c(all_phylums %in% order_phylum)) 
+remaining_phylum <- remaining_phylum$.
 
 phylum_all_samples$samples <- factor(phylum_all_samples$samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
-phylum_all_samples$Phylum <- factor(phylum_all_samples$Phylum, level=unique(phylum_all_samples$Phylum))
+phylum_all_samples$Phylum <- factor(phylum_all_samples$Phylum, level=c(order_phylum,remaining_phylum))
 
-# subsetting taxonomy with more than 1% in relative composition from each sample 
+
+# subsetting taxonomy with more than 1% in relative composition from each sample
 phylum_all_samples %>% group_by(samples) %>%
   mutate(Total=sum(Reads), Percentage = Reads/Total) %>% subset(Percentage >= 0.001) ->major_phylum
 
@@ -158,7 +164,7 @@ plot <- ggplot(major_phylum, aes(x=samples,y=Reads,fill=Phylum)) +
 
 plot
 
-# ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Absolute/kraken2_cus_phylum.png")
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Absolute/kraken2_cus_phylum.png",width=8, height=6)
 
 
 
@@ -172,7 +178,7 @@ relative_plot <- ggplot(major_phylum, aes(x=samples,y=Percentage,fill=Phylum)) +
   scale_fill_manual(values=manual_color)
 relative_plot
 # ggplotly(relative_plot)
-# ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Relative/kraken2_cus_phylum_rel.png")
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Relative/kraken2_cus_phylum_rel.png",width=8, height=6)
 
 ```
 
@@ -210,9 +216,14 @@ keys_to_gather <- colnames(genus_all_samples)[-1] # gather samples, exclude "gen
 # prepare dataframe for ggplot
 genus_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
 
+# genus I want to factored in order so they can be assigned with a specific color during plotting
+all_genus <- unique(genus_all_samples$genus) # allgenus classified
+order_genus <- c("Xanthomonas","Pseudomonas","Pasteurella","Streptomyces","Calothrix","Andhravirus","Mycoplasma","Spiroplasma","Bacillus","Staphylococcus","Lactobacillus","Clostridium","Mycobacterium","Bordetella","Leptospira","Yersinia","Escherichia","Bartonella","Bacteroides","Microcystis","Nostoc","Mycobacteroides","Alistipes","Parabacteroides","Anabaena","Dolichospermum","Faecalibacterium","Sphaerospermopsis","Prevotella","Achromobacter") 
+remaining_genus <- all_genus %>% data.frame() %>% subset(!c(all_genus %in% order_genus)) # deselect genus subsetted to put in order
+remaining_genus <- remaining_genus$. # data.frame to vector
 
 genus_all_samples$samples <- factor(genus_all_samples$samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
-genus_all_samples$genus <- factor(genus_all_samples$genus, level=unique(genus_all_samples$genus))
+genus_all_samples$genus <- factor(genus_all_samples$genus, level=c(order_genus,remaining_genus))
 
 # subsetting taxonomy with more than 1% in relative composition from each sample 
 genus_all_samples %>% group_by(samples) %>%
@@ -229,20 +240,20 @@ plot <- ggplot(major_genus, aes(x=samples,y=Reads,fill=genus)) +
   scale_fill_manual(values=manual_color)
 
 plot
-# ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Absolute/kraken2_cus_genus.png")
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Absolute/kraken2_cus_genus.png",width=10, height=6)
 
 
 
 relative_plot <- ggplot(major_genus, aes(x=samples,y=Percentage,fill=genus)) +
   geom_bar(stat="identity") + 
   labs(title = "Metagenomic Relative Abundance with Customized Kraken2 DB (Genus)", y="Percentage", x = "Samples", caption = "*For the purpose of visualization, only taxa classified with more than 10% in composition will be shown") + 
-  theme(axis.title = element_text(size=1), axis.text.x = element_text(angle=90), legend.key.size=unit(0.5,"cm"),plot.caption = element_text(hjust = 0, face= "italic"),legend.box = unit(8,"cm")) +
+  theme(axis.title = element_text(size=1), axis.text.x = element_text(angle=90), legend.key.size=unit(0.5,"cm"),plot.caption = element_text(hjust = 0, face= "italic"),legend.box = unit(1,"cm")) +
   scale_y_continuous(labels = scales::percent_format()) +
   theme(axis.text.x=element_text(angle=90)) + 
   scale_fill_manual(values=manual_color)
 relative_plot
-# ggplotly(relative_plot)
-# ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Relative/kraken2_cus_genus_rel.png")
+ggplotly(relative_plot)
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Relative/kraken2_cus_genus_rel.png",width=10, height=6)
 
 
 ```

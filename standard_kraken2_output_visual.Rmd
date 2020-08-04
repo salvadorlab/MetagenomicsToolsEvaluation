@@ -27,6 +27,14 @@ library(plotly)
 library(phyloseq)
 ```
 
+###Color Palette for plotting
+```{r}
+
+manual_color <-c("#F94144","#80B918","#FEE440","#4361EE","#FFADAD","#FFD6A5","#FDFFB6","#CAFFBF","#9BF6FF","#A0C4FF","#BDB2FF","#FFC6FF","#233D4D","#FE7F2D","#FCCA46","#A1C181",
+                 "#619B8A","#EE6352","#59CD90","#3FA7D6","#FAC05E","#F79D84","#50514F","#F25F5C","#FFE066","#247BA0","#70C1B3",
+                 "#FFD1E8","#C8A439","#465D6F","#A94303","#708841","#540D6E","#EE4266","#FFD23F","#3BCEAC","#0EAD69","#E3AB00ff","#D1DED3ff",
+                 "#AD8EB0ff","#58BADCff","#A71D2Eff","#86D8BBff","#0050ADff","#97CBF0ff","#67A280ff","#F20089","#41EAD4","#FBFF12","#54478C")
+```
 ## Kraken2 kreport:
     **1) Absolute Reads**
     **2) root: celluar organism (Eukaryota + Bacteria) + Viruses**
@@ -78,7 +86,8 @@ domain_all_samples
 plot <- ggplot(domain_all_samples, aes(x=samples,y=Reads,fill=Domain)) +
   geom_bar(stat="identity") + 
   labs(title = "Metagenomic Reads Classification with Standard Kraken2 DB (Domain)", y="Number of Reads", x = "Samples")+
-  theme(axis.text.x=element_text(angle=90))
+  theme(axis.text.x=element_text(angle=90)) +
+  scale_fill_manual(values= manual_color)
 plot
 # ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Absolute/kraken2_std_domain.png")
 
@@ -93,7 +102,8 @@ relative_plot <- ggplot(domain_relative, aes(x=samples,y=Relative,fill=Domain)) 
   geom_bar(stat="identity") + 
   labs(title = "Metagenomic Relative Abundance with Standard Kraken2 DB (Domain)", y="Percentage", x = "Samples")+
   scale_y_continuous(labels = scales::percent_format()) +
-  theme(axis.text.x=element_text(angle=90))
+  theme(axis.text.x=element_text(angle=90))+
+  scale_fill_manual(values=manual_color)
 relative_plot
 
 # ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Relative/kraken2_std_domain_rel.png")
@@ -137,11 +147,16 @@ keys_to_gather <- colnames(phylum_all_samples)[-1] # gather samples, exclude "Ph
 # prepare dataframe for ggplot
 phylum_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
 
+all_phylums <- unique(phylum_all_samples$Phylum) # all phylums classified
+# phylums I want to factored into order so they can be assigned with a specific color during plotting
+order_phylum <- c("Proteobacteria","Actinobacteria","Cyanobacteria","Firmicutes","Bacteroidetes","Uroviricota","Tenericutes","Spirochaetes","Fusobacteria","Chlamydiae","Aquificae","Chloroflexi","Thermotogae","Artverviricota","Peploviricota") 
+remaining_phylum <- all_phylums %>% data.frame() %>% subset(!c(all_phylums %in% order_phylum)) 
+remaining_phylum <- remaining_phylum$.
 
 phylum_all_samples$samples <- factor(phylum_all_samples$samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
-phylum_all_samples$Phylum <- factor(phylum_all_samples$Phylum, level=unique(phylum_all_samples$Phylum))
+phylum_all_samples$Phylum <- factor(phylum_all_samples$Phylum, level=c(order_phylum,remaining_phylum))
 phylum_all_samples %>% group_by(samples) %>%
-  mutate(Total=sum(Reads), Percentage = Reads/Total) %>% subset(Percentage >= 0.010) ->major_phylum
+  mutate(Total=sum(Reads), Percentage = Reads/Total) %>% subset(Percentage >= 0.001) ->major_phylum
 ```
 
 
@@ -153,11 +168,12 @@ phylum_all_samples %>% group_by(samples) %>%
 plot <- ggplot(major_phylum, aes(x=samples,y=Reads,fill=Phylum)) +
   geom_bar(stat="identity") + 
   labs(title = "Metagenomic Reads Classification with Standard Kraken2 DB (Phylum)", y="Number of Reads", x = "Samples", caption = "* For the purpose of visualization, only taxa classified with more 1% in composition will be shown") + 
-  theme(axis.title = element_text(size=1), axis.text.x = element_text(angle=90))
+  theme(axis.title = element_text(size=1), axis.text.x = element_text(angle=90))+
+  scale_fill_manual(values=manual_color)
 
 plot
 
-ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Absolute/kraken2_std_phylum.png")
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Absolute/kraken2_std_phylum.png", width = 8, height = 6)
 
 
 
@@ -168,10 +184,10 @@ relative_plot <- ggplot(major_phylum, aes(x=samples,y=Percentage,fill=Phylum)) +
   theme(axis.title = element_text(size=1), axis.text.x = element_text(angle=90), legend.key.size =unit(0.5,"cm"),plot.caption = element_text(hjust = 0, face= "italic")) +
   scale_y_continuous(labels = scales::percent_format()) +
   theme(axis.text.x=element_text(angle=90)) + 
-  scale_color_brewer(palette="rainbow")
+  scale_fill_manual(values=manual_color)
 relative_plot
 # ggplotly(relative_plot)
-ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Relative/kraken2_std_phylum_rel.png")
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Relative/kraken2_std_phylum_rel.png",width = 8, height = 6)
 
 ```
 
@@ -209,9 +225,15 @@ keys_to_gather <- colnames(genus_all_samples)[-1] # gather samples, exclude "gen
 # prepare dataframe for ggplot
 genus_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
 
+# genus I want to factored in order so they can be assigned with a specific color during plotting
+all_genus <- unique(genus_all_samples$genus) # allgenus classified
+order_genus <- c("Xanthomonas","Pseudomonas","Pasteurella","Streptomyces","Calothrix","Andhravirus","Mycoplasma","Spiroplasma","Bacillus","Staphylococcus","Lactobacillus","Clostridium","Mycobacterium","Bordetella","Leptospira","Yersinia","Escherichia","Bartonella","Bacteroides","Microcystis","Nostoc","Mycobacteroides","Alistipes","Parabacteroides","Anabaena","Dolichospermum","Faecalibacterium","Sphaerospermopsis","Prevotella","Achromobacter") 
+remaining_genus <- all_genus %>% data.frame() %>% subset(!c(all_genus %in% order_genus)) # deselect genus subsetted to put in order
+remaining_genus <- remaining_genus$. # data.frame to vector
+
 order <- unique(genus_all_samples$samples)
 genus_all_samples$samples <- factor(genus_all_samples$samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
-genus_all_samples$genus <- factor(genus_all_samples$genus, level=unique(genus_all_samples$genus))
+genus_all_samples$genus <- factor(genus_all_samples$genus, level=c(order_genus,remaining_genus))
 genus_all_samples %>% group_by(samples) %>%
   mutate(Total=sum(Reads), Percentage = Reads/Total) %>% subset(Percentage >= 0.010) ->major_genus
 ```
@@ -222,10 +244,11 @@ genus_all_samples %>% group_by(samples) %>%
 plot <- ggplot(major_genus, aes(x=samples,y=Reads,fill=genus)) +
   geom_bar(stat="identity") + 
   labs(title = "Metagenomic Reads Classification with Standard Kraken2 DB (Genus)", y="Number of Reads", x = "Samples", caption = "* For the purpose of visualization, only taxa classified with more than 1% in composition will be shown") + 
-  theme(axis.title = element_text(size=1), axis.text.x = element_text(angle=90),legend.text=element_text(size=8),legend.key.size = unit(0.5,"line"))
+  theme(axis.title = element_text(size=1), axis.text.x = element_text(angle=90), legend.key.size=unit(0.5,"cm"),plot.caption = element_text(hjust = 0, face= "italic"),legend.box = unit(8,"cm")) +
+  scale_fill_manual(values=manual_color)
 
 plot
-ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Absolute/kraken2_std_genus.png")
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Absolute/kraken2_std_genus.png",width = 10, height = 6)
 
 
 
@@ -235,10 +258,10 @@ relative_plot <- ggplot(major_genus, aes(x=samples,y=Percentage,fill=genus)) +
   theme(axis.title = element_text(size=1), axis.text.x = element_text(angle=90), legend.key.size=unit(0.5,"cm"),plot.caption = element_text(hjust = 0, face= "italic"),legend.box = unit(8,"cm")) +
   scale_y_continuous(labels = scales::percent_format()) +
   theme(axis.text.x=element_text(angle=90)) + 
-  scale_color_brewer(palette="rainbow")
+  scale_fill_manual(values=manual_color)
 relative_plot
 # ggplotly(relative_plot)
-ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Relative/kraken2_std_genus_rel.png")
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Relative/kraken2_std_genus_rel.png", width = 10, height = 6)
 
 ```
 
