@@ -79,23 +79,23 @@ domain_full_table %>% group_by(Samples) %>%
 plot_domain <- ggplot(domain_major, aes(x=Samples, y=Read_Count, fill=Name)) +
   geom_bar(stat="identity") + 
   theme(axis.text.x=element_text(angle=90)) +
-  labs(title = "Metagenomic Reads Classification with Clark(with Rat) DB (Domain)", y= "Number of Reads",
+  labs(title = "Metagenomic Reads Classification with Clark DB (Domain)", y= "Number of Reads",
        x="Samples")+
   scale_fill_manual(values=manual_color)
 
 plot_domain
 # ggplotly(plot_domain)
-ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Relative/clark_cus_domain_rel.png")
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Absolute/clark_cus_domain.png",width = 8, height = 6)
 ########Relative Plot#################
 
 domain_relative <- ggplot(domain_major, aes(x=Samples, y=Percentage, fill=Name)) +
   geom_bar(stat="identity") + 
   theme(axis.text.x=element_text(angle=90)) +
-  labs(title = "Metagenomic Relative Abundance Classification with Clark(with Rat) DB (Domain)",
+  labs(title = "Metagenomic Relative Abundance Classification with Clark DB (Domain)",
        x="Samples") +  scale_y_continuous(labels = scales::percent_format()) +
   scale_fill_manual(values = manual_color)
 domain_relative
-ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Relative/clark_cus_domain_rel.png")
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Relative/clark_cus_domain_rel.png",width = 8, height = 6)
 
 ```
 
@@ -162,13 +162,13 @@ manual_color <-c("#F94144","#80B918","#FEE440","#4361EE","#FFADAD","#FFD6A5","#F
 
 phylum_plot <- ggplot(phylum_major, aes(x=Samples,y=Read_Count, fill=Name)) + 
   geom_bar(stat="identity") +
-  theme(axis.text.x = element_text(angle=90),legend.text = element_text(size = 8),legend.key.size = unit(0.4,"cm"),plot.caption = element_text(hjust = 0, face= "italic"))+
-  labs(title = "Metagenomic Reads Classification with Clark(with Rat) DB (Phylum)", y= "Number of Reads", x="Samples" , caption= "*For the purpose of visualization, only taxa classified with more than 1% in composition will be shown")  +
+  theme(axis.text.x = element_text(angle=90),legend.text = element_text(size = 8),legend.key.size = unit(0.4,"cm"))+
+  labs(title = "Clark Microbiome Reads Profile (Phylum)", y= "Number of Reads", x="Samples" )  +
   scale_fill_manual(values=manual_color)
 
 phylum_plot
 # ggplotly(phylum_plot)
-ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Absolute/clark_cus_phylum.png")
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Absolute/clark_cus_phylum.png", width = 8, height = 6)
 
 # ggplotly(plot_phylum)
 
@@ -177,13 +177,13 @@ ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analy
 
 phylum_relative <- ggplot(phylum_major, aes(x=Samples,y=Percentage, fill=Name)) + 
   geom_bar(stat="identity") +
-  theme(axis.text.x = element_text(angle=90),legend.text = element_text(size = 8),legend.key.size = unit(0.4,"cm"),plot.caption = element_text(hjust = 0, face= "italic"))+
-  labs(title = "Metagenomic Relative Abundancen with Clark(with Rat) DB (Phylum)", y= "Percentage", x="Samples" , caption= "*For the purpose of visualization, only taxa classified with more than 1% in composition will be shown")+scale_y_continuous(labels = scales::percent_format()) +
+  theme(axis.text.x = element_text(angle=90),legend.text = element_text(size = 8),legend.key.size = unit(0.4,"cm"))+
+  labs(title = "Clark Microbiome Composition Profile (Phylum)", y= "Percentage", x="Samples")+scale_y_continuous(labels = scales::percent_format()) +
   scale_fill_manual(values = manual_color)
 
 phylum_relative
 # ggplotly(phylum_plot)
-ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Relative/clark_cus_phylum_rel.png")
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Relative/clark_cus_phylum_rel.png", width = 8, height = 6)
 
 
 ```

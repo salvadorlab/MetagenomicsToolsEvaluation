@@ -83,7 +83,7 @@ plot_domain <- ggplot(domain_full_table, aes(x=Samples, y=Read_Count, fill=Name)
 plot_domain
 # ggplotly(plot_domain)
 
-ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Relative/clark-s_cus_domain_rel.png")
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Absolute/clark-s_cus_domain.png",width = 8, height = 6)
 
 #### plot relative abundance 
 domain_full_table %>%
@@ -99,7 +99,7 @@ domain_relative <- ggplot(domain_major, aes(x=Samples, y=Relative, fill=Name)) +
        x="Samples") +  scale_y_continuous(labels = scales::percent_format()) +
   scale_fill_manual(values = manual_color)
 domain_relative
-ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Relative/clark-s_cus_domain_rel.png")
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Relative/clark-s_cus_domain_rel.png",width = 8, height = 6)
 
 
 ```
@@ -164,15 +164,15 @@ manual_color <-c("#F94144","#80B918","#FEE440","#4361EE","#FFADAD","#FDFFB6","#C
 
 plot_phylum <- ggplot(phylum_full_table, aes(x=Samples, y=Read_Count, fill=Name)) +
   geom_bar(stat="identity") + 
-  theme(axis.text.x=element_text(angle=90)) +
-  labs(title = "Metagenomic Reads Classification with Clark-S DB (Phylum)", y= "Number of Reads",
+  theme(axis.text.x = element_text(angle=90),legend.text = element_text(size = 8),legend.key.size = unit(0.4,"cm")) +
+  labs(title = "Clark-S Microbiome Reads Profile (Phylum)", y= "Number of Reads",
        x="Samples") +
   scale_fill_manual(values = manual_color)
 
 plot_phylum
 
 # ggplotly(plot_phylum)
-ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Absolute/clark-s_cus_phylum.png")
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Absolute/clark-s_cus_phylum.png",width = 8, height =6)
 
 ########Relative Plot#################
 
@@ -180,12 +180,12 @@ ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analy
 phylum_relative <- ggplot(phylum_major, aes(x=Samples,y=Percentage, fill=Name)) + 
   geom_bar(stat="identity") +
   theme(axis.text.x = element_text(angle=90),legend.text = element_text(size = 8),legend.key.size = unit(0.4,"cm"),plot.caption = element_text(hjust = 0, face= "italic"))+
-  labs(title = "Metagenomic Relative Abundancen with Clark-S DB (Phylum)", y= "Percentage", x="Samples" , caption= "*For the purpose of visualization, only taxa classified with more than 1% in composition will be shown")+scale_y_continuous(labels = scales::percent_format()) +
+  labs(title = "Clark-S Microbiome Composition Profile (Phylum)", y= "Percentage", x="Samples" )+scale_y_continuous(labels = scales::percent_format()) +
   scale_fill_manual(values = manual_color)
 
 phylum_relative
 # ggplotly(phylum_plot)
-ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Relative/clark-s_cus_phylum_rel.png")
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Relative/clark-s_cus_phylum_rel.png", width = 8, height =6)
 
 ```
 ### genus level classification 

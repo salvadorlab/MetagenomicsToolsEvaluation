@@ -45,7 +45,8 @@ i=0
 # iterate through all sample's result for Domain info
 for (file in files){
   current_sample <- read.csv(paste(absolute_path,file,sep=""),sep="\t",header=FALSE)
-  domain_absolute <- current_sample %>% subset(V4 == "D" | V4 == "U") %>% mutate(trimed = trimws(V6))  %>% select(c(trimed,V2))
+  # add "| trimws(V6) == "other sequences"" to subset if counting total number of reads
+  domain_absolute <- current_sample %>% subset(V4 == "D" | V4 == "U" | trimws(V6) == "other sequences") %>% mutate(trimed = trimws(V6))  %>% select(c(trimed,V2))
   
   colnames(domain_absolute) <- c("Domain", unlist(strsplit(file,".",fixed = TRUE))[1])
 
@@ -71,7 +72,14 @@ domain_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
 order <- unique(domain_all_samples$samples)
 domain_all_samples$samples <- factor(domain_all_samples$samples, levels = order)
 domain_all_samples$Domain <- factor(domain_all_samples$Domain, level=unique(domain_all_samples$Domain))
-domain_all_samples
+
+
+# Total number of reads for each sample (unclassified + three domains + other sequences)
+domain_all_samples %>% group_by(samples) %>% summarise(total_reads=sum(Reads)) -> summary_domain
+c(mean(summary_domain$total_reads),sd(summary_domain$total_reads)) # avg number of reads across sample
+
+# other sequences summary
+domain_all_samples %>% subset(Domain == "other sequences") %>% summarise(mean_other=mean(Reads),std=sd(Reads)) 
 
 ```
 
@@ -83,9 +91,9 @@ plot <- ggplot(domain_all_samples, aes(x=samples,y=Reads,fill=Domain)) +
   theme(axis.text.x=element_text(angle=90))+
   scale_fill_manual(values=manual_color)
 
-# ggplotly(plot)
+ggplotly(plot)
 plot
-# ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Absolute/kraken2_mini_domain.png")
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Absolute/kraken2_mini_domain.png",width=8,height=6)
 
 #### plot relative abundance 
 domain_all_samples %>%
@@ -99,9 +107,13 @@ relative_plot <- ggplot(domain_relative, aes(x=samples,y=Relative,fill=Domain)) 
   theme(axis.text.x=element_text(angle=90))+
   scale_fill_manual(values=manual_color)
 
+ggplotly(relative_plot)
 relative_plot
-# ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Relative/kraken2_mini_domain_rel.png")
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Relative/kraken2_mini_domain_rel.png",width=8,height=6)
 
+# classified profile summary 
+domain_relative
+domain_relative %>% group_by(Domain) %>% summarise(mean_Reads=mean(Reads), std_Reads=sd(Reads), mean_percentage=mean(Relative), std_percentage=sd(Relative))
 ```
 
 ### Compare to classification results with standard database, the amount of reads classified with minikraken database was much lesser. Thus minikraken2 is not able to produce a reliable results compare to using kraken2's standard databases
