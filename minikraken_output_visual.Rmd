@@ -36,27 +36,27 @@ Kraken2 kreport:
     2) root: celluar organism (Eukaryota + Bacteria) + Viruses
     3) all_reads: Eukaryota + Bacteria + Viruses + unclassified 
 ```{r}
-absolute_path = paste(path,"/absolute/",sep="")
-files <- list.files(absolute_path)
+mini_path <- paste(path,"minikraken/absolute/",sep="")
+files <- list.files(mini_path)
 
 
 i=0
 
 # iterate through all sample's result for Domain info
 for (file in files){
-  current_sample <- read.csv(paste(absolute_path,file,sep=""),sep="\t",header=FALSE)
+  current_sample <- read.csv(paste(mini_path,file,sep=""),sep="\t",header=FALSE)
   # add "| trimws(V6) == "other sequences"" to subset if counting total number of reads
   domain_absolute <- current_sample %>% subset(V4 == "D" | V4 == "U" | trimws(V6) == "other sequences") %>% mutate(trimed = trimws(V6))  %>% select(c(trimed,V2))
   
   colnames(domain_absolute) <- c("Domain", unlist(strsplit(file,".",fixed = TRUE))[1])
-
+  
   
   if (i == 0){ # if is the first sample, make the table the aggregated data table
     domain_all_samples <-  domain_absolute
-
+    
   } else {
     domain_all_samples <- full_join(domain_all_samples, domain_absolute,by="Domain")
-
+    
   }
   i = i + 1
 }
@@ -75,11 +75,16 @@ domain_all_samples$Domain <- factor(domain_all_samples$Domain, level=unique(doma
 
 
 # Total number of reads for each sample (unclassified + three domains + other sequences)
-domain_all_samples %>% group_by(samples) %>% summarise(total_reads=sum(Reads)) -> summary_domain
-c(mean(summary_domain$total_reads),sd(summary_domain$total_reads)) # avg number of reads across sample
+domain_all_samples %>% group_by(samples) %>% summarise(total_reads=sum(Reads)) -> mini_total_reads
+as.data.frame(list(mean_reads= mean(mini_total_reads$total_reads),std=sd(mini_total_reads$total_reads))) -> mini_total_reads_summary# avg number of reads across sample
 
 # other sequences summary
-domain_all_samples %>% subset(Domain == "other sequences") %>% summarise(mean_other=mean(Reads),std=sd(Reads)) 
+domain_all_samples %>% subset(Domain == "other sequences") -> mini_other_sequences
+mini_other_sequences %>%summarise(mean_other=mean(Reads),std=sd(Reads)) -> mini_other_sequences_summary
+
+
+mini_total_reads_summary# avg number of reads across sample
+mini_other_sequences_summary # avg number of reads classified into "other sequences"
 
 ```
 

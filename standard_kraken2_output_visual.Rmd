@@ -42,15 +42,15 @@ manual_color <-c("#F94144","#80B918","#FEE440","#4361EE","#FFADAD","#FFD6A5","#F
     
 ### Domain Classification 
 ```{r}
-absolute_path = paste(path,"/absolute/",sep="")
-files <- list.files(absolute_path)
+std_path <- paste(path,"standard/absolute/",sep="")
+files <- list.files(std_path)
 
 
 i=0
 
 # iterate through all sample's result for Domain info
 for (file in files){
-  current_sample <- read.csv(paste(absolute_path,file,sep=""),sep="\t",header=FALSE)
+  current_sample <- read.csv(paste(std_path,file,sep=""),sep="\t",header=FALSE)
   # add "| trimws(V6) == "other sequences"" to subset if counting total number of reads
   domain_absolute <- current_sample %>% subset(V4 == "D" | V4 == "U" | trimws(V6) == "other sequences") %>% mutate(trimed = trimws(V6))  %>% select(c(trimed,V2))
 
@@ -84,11 +84,15 @@ domain_all_samples
 # test_absolute <- test_sample %>% mutate(trimed = trimws(V6))  %>% select(c(trimed,V4,V2,V1)) %>% subset(V4 == "D"| V4 == "U" | V4 == "R" | V4 == "R1"|V4=="G")  %>% group_by(V4) %>% summarise(sum_read= sum(V2), sum_percent=sum(V1))
 
 # Total number of reads for each sample (unclassified + three domains + other sequences)
-domain_all_samples %>% group_by(samples) %>% summarise(total_reads=sum(Reads)) -> summary_domain
-c(mean(summary_domain$total_reads),sd(summary_domain$total_reads)) # avg number of reads across sample
+domain_all_samples %>% group_by(samples) %>% summarise(total_reads=sum(Reads)) -> std_total_reads
+as.data.frame(list(mean_reads=mean(std_total_reads$total_reads),std=sd(std_total_reads$total_reads))) -> std_total_reads_summary# avg number of reads across sample
 
 # other sequences summary
-domain_all_samples %>% subset(Domain == "other sequences") %>% summarise(mean_other=mean(Reads),std=sd(Reads)) 
+domain_all_samples %>% subset(Domain == "other sequences") -> other_sequences_std
+other_sequences_std %>% summarise(mean_other=mean(Reads),std=sd(Reads)) -> other_seq_std_summary
+
+std_total_reads_summary
+other_seq_std_summary
 ```
 
 ```{r}

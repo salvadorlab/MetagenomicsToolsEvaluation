@@ -4,6 +4,7 @@ output: html_document
 ---
 
 ```{r}
+path <- "/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/"
 library(dplyr)
 library(magrittr)
 library(ggplot2)
@@ -13,16 +14,16 @@ library(plotly)
 
 # MiniKraken domain 
 ```{r}
-mini_path <- "/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/minikraken"
-absolute_path = paste(path,"/absolute/",sep="")
-files <- list.files(absolute_path)
+
+mini_path <- paste(path,"minikraken/absolute/",sep="")
+files <- list.files(mini_path)
 
 
 i=0
 
 # iterate through all sample's result for Domain info
 for (file in files){
-  current_sample <- read.csv(paste(absolute_path,file,sep=""),sep="\t",header=FALSE)
+  current_sample <- read.csv(paste(mini_path,file,sep=""),sep="\t",header=FALSE)
   # add "| trimws(V6) == "other sequences"" to subset if counting total number of reads
   domain_absolute <- current_sample %>% subset(V4 == "D" | V4 == "U" | trimws(V6) == "other sequences") %>% mutate(trimed = trimws(V6))  %>% select(c(trimed,V2))
   
@@ -53,13 +54,202 @@ domain_all_samples$Domain <- factor(domain_all_samples$Domain, level=unique(doma
 
 
 # Total number of reads for each sample (unclassified + three domains + other sequences)
-domain_all_samples %>% group_by(samples) %>% summarise(total_reads=sum(Reads)) -> mini_domain
-c(mean(summary_domain$total_reads),sd(summary_domain$total_reads)) -> mini_summary# avg number of reads across sample
+domain_all_samples %>% group_by(samples) %>% summarise(total_reads=sum(Reads)) -> mini_total_reads
+as.data.frame(list(mean_reads= mean(mini_total_reads$total_reads),std=sd(mini_total_reads$total_reads))) -> mini_total_reads_summary# avg number of reads across sample
 
 # other sequences summary
-domain_all_samples %>% subset(Domain == "other sequences") -> mini_other_sequences %>% summarise(mean_other=mean(Reads),std=sd(Reads)) -> mini_other_sequences_summary
+domain_all_samples %>% subset(Domain == "other sequences") -> mini_other_sequences
+mini_other_sequences %>%summarise(mean_other=mean(Reads),std=sd(Reads)) -> mini_other_sequences_summary
 
-mini_total_reads
-mini_other_sequences
+# unclassified reads summary
+domain_all_samples %>% subset(Domain == "unclassified") -> mini_unc
+mini_unc %>%summarise(mean_other=mean(Reads),std=sd(Reads)) -> mini_unc_summary
 
+
+mini_total_reads_summary# avg number of reads across sample
+mini_other_sequences_summary # avg number of reads classified into "other sequences"
+mini_unc_summary
+```
+
+# standard Kraken2 domain
+```{r}
+
+std_path <- paste(path,"standard/absolute/",sep="")
+files <- list.files(std_path)
+
+
+i=0
+
+# iterate through all sample's result for Domain info
+for (file in files){
+  current_sample <- read.csv(paste(std_path,file,sep=""),sep="\t",header=FALSE)
+  # add "| trimws(V6) == "other sequences"" to subset if counting total number of reads
+  domain_absolute <- current_sample %>% subset(V4 == "D" | V4 == "U" | trimws(V6) == "other sequences") %>% mutate(trimed = trimws(V6))  %>% select(c(trimed,V2))
+
+  colnames(domain_absolute) <- c("Domain", unlist(strsplit(file,".",fixed = TRUE))[1])
+  
+  if (i == 0){ # if is the first sample, make the table the aggregated data table
+    domain_all_samples <-  domain_absolute
+
+  } else {
+    domain_all_samples <- full_join(domain_all_samples, domain_absolute,by="Domain")
+
+  }
+  i = i + 1
+}
+
+# save(domain_all_samples, file ="standard_absolute_domain.Rdata")
+
+domain_all_samples[is.na(domain_all_samples)] <- 0
+keys_to_gather <- colnames(domain_all_samples)[-1] # gather samples, exclude "Domain" from colnames
+
+# prepare dataframe for ggplot
+domain_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
+
+order <- unique(domain_all_samples$samples)
+domain_all_samples$samples <- factor(domain_all_samples$samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
+domain_all_samples$Domain <- factor(domain_all_samples$Domain, level=unique(domain_all_samples$Domain))
+
+
+# test_sample <- read.csv(paste(absolute_path,"R22_K.kreport",sep=""),sep="\t",header=FALSE)
+# test_absolute <- test_sample %>% mutate(trimed = trimws(V6))  %>% select(c(trimed,V4,V2,V1)) %>% subset(V4 == "D"| V4 == "U" | V4 == "R" | V4 == "R1"|V4=="G")  %>% group_by(V4) %>% summarise(sum_read= sum(V2), sum_percent=sum(V1))
+
+# Total number of reads for each sample (unclassified + three domains + other sequences)
+domain_all_samples %>% group_by(samples) %>% summarise(total_reads=sum(Reads)) -> std_total_reads
+as.data.frame(list(mean_reads=mean(std_total_reads$total_reads),std=sd(std_total_reads$total_reads))) -> std_total_reads_summary# avg number of reads across sample
+
+# other sequences summary
+domain_all_samples %>% subset(Domain == "other sequences") -> other_sequences_std
+other_sequences_std %>% summarise(mean_other=mean(Reads),std=sd(Reads)) -> other_seq_std_summary
+
+# unclassified summary
+domain_all_samples %>% subset(Domain == "unclassified") -> std_unc
+std_unc %>%summarise(mean_other=mean(Reads),std=sd(Reads)) -> std_unc_summary
+
+std_total_reads_summary
+other_seq_std_summary
+std_unc_summary
+```
+
+# Custom db domain 
+```{r}
+
+cus_path = paste(path,"custom/absolute/",sep="")
+files <- list.files(cus_path)
+
+
+i=0
+
+# iterate through all sample's result for Domain info
+for (file in files){
+  current_sample <- read.csv(paste(cus_path,file,sep=""),sep="\t",header=FALSE)
+  # add "| trimws(V6) == "other sequences"" to subset if counting total number of reads
+  domain_absolute <- current_sample %>% subset(V4 == "D" | V4 == "U" | trimws(V6) == "other sequences") %>% mutate(trimed = trimws(V6))  %>% select(c(trimed,V2))
+
+  colnames(domain_absolute) <- c("Domain", unlist(strsplit(file,".",fixed = TRUE))[1])
+  
+  if (i == 0){ # if is the first sample, make the table the aggregated data table
+    domain_all_samples <-  domain_absolute
+
+  } else {
+    domain_all_samples <- full_join(domain_all_samples, domain_absolute,by="Domain")
+
+  }
+  i = i + 1
+}
+
+# save(domain_all_samples, file ="custom_absolute_domain.Rdata")
+
+domain_all_samples[is.na(domain_all_samples)] <- 0
+keys_to_gather <- colnames(domain_all_samples)[-1] # gather samples, exclude "Domain" from colnames
+
+# prepare dataframe for ggplot
+domain_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
+
+
+domain_all_samples$samples <- factor(domain_all_samples$samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
+domain_all_samples$Domain <- factor(domain_all_samples$Domain, level=unique(domain_all_samples$Domain))
+
+# Total number of reads for each sample (unclassified + three domains + other sequences)
+domain_all_samples %>% group_by(samples) %>% summarise(total_reads=sum(Reads)) -> cus_total_reads
+as.data.frame(list(mean_reads=mean(cus_total_reads$total_reads),std=sd(cus_total_reads$total_reads))) -> cus_total_reads_summary # avg number of reads across sample
+
+# other sequences summary
+domain_all_samples %>% subset(Domain == "other sequences") -> cus_other_seq
+cus_other_seq %>% summarise(mean_other=mean(Reads),std=sd(Reads)) -> other_seq_cus_summary
+
+# unclassified reads summary
+domain_all_samples %>% subset(Domain == "unclassified") -> cus_unc
+cus_unc %>%summarise(mean_other=mean(Reads),std=sd(Reads)) -> cus_unc_summary
+
+cus_total_reads_summary # avg number of reads across sample
+other_seq_cus_summary
+cus_unc_summary
+```
+
+# "other sequences" reads with custom database is significantly less than the mini and std databases reads
+- https://towardsdatascience.com/wilcoxon-test-in-r-how-to-compare-2-groups-under-the-non-normality-assumption-6fb7f9e92400
+
+```{r}
+
+# all three distribution for reads classified into the "other sequences" did not follow a normal distribution with the reject the null hypothesis at 0.05
+# shapiro.test(mini_other_sequences$Reads) 
+# shapiro.test(cus_other_seq$Reads) 
+# shapiro.test(other_sequences_std$Reads)
+
+# use Wilcoxon test for difference with non-normal distributed groups
+
+# mini vs custom for other sequences reads
+mini_cus_other <- data.frame(db=c(rep("mini",12),rep("cus",12)), other_seq_reads=c(mini_other_sequences$Reads,cus_other_seq$Reads))
+# wilcoxon test requires exactly 2 levels of groups factors
+mini_cus_other$db <- factor(mini_cus_other$db, levels=c("mini","cus"))
+
+# wilcoxon test 
+# alternative hypothesis, cus db with significantly lesser reads
+# since tested on the same data set with different methods, paired in true
+wilcox.test(mini_cus_other$other_seq_reads ~ mini_cus_other$db , alternative="less",paired=TRUE) # not rejected
+
+# std vs custom for other sequences reads
+std_cus_other <- data.frame(db=c(rep("std",12),rep("cus",12)), other_seq_reads=c(other_sequences_std$Reads,cus_other_seq$Reads))
+# wilcoxon test requires exactly 2 levels of groups factors
+std_cus_other$db <- factor(std_cus_other$db, levels=c("std","cus"))
+
+# wilcoxon test 
+# alternative hypothesis, cus db with significantly lesser reads
+# since tested on the same data set with different methods, paired in true
+wilcox.test(std_cus_other$other_seq_reads ~ std_cus_other$db , alternative="less",paired=TRUE) # not rejected
+
+```
+
+# "unclassified" reads with mini database is significantly more than the mini and std databases reads
+```{r}
+
+# all three distribution for reads classified into the "other sequences" did not follow a normal distribution with the reject the null hypothesis at 0.05
+# shapiro.test(mini_unc$Reads) 
+# shapiro.test(std_unc$Reads) 
+# shapiro.test(cus_unc$Reads)
+
+# use Wilcoxon test for difference with non-normal distributed groups
+
+# mini vs custom for other sequences reads
+mini_cus_unc <- data.frame(db=c(rep("mini",12),rep("cus",12)), unc_reads=c(mini_unc$Reads,cus_unc$Reads))
+# wilcoxon test requires exactly 2 levels of groups factors
+mini_cus_unc$db <- factor(mini_cus_unc$db, levels=c("mini","cus"))
+
+# wilcoxon test 
+# alternative hypothesis, cus db with significantly lesser reads
+# since tested on the same data set with different methods, paired in true
+wilcox.test(mini_cus_unc$unc_reads ~ mini_cus_unc$db , alternative="less",paired=TRUE) # not rejected
+
+# std vs custom for other sequences reads
+mini_std_unc <- data.frame(db=c(rep("mini",12),rep("std",12)), unc_reads=c(mini_unc$Reads,std_unc$Reads))
+# wilcoxon test requires exactly 2 levels of groups factors
+mini_std_unc$db <- factor(mini_std_unc$db, levels=c("mini","std"))
+
+# wilcoxon test 
+# alternative hypothesis, cus db with significantly lesser reads
+# since tested on the same data set with different methods, paired in true
+wilcox.test(mini_std_unc$unc_reads ~ mini_std_unc$db , alternative="less",paired=TRUE) # not rejected
+
+mini_cus_unc
 ```
