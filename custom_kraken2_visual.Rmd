@@ -6,7 +6,7 @@ output: html_document
 ---
 ### PATH to custom output result:
 ```{r}
-path = "/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/custom"
+path = "/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/"
 setwd(path)
 ```
 
@@ -117,7 +117,7 @@ domain_relative %>% group_by(Domain) %>% summarise(mean_reads = mean(Reads), std
 ### Classify phylum, excluding unclassified and Eukaryote reads to increase local resolution
     
 ```{r}
-absolute_path = paste(path,"/absolute/",sep="")
+absolute_path = paste(path,"custom/absolute/",sep="")
 files <- list.files(absolute_path)
 
 
@@ -162,6 +162,8 @@ phylum_all_samples$Phylum <- factor(phylum_all_samples$Phylum, level=c(order_phy
 phylum_all_samples %>% group_by(samples) %>%
   mutate(Total=sum(Reads), Percentage = Reads/Total) %>% subset(Percentage >= 0.001) ->major_phylum
 
+
+
 ```
 
 ```{r}
@@ -196,7 +198,7 @@ ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analy
 ### Classify genus, excluding unclassified and Eukaryote reads to increase local resolution
 
 ```{r}
-absolute_path = paste(path,"/absolute/",sep="")
+absolute_path = paste(path,"custom/absolute/",sep="")
 files <- list.files(absolute_path)
 
 
@@ -241,8 +243,9 @@ genus_all_samples %>% group_by(samples) %>%
   mutate(Total=sum(Reads), Percentage = Reads/Total) %>% subset(Percentage >= 0.010) ->major_genus
 
 # number of reads classified into microbiome composition (exclude homo and rattus)
-genus_all_samples %>% group_by(samples) %>%subset(genus != "Rattus", genus != "Homo") %>% summarise(sum=sum(Reads)) 
-genus_all_samples
+genus_all_samples %>% group_by(samples) %>%
+  mutate(Total=sum(Reads), Percentage = Reads/Total) %>%subset(genus != "Rattus" & genus !="Homo") %>% summarise(sum_reads=sum(Reads), sum_percentage=sum(Percentage)) -> cus_micro_comp
+cus_micro_comp
 ```
 
 ```{r}

@@ -187,15 +187,15 @@ other_seq_cus_summary
 cus_unc_summary
 ```
 
-# "other sequences" reads with custom database is significantly less than the mini and std databases reads
+# "other sequences" reads with custom database is significantly different than the mini and std databases reads
 - https://towardsdatascience.com/wilcoxon-test-in-r-how-to-compare-2-groups-under-the-non-normality-assumption-6fb7f9e92400
 
 ```{r}
 
 # all three distribution for reads classified into the "other sequences" did not follow a normal distribution with the reject the null hypothesis at 0.05
-# shapiro.test(mini_other_sequences$Reads) 
-# shapiro.test(cus_other_seq$Reads) 
-# shapiro.test(other_sequences_std$Reads)
+shapiro.test(mini_other_sequences$Reads)
+shapiro.test(cus_other_seq$Reads)
+shapiro.test(other_sequences_std$Reads)
 
 # use Wilcoxon test for difference with non-normal distributed groups
 
@@ -207,7 +207,7 @@ mini_cus_other$db <- factor(mini_cus_other$db, levels=c("mini","cus"))
 # wilcoxon test 
 # alternative hypothesis, cus db with significantly lesser reads
 # since tested on the same data set with different methods, paired in true
-wilcox.test(mini_cus_other$other_seq_reads ~ mini_cus_other$db , alternative="less",paired=TRUE) # not rejected
+wilcox.test(mini_cus_other$other_seq_reads ~ mini_cus_other$db ,paired=TRUE) # not rejected
 
 # std vs custom for other sequences reads
 std_cus_other <- data.frame(db=c(rep("std",12),rep("cus",12)), other_seq_reads=c(other_sequences_std$Reads,cus_other_seq$Reads))
@@ -215,19 +215,19 @@ std_cus_other <- data.frame(db=c(rep("std",12),rep("cus",12)), other_seq_reads=c
 std_cus_other$db <- factor(std_cus_other$db, levels=c("std","cus"))
 
 # wilcoxon test 
-# alternative hypothesis, cus db with significantly lesser reads
+# alternative hypothesis, cus db with significantly lesser reads "alternative ="less"
 # since tested on the same data set with different methods, paired in true
-wilcox.test(std_cus_other$other_seq_reads ~ std_cus_other$db , alternative="less",paired=TRUE) # not rejected
-
+wilcox.test(std_cus_other$other_seq_reads ~ std_cus_other$db ,paired=TRUE) # rejected
+std_cus_other
 ```
 
 # "unclassified" reads with mini database is significantly more than the mini and std databases reads
 ```{r}
 
 # all three distribution for reads classified into the "other sequences" did not follow a normal distribution with the reject the null hypothesis at 0.05
-# shapiro.test(mini_unc$Reads) 
-# shapiro.test(std_unc$Reads) 
-# shapiro.test(cus_unc$Reads)
+shapiro.test(mini_unc$Reads)
+shapiro.test(std_unc$Reads)
+shapiro.test(cus_unc$Reads)
 
 # use Wilcoxon test for difference with non-normal distributed groups
 
@@ -239,7 +239,7 @@ mini_cus_unc$db <- factor(mini_cus_unc$db, levels=c("mini","cus"))
 # wilcoxon test 
 # alternative hypothesis, cus db with significantly lesser reads
 # since tested on the same data set with different methods, paired in true
-wilcox.test(mini_cus_unc$unc_reads ~ mini_cus_unc$db , alternative="less",paired=TRUE) # not rejected
+wilcox.test(mini_cus_unc$unc_reads ~ mini_cus_unc$db ,paired=TRUE) # not rejected
 
 # std vs custom for other sequences reads
 mini_std_unc <- data.frame(db=c(rep("mini",12),rep("std",12)), unc_reads=c(mini_unc$Reads,std_unc$Reads))
@@ -249,7 +249,134 @@ mini_std_unc$db <- factor(mini_std_unc$db, levels=c("mini","std"))
 # wilcoxon test 
 # alternative hypothesis, cus db with significantly lesser reads
 # since tested on the same data set with different methods, paired in true
-wilcox.test(mini_std_unc$unc_reads ~ mini_std_unc$db , alternative="less",paired=TRUE) # not rejected
+wilcox.test(mini_std_unc$unc_reads ~ mini_std_unc$db,paired=TRUE) # not rejected
 
 mini_cus_unc
+```
+
+# Genus Level microbial composition standard db
+```{r}
+
+absolute_path = paste(path,"standard/absolute/",sep="")
+files <- list.files(absolute_path)
+
+
+i=0
+
+# iterate through all sample's result for Domain info
+for (file in files){
+  current_sample <- read.csv(paste(absolute_path,file,sep=""),sep="\t",header=FALSE)
+  genus_absolute <- current_sample %>% subset(V4 == "G") %>% mutate(trimed = trimws(V6))  %>% select(c(trimed,V2))
+  genus_absolute <- genus_absolute #%>% subset(c(trimed!="Homo")) %>% subset(V2 >= 100) # deselect genus belongs to Eukrayota
+  colnames(genus_absolute) <- c("genus", unlist(strsplit(file,".",fixed = TRUE))[1])
+  
+  if (i == 0){ # if is the first sample, make the table the aggregated data table
+    genus_all_samples <-  genus_absolute
+
+  } else {
+    genus_all_samples <- full_join(genus_all_samples, genus_absolute,by="genus")
+
+  }
+  i = i + 1
+}
+
+# save(genus_all_samples, file ="standard_absolute_genus_micro_only.Rdata")
+
+genus_all_samples[is.na(genus_all_samples)] <- 0
+keys_to_gather <- colnames(genus_all_samples)[-1] # gather samples, exclude "genus" from colnames
+
+# prepare dataframe for ggplot
+genus_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
+
+# genus I want to factored in order so they can be assigned with a specific color during plotting
+all_genus <- unique(genus_all_samples$genus) # allgenus classified
+order_genus <- c("Homo","Xanthomonas","Pseudomonas","Pasteurella","Streptomyces","Calothrix","Andhravirus","Mycoplasma","Spiroplasma","Bacillus","Staphylococcus","Lactobacillus","Clostridium","Mycobacterium","Bordetella","Leptospira","Yersinia","Escherichia","Bartonella","Bacteroides","Microcystis","Nostoc","Mycobacteroides","Alistipes","Parabacteroides","Anabaena","Dolichospermum","Faecalibacterium","Sphaerospermopsis","Prevotella","Achromobacter") 
+remaining_genus <- all_genus %>% data.frame() %>% subset(!c(all_genus %in% order_genus)) # deselect genus subsetted to put in order
+remaining_genus <- remaining_genus$. # data.frame to vector
+
+order <- unique(genus_all_samples$samples)
+genus_all_samples$samples <- factor(genus_all_samples$samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
+genus_all_samples$genus <- factor(genus_all_samples$genus, level=c(order_genus,remaining_genus))
+
+# number of reads classified into microbiome composition (exclude homo and rattus)
+genus_all_samples %>% group_by(samples) %>%
+  mutate(Total=sum(Reads), Percentage = Reads/Total) %>%subset(genus != "Rattus" & genus !="Homo") %>% summarise(sum_reads=sum(Reads), sum_percentage=sum(Percentage)) -> std_micro_comp
+std_micro_comp
+
+```
+
+# Genus Level microbial composition customized db
+```{r}
+
+absolute_path = paste(path,"custom/absolute/",sep="")
+files <- list.files(absolute_path)
+
+
+i=0
+
+# iterate through all sample's result for Domain info
+for (file in files){
+  current_sample <- read.csv(paste(absolute_path,file,sep=""),sep="\t",header=FALSE)
+  genus_absolute <- current_sample %>% subset(V4 == "G") %>% mutate(trimed = trimws(V6))  %>% select(c(trimed,V2))
+  genus_absolute <- genus_absolute #%>% subset(trimed!="Rattus" & trimed !="Homo") #%>% subset(V2 >= 300) # deselect genus belongs to Eukrayota
+  colnames(genus_absolute) <- c("genus", unlist(strsplit(file,".",fixed = TRUE))[1])
+  
+  if (i == 0){ # if is the first sample, make the table the aggregated data table
+    genus_all_samples <-  genus_absolute
+
+  } else {
+    genus_all_samples <- full_join(genus_all_samples, genus_absolute,by="genus")
+
+  }
+  i = i + 1
+}
+
+# save(genus_all_samples, file ="standard_absolute_genus_micro_only.Rdata")
+
+genus_all_samples[is.na(genus_all_samples)] <- 0
+keys_to_gather <- colnames(genus_all_samples)[-1] # gather samples, exclude "genus" from colnames
+
+# prepare dataframe for ggplot
+genus_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
+
+# genus I want to factored in order so they can be assigned with a specific color during plotting
+all_genus <- unique(genus_all_samples$genus) # allgenus classified
+order_genus <- c("Homo","Rattus","Xanthomonas","Pseudomonas","Pasteurella","Streptomyces","Calothrix","Andhravirus","Mycoplasma","Spiroplasma","Bacillus","Staphylococcus","Lactobacillus","Clostridium","Mycobacterium","Bordetella","Leptospira","Yersinia","Escherichia","Bartonella","Bacteroides","Microcystis","Nostoc","Mycobacteroides","Alistipes","Parabacteroides","Anabaena","Dolichospermum","Faecalibacterium","Sphaerospermopsis","Prevotella","Achromobacter") 
+remaining_genus <- all_genus %>% data.frame() %>% subset(!c(all_genus %in% order_genus)) # deselect genus subsetted to put in order
+remaining_genus <- remaining_genus$. # data.frame to vector
+
+genus_all_samples$samples <- factor(genus_all_samples$samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
+genus_all_samples$genus <- factor(genus_all_samples$genus, level=c(order_genus,remaining_genus))
+
+# subsetting taxonomy with more than 1% in relative composition from each sample 
+genus_all_samples %>% group_by(samples) %>%
+  mutate(Total=sum(Reads), Percentage = Reads/Total) %>% subset(Percentage >= 0.010) ->major_genus
+
+# number of reads classified into microbiome composition (exclude homo and rattus)
+genus_all_samples %>% group_by(samples) %>%
+  mutate(Total=sum(Reads), Percentage = Reads/Total) %>%subset(genus != "Rattus" & genus !="Homo") %>% summarise(sum_reads=sum(Reads), sum_percentage=sum(Percentage)) -> cus_micro_comp
+cus_micro_comp
+```
+
+# 
+```{r}
+
+# all three distribution for reads classified into the "other sequences" did not follow a normal distribution with the reject the null hypothesis at 0.05
+shapiro.test(cus_micro_comp$sum_reads)
+shapiro.test(std_micro_comp$sum_reads) # normal not rejected
+
+
+# use Wilcoxon test for difference with non-normal distributed groups
+
+# mini vs custom for other sequences reads
+mini_cus_mic <- data.frame(db=c(rep("cus",12),rep("std",12)), mic_reads=c(cus_micro_comp$sum_reads,std_micro_comp$sum_reads))
+# wilcoxon test requires exactly 2 levels of groups factors
+mini_cus_mic$db <- factor(mini_cus_mic$db, levels=c("cus","std"))
+
+# wilcoxon test 
+# alternative hypothesis, cus db with significantly lesser reads
+# since tested on the same data set with different methods, paired in true
+wilcox.test(mini_cus_mic$mic_reads ~ mini_cus_mic$db,paired=TRUE) # not rejected
+
+
 ```

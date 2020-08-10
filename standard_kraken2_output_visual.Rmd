@@ -6,7 +6,7 @@ output: html_document
 ---
 ### PATH to minikraken output result:
 ```{r}
-path = "/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/standard"
+path = "/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/"
 setwd(path)
 ```
 
@@ -138,7 +138,7 @@ domain_relative %>% group_by(Domain) %>% summarise(mean_Reads=mean(Reads), std_R
 
 ### Classify phylum, excluding unclassified and Eukaryote reads to increase local resolution
 ```{r}
-absolute_path = paste(path,"/absolute/",sep="")
+absolute_path = paste(path,"standard/absolute/",sep="")
 files <- list.files(absolute_path)
 
 
@@ -216,7 +216,7 @@ ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analy
 
 ### Classify genus, with Homo, keeping on taxa with more than 10% in composition
 ```{r}
-absolute_path = paste(path,"/absolute/",sep="")
+absolute_path = paste(path,"standard/absolute/",sep="")
 files <- list.files(absolute_path)
 
 
@@ -260,8 +260,9 @@ genus_all_samples %>% group_by(samples) %>%
   mutate(Total=sum(Reads), Percentage = Reads/Total) %>% subset(Percentage >= 0.010) ->major_genus
 
 # number of reads classified into microbiome composition (exclude homo and rattus)
-genus_all_samples %>% group_by(samples) %>%subset(genus != "Rattus") %>% summarise(sum=sum(Reads)) 
-genus_all_samples
+genus_all_samples %>% group_by(samples) %>%
+  mutate(Total=sum(Reads), Percentage = Reads/Total) %>%subset( genus !="Homo") %>% summarise(sum_reads=sum(Reads), sum_percentage=sum(Percentage)) -> std_micro_comp
+std_micro_comp
 ```
 
 ```{r}
