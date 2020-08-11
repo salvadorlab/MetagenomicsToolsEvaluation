@@ -1,0 +1,350 @@
+---
+title: "three_softwares_comparison"
+output: html_document
+---
+
+# Libraries imported for analysis
+```{r}
+
+library(dplyr)
+library(magrittr)
+library(tidyverse)
+library(plotly)
+library(rstatix)
+
+
+```
+# customized kraken2 domain
+```{r}
+path = "/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/"
+cus_path = paste(path,"custom/absolute/",sep="")
+files <- list.files(cus_path)
+
+
+i=0
+
+# iterate through all sample's result for Domain info
+for (file in files){
+  current_sample <- read.csv(paste(cus_path,file,sep=""),sep="\t",header=FALSE)
+  # add "| trimws(V6) == "other sequences"" to subset if counting total number of reads
+  domain_absolute <- current_sample %>% subset(V4 == "D" | V4 == "U" | trimws(V6) == "other sequences") %>% mutate(trimed = trimws(V6))  %>% select(c(trimed,V2))
+
+  colnames(domain_absolute) <- c("Domain", unlist(strsplit(file,".",fixed = TRUE))[1])
+  
+  if (i == 0){ # if is the first sample, make the table the aggregated data table
+    domain_all_samples <-  domain_absolute
+
+  } else {
+    domain_all_samples <- full_join(domain_all_samples, domain_absolute,by="Domain")
+
+  }
+  i = i + 1
+}
+
+# save(domain_all_samples, file ="custom_absolute_domain.Rdata")
+
+domain_all_samples[is.na(domain_all_samples)] <- 0
+keys_to_gather <- colnames(domain_all_samples)[-1] # gather samples, exclude "Domain" from colnames
+
+# prepare dataframe for ggplot
+domain_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
+
+
+domain_all_samples$samples <- factor(domain_all_samples$samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
+domain_all_samples$Domain <- factor(domain_all_samples$Domain, level=unique(domain_all_samples$Domain))
+
+# unclassified reads summary
+domain_all_samples %>% subset(Domain == "unclassified") -> cus_unc
+cus_unc %>%summarise(mean_unc=mean(Reads),std=sd(Reads)) -> cus_unc_summary
+
+cus_unc
+cus_unc_summary
+```
+# Clark domain
+```{r}
+custom_path="/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/"
+species_path <- paste(custom_path, "species_custom/" , sep="")
+files <- list.files(species_path)
+
+
+
+i=0
+for (file in files){
+  sample_name <- unlist(strsplit(file, ".",fixed=T))[1]
+  sample_record <- read.csv(paste(species_path, file,sep=""), header = TRUE)
+  # get the domain column
+  taxa_count <- sample_record %>% group_by(Lineage) %>% mutate(Domain = sum(Count)) %>% select("Lineage","Domain")
+  taxa_count <- unique(taxa_count)
+  colnames(taxa_count) <- c("Name","Count")
+  
+  # taxa_count %<>% subset(Name != "Chordata" & Name != "UNKNOWN")
+  rownames(taxa_count) <- NULL # reset row number
+  colnames(taxa_count) <- c("Name", sample_name)
+  if (i == 0){
+    domain_full_table <- taxa_count
+  } else {
+    domain_full_table <- full_join(domain_full_table, taxa_count,by = "Name")
+  }
+  i = i + 1
+}
+
+domain_full_table[is.na(domain_full_table)] <- 0
+domain_full_table
+ 
+sample_keys <- colnames(domain_full_table)[-1]
+domain_full_table %<>% gather(sample_keys,key="Samples", value="Read_Count")
+
+order <- unique(domain_full_table$Samples)
+domain_full_table$Samples <- factor(domain_full_table$Samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
+
+domain_full_table$Name <- factor(domain_full_table$Name, levels = c("UNKNOWN", "Eukaryota","Bacteria","Viruses","Archaea"))
+
+domain_full_table %>% group_by(Samples) %>% 
+  mutate(Total = sum(Read_Count), Percentage = Read_Count/Total) -> domain_major
+
+domain_full_table %>% subset(Name == "UNKNOWN") -> clark_unc
+clark_unc %>% summarise(mean_unc=mean(Read_Count),std=sd(Read_Count)) -> clark_unc_summary
+
+clark_unc
+clark_unc_summary
+```
+
+# Clark-s domain
+```{r}
+species_path <- paste(custom_path, "species_rat_spaced/" , sep="")
+files <- list.files(species_path)
+
+
+
+i=0
+for (file in files){
+  sample_name <- unlist(strsplit(file, ".",fixed=T))[1]
+  sample_record <- read.csv(paste(species_path, file,sep=""), header = TRUE)
+  # get the domain column
+  taxa_count <- sample_record %>% group_by(Lineage) %>% mutate(Domain = sum(Count)) %>% select("Lineage","Domain")
+  taxa_count <- unique(taxa_count)
+  colnames(taxa_count) <- c("Name","Count")
+  
+  # taxa_count %<>% subset(Name != "Chordata" & Name != "UNKNOWN")
+  rownames(taxa_count) <- NULL # reset row number
+  colnames(taxa_count) <- c("Name", sample_name)
+  if (i == 0){
+    domain_full_table <- taxa_count
+  } else {
+    domain_full_table <- full_join(domain_full_table, taxa_count,by = "Name")
+  }
+  i = i + 1
+}
+
+domain_full_table[is.na(domain_full_table)] <- 0
+domain_full_table
+ 
+sample_keys <- colnames(domain_full_table)[-1]
+domain_full_table %<>% gather(sample_keys,key="Samples", value="Read_Count")
+
+order <- unique(domain_full_table$Samples)
+domain_full_table$Samples <- factor(domain_full_table$Samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
+
+
+
+domain_full_table$Name <- factor(domain_full_table$Name, levels = c("UNKNOWN", "Eukaryota","Bacteria","Viruses","Archaea"))
+
+domain_full_table %>% subset(Name == "UNKNOWN") -> clarks_unc
+clarks_unc %>% summarise(mean_unc=mean(Read_Count),std=sd(Read_Count)) -> clarks_unc_summary
+
+clarks_unc
+clarks_unc_summary
+```
+
+# difference between Number of unclassified reads across three softwares
+- non-parametric two way anova test: Friedman Test
+- to compare more than two paired no-normally distributed group
+- justificationto use: https://www.nki.nl/media/837516/m343.pdf
+- rstatix package
+```{r}
+
+# all three distribution for reads classified into the "other sequences" did not follow a normal distribution with the reject the null hypothesis at 0.05
+shapiro.test(cus_unc$Reads)
+shapiro.test(clark_unc$Read_Count)
+shapiro.test(clarks_unc$Read_Count) # not rejected, normal
+
+
+# friedman test
+# paired test for more than two paired samples that is not normally distributed
+samples <- rep(cus_unc$samples,3)
+samples
+three_unc <- data.frame(sample_id = samples, software=c(rep("kraken",12),rep("clark",12), rep("clark-s",12)), unc_reads=c(cus_unc$Reads,clark_unc$Read_Count, clarks_unc$Read_Count))
+three_unc$software <- factor(three_unc$software, levels=c("kraken","clark","clark-s"))
+three_unc$sample_id <- factor(three_unc$sample_id, levels = cus_unc$samples)
+# The null hypothesis is that apart from an effect of blocks, the location parameter of y is the same in each of the groups
+friedman.test(unc_reads ~ sample_id | software, data = three_unc) # (values ~ group | block)
+```
+
+# kraken2 microbial composition 
+```{r}
+path = "/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/"
+absolute_path = paste(path,"custom/absolute/",sep="")
+files <- list.files(absolute_path)
+
+
+i=0
+
+# iterate through all sample's result for Domain info
+for (file in files){
+  current_sample <- read.csv(paste(absolute_path,file,sep=""),sep="\t",header=FALSE)
+  phylum_absolute <- current_sample %>% subset(V4 == "P") %>% mutate(trimed = trimws(V6))  %>% select(c(trimed,V2))
+  phylum_absolute <- phylum_absolute %>% subset(c(trimed!="Chordata")) #%>% mutate( V2 >= 100) # deselect phylum belongs to Eukrayota
+  colnames(phylum_absolute) <- c("Phylum", unlist(strsplit(file,".",fixed = TRUE))[1])
+  
+  if (i == 0){ # if is the first sample, make the table the aggregated data table
+    phylum_all_samples <-  phylum_absolute
+
+  } else {
+    phylum_all_samples <- full_join(phylum_all_samples, phylum_absolute,by="Phylum")
+
+  }
+  i = i + 1
+}
+
+# save(phylum_all_samples, file ="standard_absolute_phylum_micro_only.Rdata")
+
+phylum_all_samples[is.na(phylum_all_samples)] <- 0
+keys_to_gather <- colnames(phylum_all_samples)[-1] # gather samples, exclude "Phylum" from colnames
+
+# prepare dataframe for ggplot
+phylum_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
+
+all_phylums <- unique(phylum_all_samples$Phylum) # all phylums classified
+# phylums I want to factored into order so they can be assigned with a specific color during plotting
+order_phylum <- c("Proteobacteria","Actinobacteria","Cyanobacteria","Firmicutes","Bacteroidetes","Uroviricota","Tenericutes","Spirochaetes","Fusobacteria","Chlamydiae","Aquificae","Chloroflexi","Thermotogae","Artverviricota","Peploviricota","Deinococcus-Thermus","Planctomycetes") 
+remaining_phylum <- all_phylums %>% data.frame() %>% subset(!c(all_phylums %in% order_phylum)) 
+remaining_phylum <- remaining_phylum$.
+
+phylum_all_samples$samples <- factor(phylum_all_samples$samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
+phylum_all_samples$Phylum <- factor(phylum_all_samples$Phylum, level=c(order_phylum,remaining_phylum))
+
+
+# total number of microbial reads (first 3 kidney samples only)
+phylum_all_samples %>% group_by(samples) %>% summarise(sum_microbial=sum(Reads))  -> kraken2_microbial_reads
+
+kraken2_microbial_reads %>% summarise(mean_reads= mean(sum_microbial), std= sd(sum_microbial))
+
+```
+
+# clark microbial composition 
+```{r}
+custom_path <- "/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/"
+species_path <- paste(custom_path, "species_custom/" , sep="")
+files <- list.files(species_path)
+
+
+i=0
+for (file in files){
+  sample_name <- unlist(strsplit(file, ".",fixed=T))[1]
+  sample_record <- read.csv(paste(species_path, file,sep=""), header = TRUE)
+  # get the domain column
+  taxa_count <- sample_record %>% group_by(X) %>% mutate(Phylum = sum(Count)) %>% select("X","Phylum") 
+  taxa_count <- unique(taxa_count)
+  colnames(taxa_count) <- c("Name","Count")
+  
+  taxa_count %<>% subset(Name != "Chordata" & Name != "")
+  rownames(taxa_count) <- NULL # reset row number
+  colnames(taxa_count) <- c("Name", sample_name)
+  if (i == 0){
+    phylum_full_table <- taxa_count
+  } else {
+    phylum_full_table <- full_join(phylum_full_table, taxa_count,by = "Name")
+  }
+  i = i + 1
+}
+
+phylum_full_table[is.na(phylum_full_table)] <- 0
+phylum_full_table
+ 
+sample_keys <- colnames(phylum_full_table)[-1]
+phylum_full_table %<>% gather(sample_keys,key="Samples", value="Read_Count")
+
+all_phylums <- unique(phylum_full_table$Name) # all phylums classified
+# phylums I want to factored into order so they can be assigned with a specific color during plotting
+
+
+order_phylum <- c("Proteobacteria","Actinobacteria","Cyanobacteria","Firmicutes","Bacteroidetes","Uroviricota","Tenericutes","Spirochaetes","Aquificae","Peploviricota") 
+remaining_phylum <- all_phylums %>% data.frame() %>% subset(!c(all_phylums %in% order_phylum))
+remaining_phylum <- remaining_phylum$.
+
+phylum_full_table$Samples <- factor(phylum_full_table$Samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
+phylum_full_table$Name <- factor(phylum_full_table$Name, level=c(order_phylum,remaining_phylum))
+
+phylum_full_table %>% group_by(Samples) %>% summarise(sum_microbial=sum(Read_Count))  -> clark_microbial_reads
+
+clark_microbial_reads %>% summarise(mean_reads= mean(sum_microbial), std= sd(sum_microbial))
+```
+
+# clark-s microbial composition 
+```{r}
+species_path <- paste(custom_path, "species_rat_spaced/" , sep="")
+files <- list.files(species_path)
+
+
+i=0
+for (file in files){
+  sample_name <- unlist(strsplit(file, ".",fixed=T))[1]
+  sample_record <- read.csv(paste(species_path, file,sep=""), header = TRUE)
+  # get the domain column
+  taxa_count <- sample_record %>% group_by(X) %>% mutate(Phylum = sum(Count)) %>% select("X","Phylum") 
+  taxa_count <- unique(taxa_count)
+  colnames(taxa_count) <- c("Name","Count")
+  
+  taxa_count %<>% subset(Name != "Chordata" & Name != "")
+  rownames(taxa_count) <- NULL # reset row number
+  colnames(taxa_count) <- c("Name", sample_name)
+  if (i == 0){
+    phylum_full_table <- taxa_count
+  } else {
+    phylum_full_table <- full_join(phylum_full_table, taxa_count,by = "Name")
+  }
+  i = i + 1
+}
+
+phylum_full_table[is.na(phylum_full_table)] <- 0
+phylum_full_table
+ 
+sample_keys <- colnames(phylum_full_table)[-1]
+phylum_full_table %<>% gather(sample_keys,key="Samples", value="Read_Count")
+
+all_phylums <- unique(phylum_full_table$Name) # all phylums classified
+# phylums I want to factored into order so they can be assigned with a specific color during plotting
+
+
+
+order_phylum <- c("Proteobacteria","Actinobacteria","Cyanobacteria","Firmicutes","Bacteroidetes","Tenericutes","Spirochaetes","Aquificae","Artverviricota","Peploviricota","Deinococcus-Thermus","Planctomycetes") 
+
+remaining_phylum <- all_phylums %>% data.frame() %>% subset(!c(all_phylums %in% order_phylum))
+remaining_phylum <- remaining_phylum$.
+
+phylum_full_table$Samples <- factor(phylum_full_table$Samples, levels = c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
+phylum_full_table$Name <- factor(phylum_full_table$Name, level=c(order_phylum,remaining_phylum))
+
+phylum_full_table %>% group_by(Samples) %>% summarise(sum_microbial=sum(Read_Count)) -> clarks_microbial_reads
+
+clarks_microbial_reads %>% summarise(mean_reads= mean(sum_microbial), std= sd(sum_microbial))
+```
+
+# Friedman test/ wilcoxon
+```{r}
+samples <- unique(phylum_full_table$Samples)
+three_microbial <- data.frame(sample_id= samples, software=c(rep("kraken2",12),rep("clark",12),rep("clark-s",12)),kidney_microbial=c(kraken2_microbial_reads$sum_microbial,clark_microbial_reads$sum_microbial,clarks_microbial_reads$sum_microbial))
+three_microbial$sample_id <- factor(three_microbial$sample_id, levels =samples)
+three_microbial$software <- factor(three_microbial$software, levels = c("kraken2","clark","clark-s"))
+three_microbial
+friedman.test(kidney_microbial ~ sample_id | software, data= three_microbial) # not rejected, p-value = 0.3679
+
+# # wilcoxon, kraken2 vs clark, for the first three kidney sample
+# samples <- c("R22_K","R26_K","R27_K")
+# three_microbial <- data.frame(sample_id= samples, software=c(rep("kraken2",3),rep("clark",3)),kidney_microbial=c(kraken2_microbial_reads$sum_microbial,clark_microbial_reads$sum_microbial))
+# three_microbial$sample_id <- factor(three_microbial$sample_id, levels =samples)
+# three_microbial$software <- factor(three_microbial$software, levels = c("kraken2","clark"))
+# wilcox.test(three_microbial$kidney_microbial ~ three_microbial$software, paired = TRUE) # no rejected
+
+
+```

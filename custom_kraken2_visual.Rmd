@@ -38,15 +38,16 @@ manual_color <-c("#F94144","#80B918","#FEE440","#4361EE","#FFADAD","#FFD6A5","#F
     
 ### Domain Classification 
 ```{r}
-absolute_path = paste(path,"/absolute/",sep="")
-files <- list.files(absolute_path)
+
+cus_path = paste(path,"custom/absolute/",sep="")
+files <- list.files(cus_path)
 
 
 i=0
 
 # iterate through all sample's result for Domain info
 for (file in files){
-  current_sample <- read.csv(paste(absolute_path,file,sep=""),sep="\t",header=FALSE)
+  current_sample <- read.csv(paste(cus_path,file,sep=""),sep="\t",header=FALSE)
   # add "| trimws(V6) == "other sequences"" to subset if counting total number of reads
   domain_absolute <- current_sample %>% subset(V4 == "D" | V4 == "U" | trimws(V6) == "other sequences") %>% mutate(trimed = trimws(V6))  %>% select(c(trimed,V2))
 
@@ -75,11 +76,27 @@ domain_all_samples$samples <- factor(domain_all_samples$samples, levels = c("R22
 domain_all_samples$Domain <- factor(domain_all_samples$Domain, level=unique(domain_all_samples$Domain))
 
 # Total number of reads for each sample (unclassified + three domains + other sequences)
-domain_all_samples %>% group_by(samples) %>% summarise(total_reads=sum(Reads)) -> summary_domain
-c(mean(summary_domain$total_reads),sd(summary_domain$total_reads)) # avg number of reads across sample
+domain_all_samples %>% group_by(samples) %>% summarise(total_reads=sum(Reads)) -> cus_total_reads
+as.data.frame(list(mean_reads=mean(cus_total_reads$total_reads),std=sd(cus_total_reads$total_reads))) -> cus_total_reads_summary # avg number of reads across sample
+
+# Total number of reads for each sample (unclassified + three domains/ exclude "other sequences")
+domain_all_samples %>% subset(Domain != "other sequences") %>% group_by(samples) %>% summarise(total_reads=sum(Reads)) -> cus_total_reads_no_other
+as.data.frame(list(mean_reads=mean(cus_total_reads_no_other$total_reads),std=sd(cus_total_reads_no_other$total_reads))) -> cus_total_reads_no_other_summary # avg number of reads across sample
+cus_total_reads_no_other
+cus_total_reads_no_other_summary
 
 # other sequences summary
-domain_all_samples %>% subset(Domain == "other sequences") %>% summarise(mean_other=mean(Reads),std=sd(Reads)) 
+domain_all_samples %>% subset(Domain == "other sequences") -> cus_other_seq
+cus_other_seq %>% summarise(mean_other=mean(Reads),std=sd(Reads)) -> other_seq_cus_summary
+
+# unclassified reads summary
+domain_all_samples %>% subset(Domain == "unclassified") -> cus_unc
+cus_unc %>%summarise(mean_unc=mean(Reads),std=sd(Reads)) -> cus_unc_summary
+
+cus_total_reads_summary # avg number of reads across sample
+other_seq_cus_summary
+cus_unc_summary
+cus_total_reads
 ```
 
 ```{r}
@@ -150,7 +167,7 @@ phylum_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
 
 all_phylums <- unique(phylum_all_samples$Phylum) # all phylums classified
 # phylums I want to factored into order so they can be assigned with a specific color during plotting
-order_phylum <- c("Proteobacteria","Actinobacteria","Cyanobacteria","Firmicutes","Bacteroidetes","Uroviricota","Tenericutes","Spirochaetes","Fusobacteria","Chlamydiae","Aquificae","Chloroflexi","Thermotogae","Artverviricota","Peploviricota","Deinococcus-Thermus","Planctomycetes") 
+order_phylum <- c("Proteobacteria","Actinobacteria","Cyanobacteria","Firmicutes","Bacteroidetes","Uroviricota","Tenericutes","Spirochaetes","Fusobacteria","Chlamydiae","Aquificae","Chloroflexi","Thermotogae","Artverviricota","Peploviricota","Deinococcus-Thermus","Planctomycetes","Euryarchaeota","Gemmatimonadetes","Crenarchaeota") 
 remaining_phylum <- all_phylums %>% data.frame() %>% subset(!c(all_phylums %in% order_phylum)) 
 remaining_phylum <- remaining_phylum$.
 
@@ -161,11 +178,11 @@ phylum_all_samples$Phylum <- factor(phylum_all_samples$Phylum, level=c(order_phy
 # subsetting taxonomy with more than 1% in relative composition from each sample
 phylum_all_samples %>% group_by(samples) %>%
   mutate(Total=sum(Reads), Percentage = Reads/Total) %>% subset(Percentage >= 0.001) ->major_phylum
-
+major_phylum
 
 
 ```
-
+# plot phylum
 ```{r}
 
 
@@ -174,7 +191,7 @@ plot <- ggplot(major_phylum, aes(x=samples,y=Reads,fill=Phylum)) +
   labs(title = "Kraken2 Microbiome Reads Profile with Customized DB (Phylum)", y="Number of Reads", x = "Samples") + 
    theme(axis.text.x = element_text(angle=90),legend.text = element_text(size = 8),legend.key.size = unit(0.4,"cm"))+
   scale_fill_manual(values=manual_color)
-
+ggplotly(plot)
 plot
 
 ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Absolute/kraken2_cus_phylum.png",width=8, height=6)
@@ -189,6 +206,7 @@ relative_plot <- ggplot(major_phylum, aes(x=samples,y=Percentage,fill=Phylum)) +
   scale_y_continuous(labels = scales::percent_format()) +
   theme(axis.text.x=element_text(angle=90)) + 
   scale_fill_manual(values=manual_color)
+ggplotly(relative_plot)
 relative_plot
 # ggplotly(relative_plot)
 ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/Plots/Relative/kraken2_cus_phylum_rel.png",width=8, height=6)

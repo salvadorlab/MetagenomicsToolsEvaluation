@@ -188,7 +188,8 @@ cus_unc_summary
 ```
 
 # "other sequences" reads with custom database is significantly different than the mini and std databases reads
-- https://towardsdatascience.com/wilcoxon-test-in-r-how-to-compare-2-groups-under-the-non-normality-assumption-6fb7f9e92400
+- why use **paired Wilcoxon signed rank test**: https://www.nki.nl/media/837516/m343.pdf
+- Tutorial for Wilcoxon signed rank test:https://towardsdatascience.com/wilcoxon-test-in-r-how-to-compare-2-groups-under-the-non-normality-assumption-6fb7f9e92400
 
 ```{r}
 
@@ -207,7 +208,7 @@ mini_cus_other$db <- factor(mini_cus_other$db, levels=c("mini","cus"))
 # wilcoxon test 
 # alternative hypothesis, cus db with significantly lesser reads
 # since tested on the same data set with different methods, paired in true
-wilcox.test(mini_cus_other$other_seq_reads ~ mini_cus_other$db ,paired=TRUE) # not rejected
+wilcox.test(mini_cus_other$other_seq_reads ~ mini_cus_other$db ) # not rejected
 
 # std vs custom for other sequences reads
 std_cus_other <- data.frame(db=c(rep("std",12),rep("cus",12)), other_seq_reads=c(other_sequences_std$Reads,cus_other_seq$Reads))
@@ -216,8 +217,8 @@ std_cus_other$db <- factor(std_cus_other$db, levels=c("std","cus"))
 
 # wilcoxon test 
 # alternative hypothesis, cus db with significantly lesser reads "alternative ="less"
-# since tested on the same data set with different methods, paired in true
-wilcox.test(std_cus_other$other_seq_reads ~ std_cus_other$db ,paired=TRUE) # rejected
+# paired because tested the softwares on the same dataset
+wilcox.test(std_cus_other$other_seq_reads ~ std_cus_other$db) # rejected
 std_cus_other
 ```
 
@@ -239,7 +240,7 @@ mini_cus_unc$db <- factor(mini_cus_unc$db, levels=c("mini","cus"))
 # wilcoxon test 
 # alternative hypothesis, cus db with significantly lesser reads
 # since tested on the same data set with different methods, paired in true
-wilcox.test(mini_cus_unc$unc_reads ~ mini_cus_unc$db ,paired=TRUE) # not rejected
+wilcox.test(mini_cus_unc$unc_reads ~ mini_cus_unc$db) # not rejected
 
 # std vs custom for other sequences reads
 mini_std_unc <- data.frame(db=c(rep("mini",12),rep("std",12)), unc_reads=c(mini_unc$Reads,std_unc$Reads))
@@ -248,8 +249,8 @@ mini_std_unc$db <- factor(mini_std_unc$db, levels=c("mini","std"))
 
 # wilcoxon test 
 # alternative hypothesis, cus db with significantly lesser reads
-# since tested on the same data set with different methods, paired in true
-wilcox.test(mini_std_unc$unc_reads ~ mini_std_unc$db,paired=TRUE) # not rejected
+# paired because tested the softwares on the same dataset
+wilcox.test(mini_std_unc$unc_reads ~ mini_std_unc$db) # not rejected
 
 mini_cus_unc
 ```
@@ -369,14 +370,14 @@ shapiro.test(std_micro_comp$sum_reads) # normal not rejected
 # use Wilcoxon test for difference with non-normal distributed groups
 
 # mini vs custom for other sequences reads
-mini_cus_mic <- data.frame(db=c(rep("cus",12),rep("std",12)), mic_reads=c(cus_micro_comp$sum_reads,std_micro_comp$sum_reads))
+std_cus_mic <- data.frame(db=c(rep("cus",12),rep("std",12)), mic_reads=c(cus_micro_comp$sum_reads,std_micro_comp$sum_reads))
 # wilcoxon test requires exactly 2 levels of groups factors
-mini_cus_mic$db <- factor(mini_cus_mic$db, levels=c("cus","std"))
+std_cus_mic$db <- factor(std_cus_mic$db, levels=c("cus","std"))
 
 # wilcoxon test 
 # alternative hypothesis, cus db with significantly lesser reads
-# since tested on the same data set with different methods, paired in true
-wilcox.test(mini_cus_mic$mic_reads ~ mini_cus_mic$db,paired=TRUE) # not rejected
+# paired because tested the softwares on the same dataset
+wilcox.test(std_cus_mic$mic_reads ~ std_cus_mic$db) # not rejected
 
 
 ```

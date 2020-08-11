@@ -26,6 +26,7 @@ library(dplyr)
 library(magrittr)
 library(tidyverse)
 library(plotly)
+library(rstatix)
 
 
 ```
@@ -72,6 +73,12 @@ domain_full_table$Name <- factor(domain_full_table$Name, levels = c("UNKNOWN", "
 
 domain_full_table %>% group_by(Samples) %>% 
   mutate(Total = sum(Read_Count), Percentage = Read_Count/Total) -> domain_major
+
+# Total number of reads for each sample (unclassified + three domains + other sequences)
+domain_full_table %>% group_by(Samples) %>% summarise(total_reads=sum(Read_Count)) -> clark_total_reads
+as.data.frame(list(mean_reads=mean(clark_total_reads$total_reads),std=sd(clark_total_reads$total_reads))) -> clark_total_reads_summary # avg number of reads across sample
+clark_total_reads_summary
+
 ```
 
 # Plot Domain level taxaonomy count with UNKNOWN and Eukaryota to have an overall picture of the samples
@@ -84,7 +91,7 @@ plot_domain <- ggplot(domain_major, aes(x=Samples, y=Read_Count, fill=Name)) +
   scale_fill_manual(values=manual_color)
 
 plot_domain
-# ggplotly(plot_domain)
+ggplotly(plot_domain)
 ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Absolute/clark_cus_domain.png",width = 8, height = 6)
 ########Relative Plot#################
 
@@ -94,6 +101,7 @@ domain_relative <- ggplot(domain_major, aes(x=Samples, y=Percentage, fill=Name))
   labs(title = "Metagenomic Relative Abundance Classification with Clark DB (Domain)",
        x="Samples") +  scale_y_continuous(labels = scales::percent_format()) +
   scale_fill_manual(values = manual_color)
+ggplotly(domain_relative)
 domain_relative
 ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Relative/clark_cus_domain_rel.png",width = 8, height = 6)
 
@@ -111,7 +119,7 @@ for (file in files){
   sample_name <- unlist(strsplit(file, ".",fixed=T))[1]
   sample_record <- read.csv(paste(species_path, file,sep=""), header = TRUE)
   # get the domain column
-  taxa_count <- sample_record %>% group_by(X) %>% mutate(Phylum = sum(Count)) %>% select("X","Phylum") %>% subset(Phylum >= 100)
+  taxa_count <- sample_record %>% group_by(X) %>% mutate(Phylum = sum(Count)) %>% select("X","Phylum") #%>% subset(Phylum >= 100)
   taxa_count <- unique(taxa_count)
   colnames(taxa_count) <- c("Name","Count")
   
@@ -136,7 +144,8 @@ all_phylums <- unique(phylum_full_table$Name) # all phylums classified
 # phylums I want to factored into order so they can be assigned with a specific color during plotting
 
 
-order_phylum <- c("Proteobacteria","Actinobacteria","Cyanobacteria","Firmicutes","Bacteroidetes","Uroviricota","Tenericutes","Spirochaetes","Aquificae","Peploviricota") 
+order_phylum <- c("Proteobacteria","Actinobacteria","Cyanobacteria","Firmicutes","Bacteroidetes","Uroviricota","Tenericutes","Spirochaetes","Aquificae","Artverviricota","Peploviricota","Planctomycetes") 
+
 remaining_phylum <- all_phylums %>% data.frame() %>% subset(!c(all_phylums %in% order_phylum))
 remaining_phylum <- remaining_phylum$.
 
@@ -146,6 +155,8 @@ phylum_full_table$Name <- factor(phylum_full_table$Name, level=c(order_phylum,re
 phylum_full_table %>% group_by(Samples) %>% 
   mutate(Total = sum(Read_Count), Percentage = Read_Count/Total) %>%
   subset(Percentage >= 0.001)-> phylum_major
+
+phylum_major
 
 
 ```
