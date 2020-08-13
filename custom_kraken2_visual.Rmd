@@ -296,3 +296,92 @@ ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analy
 
 
 ```
+
+## Phyloseq Package for Downstream Analysis
+
+### Data Wrangling to format for phyloseq analysis
+```{r}
+path = "/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/"
+absolute_path = paste(path,"custom/absolute/",sep="")
+files <- list.files(absolute_path)
+
+
+i=0
+
+# iterate through all sample's result for Domain info
+for (file in files){
+  current_sample <- read.csv(paste(absolute_path,file,sep=""),sep="\t",header=FALSE)
+  bacteria_profile <- current_sample %>% mutate(trimed = trimws(V6)) %>% subset(V4 == "G") %>% select(c(trimed,V2))  %>% subset(! trimed %in% "Rattus" &  ! trimed %in% "Homo")# only keep rank that has certain taxonomy
+  rownames(bacteria_profile) <- NULL # reorder rownames after subsetting
+  colnames(bacteria_profile) <- c("OTU",unlist(strsplit(file,".",fixed = TRUE))[1])
+  
+  if (i == 0){ # if is the first sample, make the table the aggregated data table
+    all_samples_w_taxa <-  bacteria_profile
+
+  } else {
+    all_samples_w_taxa <- full_join(all_samples_w_taxa, bacteria_profile,by=c("OTU"))
+
+  }
+  i = i + 1
+}
+
+
+
+# make the OTU names the rownames
+rownames(all_samples_w_taxa) <- all_samples_w_taxa$OTU
+# write.csv(all_samples_w_taxa$OTU,paste0(path, "kraken2_genus_tax.csv"), quote=FALSE, row.names = FALSE, col.names = NA)
+all_samples_w_taxa[is.na(all_samples_w_taxa)]<-0
+
+```
+
+### input into phyloseq objects
+```{r}
+
+otu_tab <- all_samples_w_taxa[,-1]
+OTU <- otu_table(otu_tab,taxa_are_rows = T) # OTU table, abundance level for each taxa for each sample
+
+tax <- read.csv("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/kraken_genus_lineage.csv", header = FALSE)
+rownames(tax) <- rownames(otu_tab)
+colnames(tax) <- c("Genus","Phylum","Domain")
+TAX <- tax_table(as.matrix(tax)) # TAX table, taxonomy lineage for each taxa from the OTU table
+
+# add sample's metadata
+meta_sample <- read.csv("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/kraken2_sample_meta.csv")
+row.names(meta_sample) <- meta_sample$X
+meta_sample <- meta_sample[,-1]
+sample_meta <- sample_data(meta_sample)
+
+
+
+# merge all information together
+cus_kraken2_physeq <- phyloseq(OTU,TAX,sample_meta)
+
+library("ape")
+random_tree_kraken2 = rtree(ntaxa(cus_kraken2_physeq), rooted=TRUE, tip.label=taxa_names(cus_kraken2_physeq))
+
+# merge all information together
+cus_kraken2_physeq <- phyloseq(OTU,TAX,sample_meta,random_tree_kraken2)
+```
+
+### Plotting with phyloseq object
+```{r}
+# plot_bar(cus_kraken2_physeq, fill="Domain")
+# plot_heatmap(cus_kraken2_physeq, taxa.label="Domain")
+# plot_tree(cus_kraken2_physeq, color="Domain", shape="Tissue", size="abundance")
+
+plot_richness(cus_kraken2_physeq, x= "Tissue", color="Subject",measures = c("Observed", "Chao1", "Shannon"),title = "Alpha diversity for each sample")
+
+```
+
+### Differential Abundant with Deseq2
+- load DESeq2 package
+```{r}
+library("DESeq2")
+
+```
+
+```{r}
+desseq_kraken2 <- phyloseq_to_deseq2(cus_kraken2_physeq,Subject ~ Tissue)
+DESeq(desseq_kraken2, test="Wald", fitType="parametric")
+
+```
