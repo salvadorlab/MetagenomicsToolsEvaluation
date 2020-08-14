@@ -283,3 +283,161 @@ ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analy
 
 
 ```
+
+
+---
+# Downstream statistical Analysis
+```{r}
+
+library("phyloseq")
+```
+
+## read in all the clark sample's data
+```{r}
+custom_path="/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/"
+species_path <- paste(custom_path, "species_custom/" , sep="")
+files <- list.files(species_path)
+
+
+i=0
+for (file in files){
+  sample_name <- unlist(strsplit(file, ".",fixed=T))[1]
+  sample_record <- read.csv(paste(species_path, file,sep=""), header = TRUE)
+  # get the domain column
+  taxa_count <- sample_record  %>% select("Lineage","X","X.4","Count") %>% group_by(X.4) %>% mutate(Reads=sum(Count)) %>% select(!c(Count))
+  taxa_count <- unique(taxa_count)
+
+  colnames(taxa_count) <- c("Domain","Phylum","Genus",sample_name)
+  
+  taxa_count %<>% subset(Genus != "Homo" & Genus != "Rattus" & Genus != "")
+  rownames(taxa_count) <- NULL # reset row number
+ 
+  if (i == 0){
+    genus_full_table <- taxa_count
+  } else {
+    genus_full_table <- full_join(genus_full_table, taxa_count,by = c("Domain","Phylum" ,"Genus"))
+  }
+  i = i + 1
+}
+
+genus_full_table[is.na(genus_full_table)] <- 0
+
+```
+
+# put clark data into phyloseq object
+```{r}
+# OTU table
+otu_data <- genus_full_table %>% select("Genus","R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S") %>% data.frame
+rownames(otu_data)<-genus_full_table$Genus
+otu_data <- otu_data[,-1]
+OTU <- otu_table(otu_data,taxa_are_rows = T)
+
+# lineage table
+tax_data <- genus_full_table %>% 
+  select("Domain","Phylum","Genus") %>% data.frame
+rownames(tax_data) <- tax_data$Genus
+TAX <- tax_table(as.matrix(tax_data))
+
+# add sample's metadata
+meta_sample <- read.csv("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/kraken2_sample_meta.csv")
+row.names(meta_sample) <- meta_sample$X
+meta_sample <- meta_sample[,-1]
+sample_meta <- sample_data(meta_sample)
+sample_meta
+
+# merge all information together
+cus_clark_physeq <- phyloseq(OTU,TAX,sample_meta)
+```
+
+
+
+### Alpha Diversity (Within Sample diversity)
+- tutorial: https://grunwaldlab.github.io/analysis_of_microbiome_community_data_in_r/07--diversity_stats.html
+
+- **Shannon**: How difficult it is to predict the identity of a randomly chosen individual.
+- **Simpson**: The probability that two randomly chosen individuals are the same species.
+- **Inverse Simpson**: This is a bit confusing to think about. Assuming a theoretically community where all species were equally abundant, this would be the number of species needed to have the same Simpson index value for the community being analyzed.
+
+```{r}
+
+library(vegan)
+
+# margin = 2, means samples are the col names
+alpha_diversity <- data.frame(Shannon = diversity(otu_data, MARGIN =2, index="shannon"), Simpson = diversity(otu_data, MARGIN =2, index="simpson"), Inverse_Simpson = diversity(otu_data, MARGIN =2, index="invsimpson")) 
+alpha_diversity
+# plot Alpha diversity 
+plot_richness(cus_clark_physeq, x= "Tissue", color="Subject",measures = c("Shannon", "Simpson", "InvSimpson"),title = "Alpha diversity for each sample")
+
+```
+
+###Beta Diversity (between samples)
+https://grunwaldlab.github.io/analysis_of_microbiome_community_data_in_r/07--diversity_stats.html
+- Bray–Curtis: The sum of lesser counts for species present in both communities divided by the sum of all counts in both communities. This can be thought of as a quantitative version of the Sørensen index.
+- Weighted Unifrac: The fraction of the phylogenetic tree branch lengths shared by the two communities, weighted by the counts of organisms, so more abundant organisms have a greater influence.
+```{r}
+
+# no margin option like alpha diversity, use transpose for samples as colnames
+# bray-curtis
+beta_dist <-vegdist(t(otu_data), index="bray") # pairwise comparison between samples
+
+# plot beta diversity using ordination, a way to display high dimensional data
+# capture the information in many dimensions by in a smaller number of "artifical" dimensions
+mds <- metaMDS(beta_dist)
+mds_clark <- as.data.frame(mds$points)
+mds_clark$samples <- rownames(mds_clark)
+meta_sample$samples <- rownames(meta_sample)
+mds_clark_meta <- left_join(meta_sample,mds_clark, by="samples")
+
+ggplot(mds_clark_meta,aes(x=MDS1,y=MDS2,color=Subject))+
+  geom_point()
+```
+
+### Differential Abundant with Deseq2
+- load DESeq2 package
+```{r}
+library("DESeq2")
+
+```
+
+- differentially abundant analysis with deseq2
+```{r}
+desseq_clark <- phyloseq_to_deseq2(cus_clark_physeq, ~ Tissue)
+desseq_clark
+clark_deseq <- DESeq(desseq_clark, test="Wald", fitType="parametric")
+
+# pairwise comparison between 2 tissues
+Kidney_lung <- results(clark_deseq, cooksCutoff = FALSE,contrast = c("Tissue","Kidney","Lung"))
+kidney_spleen <- results(clark_deseq, cooksCutoff = FALSE,contrast = c("Tissue","Kidney","Spleen"))
+lung_spleen <- results(clark_deseq, cooksCutoff = FALSE,contrast = c("Tissue","Lung","Spleen"))
+
+alpha = 0.01 # significance threhold
+
+# change pairwise comparison results for comparing two different tissues
+sigtax_clark <- Kidney_lung[which(Kidney_lung$padj < alpha),] # get tax below the significance thresholf
+sigtax_clark$Genus <- rownames(sigtax_clark) # add a column so genus tax can combine with upper lineages
+
+# add lineages to significant taxa
+clark_deseq_lineage <- left_join(as.data.frame(sigtax_clark), tax_data)
+dim(clark_deseq_lineage)
+unique(clark_deseq_lineage$Phylum)
+
+
+```
+
+- Plot significantly abundant taxa from the samples
+```{r}
+# find the maximum log2fold change from deseq2 output for each cell (tapply)
+x<-tapply(clark_deseq_lineage$log2FoldChange,clark_deseq_lineage$Phylum,function(x)max(x))
+x<- sort(x,TRUE) # sort these identified phyla in descending order
+# order the sig taxa base on the decreasing order for the fold of changes between tissues
+clark_deseq_lineage$Phylum <- factor(as.character(clark_deseq_lineage$Phylum),levels = names(x))
+
+# perform the same ordering procedure with genus too
+x<-tapply(clark_deseq_lineage$log2FoldChange,clark_deseq_lineage$Genus,function(x)max(x))
+x<- sort(x,TRUE) # sort these identified genus in descending order
+# order the sig taxa base on the decreasing order for the fold of changes between tissues
+clark_deseq_lineage$Genus <- factor(as.character(clark_deseq_lineage$Genus),levels = names(x))
+
+ggplot(clark_deseq_lineage, aes(x=Genus, y=log2FoldChange, color= Phylum))+ geom_point(size=6) + 
+  theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))
+```

@@ -76,7 +76,7 @@ OTU <- otu_table(all_kraken,taxa_are_rows = T)
 
 # to obtain a tax table, we need to retrieve the lineage for all genus in bracken results
 # use this tool : https://www.ncbi.nlm.nih.gov/Taxonomy/TaxIdentifier/tax_identifier.cgi
-
+# since we only need Phylum and kingdom, next time figure out a way to query phylum and kingdom of each genus instead of query the entire lineage
 # extract all_kraken table first for the ordered list
 write.csv(all_kraken,"../all_bracken_combined.csv") # copy the genus names to the tool above for lineages
 
