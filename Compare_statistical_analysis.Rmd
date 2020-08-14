@@ -93,13 +93,13 @@ cus_kraken2_physeq <- phyloseq(OTU,TAX,sample_meta,random_tree_kraken2)
 
 library(vegan)
 # margin = 2, means samples are the col names
-alpha_diversity <- data.frame(Shannon = diversity(otu_tab, MARGIN =2, index="shannon"), Simpson = diversity(otu_tab, MARGIN =2, index="simpson"), Inverse_Simpson = diversity(otu_tab, MARGIN =2, index="invsimpson")) 
+alpha_diversity_kraken2 <- data.frame(Shannon = diversity(otu_tab, MARGIN =2, index="shannon"), Simpson = diversity(otu_tab, MARGIN =2, index="simpson"), Inverse_Simpson = diversity(otu_tab, MARGIN =2, index="invsimpson")) 
 
 # plot Alpha diversity 
 # plot Alpha diversity 
 plot_richness(cus_kraken2_physeq, x= "Tissue", color="Subject",measures = c("Shannon", "Simpson", "InvSimpson"),title = "Alpha diversity for each sample")
 
-alpha_diversity
+alpha_diversity_kraken2
 ```
 
 ###Beta Diversity (between samples)
@@ -110,11 +110,11 @@ https://grunwaldlab.github.io/analysis_of_microbiome_community_data_in_r/07--div
 
 # no margin option like alpha diversity, use transpose for samples as colnames
 # bray-curtis
-beta_dist <-vegdist(t(otu_tab), index="bray") # pairwise comparison between samples
+beta_dist_kraken2 <-vegdist(t(otu_tab), index="bray") # pairwise comparison between samples
 
 # plot beta diversity using ordination, a way to display high dimensional data
 # capture the information in many dimensions by in a smaller number of "artifical" dimensions
-mds <- metaMDS(beta_dist)
+mds <- metaMDS(beta_dist_kraken2)
 mds_kraken2 <- as.data.frame(mds$points)
 mds_kraken2$samples <- rownames(mds_kraken2)
 meta_sample$samples <- rownames(meta_sample)
@@ -151,8 +151,6 @@ sigtax_kraken2$Genus <- rownames(sigtax_kraken2) # add a column so genus tax can
 # add lineages to significant taxa
 sigtax_kraken2_lineage <- left_join(as.data.frame(sigtax_kraken2), tax)
 dim(sigtax_kraken2_lineage)
-unique(sigtax_kraken2_lineage$Genus)
-
 
 ```
 
@@ -163,13 +161,13 @@ x<-tapply(sigtax_kraken2_lineage$log2FoldChange,sigtax_kraken2_lineage$Phylum,fu
 x<- sort(x,TRUE) # sort these identified phyla in descending order
 # order the sig taxa base on the decreasing order for the fold of changes between tissues
 sigtax_kraken2_lineage$Phylum <- factor(as.character(sigtax_kraken2_lineage$Phylum),levels = names(x))
-
+kraken2_sig_phylum <- x
 # perform the same ordering procedure with genus too
 x<-tapply(sigtax_kraken2_lineage$log2FoldChange,sigtax_kraken2_lineage$Genus,function(x)max(x))
 x<- sort(x,TRUE) # sort these identified genus in descending order
 # order the sig taxa base on the decreasing order for the fold of changes between tissues
 sigtax_kraken2_lineage$Genus <- factor(as.character(sigtax_kraken2_lineage$Genus),levels = names(x))
-
+kraken2_sig_genus <- x
 ggplot(sigtax_kraken2_lineage, aes(x=Genus, y=log2FoldChange, color= Phylum))+ geom_point(size=6) + 
   theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))
 ```
@@ -238,11 +236,11 @@ cus_clark_physeq <- phyloseq(OTU,TAX,sample_meta)
 ```{r}
 
 # margin = 2, means samples are the col names
-alpha_diversity <- data.frame(Shannon = diversity(otu_data, MARGIN =2, index="shannon"), Simpson = diversity(otu_data, MARGIN =2, index="simpson"), Inverse_Simpson = diversity(otu_data, MARGIN =2, index="invsimpson")) 
-alpha_diversity
+alpha_diversity_clark <- data.frame(Shannon = diversity(otu_data, MARGIN =2, index="shannon"), Simpson = diversity(otu_data, MARGIN =2, index="simpson"), Inverse_Simpson = diversity(otu_data, MARGIN =2, index="invsimpson")) 
+
 # plot Alpha diversity 
 plot_richness(cus_clark_physeq, x= "Tissue", color="Subject",measures = c("Shannon", "Simpson", "InvSimpson"),title = "Alpha diversity for each sample")
-alpha_diversity 
+alpha_diversity_clark
 ```
 
 ###Beta Diversity (between samples)
@@ -250,11 +248,11 @@ alpha_diversity
 
 # no margin option like alpha diversity, use transpose for samples as colnames
 # bray-curtis
-beta_dist <-vegdist(t(otu_data), index="bray") # pairwise comparison between samples
+beta_dist_clark <-vegdist(t(otu_data), index="bray") # pairwise comparison between samples
 
 # plot beta diversity using ordination, a way to display high dimensional data
 # capture the information in many dimensions by in a smaller number of "artifical" dimensions
-mds <- metaMDS(beta_dist)
+mds <- metaMDS(beta_dist_clark)
 mds_clark <- as.data.frame(mds$points)
 mds_clark$samples <- rownames(mds_clark)
 meta_sample$samples <- rownames(meta_sample)
@@ -286,8 +284,6 @@ sigtax_clark$Genus <- rownames(sigtax_clark) # add a column so genus tax can com
 # add lineages to significant taxa
 clark_deseq_lineage <- left_join(as.data.frame(sigtax_clark), tax_data)
 dim(clark_deseq_lineage)
-unique(clark_deseq_lineage$Genus)
-
 
 ```
 
@@ -298,13 +294,13 @@ x<-tapply(clark_deseq_lineage$log2FoldChange,clark_deseq_lineage$Phylum,function
 x<- sort(x,TRUE) # sort these identified phyla in descending order
 # order the sig taxa base on the decreasing order for the fold of changes between tissues
 clark_deseq_lineage$Phylum <- factor(as.character(clark_deseq_lineage$Phylum),levels = names(x))
-
+clark_sig_phylum <- x
 # perform the same ordering procedure with genus too
 x<-tapply(clark_deseq_lineage$log2FoldChange,clark_deseq_lineage$Genus,function(x)max(x))
 x<- sort(x,TRUE) # sort these identified genus in descending order
 # order the sig taxa base on the decreasing order for the fold of changes between tissues
 clark_deseq_lineage$Genus <- factor(as.character(clark_deseq_lineage$Genus),levels = names(x))
-
+clark_sig_genus <- x
 ggplot(clark_deseq_lineage, aes(x=Genus, y=log2FoldChange, color= Phylum))+ geom_point(size=6) + 
   theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))
 ```
@@ -372,8 +368,8 @@ cus_clarks_physeq <- phyloseq(OTU,TAX,sample_meta)
 ### Alpha Diversity (Within Sample diversity)
 ```{r}
 # margin = 2, means samples are the col names
-alpha_diversity <- data.frame(Shannon = diversity(otu_data, MARGIN =2, index="shannon"), Simpson = diversity(otu_data, MARGIN =2, index="simpson"), Inverse_Simpson = diversity(otu_data, MARGIN =2, index="invsimpson")) 
-alpha_diversity
+alpha_diversity_clarks <- data.frame(Shannon = diversity(otu_data, MARGIN =2, index="shannon"), Simpson = diversity(otu_data, MARGIN =2, index="simpson"), Inverse_Simpson = diversity(otu_data, MARGIN =2, index="invsimpson")) 
+alpha_diversity_clarks
 # plot Alpha diversity 
 plot_richness(cus_clarks_physeq, x= "Tissue", color="Subject",measures = c("Shannon", "Simpson", "InvSimpson"),title = "Alpha diversity for each sample")
 
@@ -384,11 +380,11 @@ plot_richness(cus_clarks_physeq, x= "Tissue", color="Subject",measures = c("Shan
 
 # no margin option like alpha diversity, use transpose for samples as colnames
 # bray-curtis
-beta_dist <-vegdist(t(otu_data), index="bray") # pairwise comparison between samples
+beta_dist_clarks <-vegdist(t(otu_data), index="bray") # pairwise comparison between samples
 
 # plot beta diversity using ordination, a way to display high dimensional data
 # capture the information in many dimensions by in a smaller number of "artifical" dimensions
-mds <- metaMDS(beta_dist)
+mds <- metaMDS(beta_dist_clarks)
 mds_clarks <- as.data.frame(mds$points)
 mds_clarks$samples <- rownames(mds_clarks)
 meta_sample$samples <- rownames(meta_sample)
@@ -417,10 +413,6 @@ alpha = 0.01 # significance threhold
 sigtax_clarks <- Kidney_lung[which(Kidney_lung$padj < alpha),] # get tax below the significance thresholf
 sigtax_clarks$Genus <- rownames(sigtax_clarks) # add a column so genus tax can combine with upper lineages
 
-# add lineages to significant taxa
-clarks_deseq_lineage <- left_join(as.data.frame(sigtax_clarks), tax_data)
-dim(clarks_deseq_lineage)
-unique(clarks_deseq_lineage$Genus)
 
 
 ```
@@ -432,13 +424,84 @@ x<-tapply(clarks_deseq_lineage$log2FoldChange,clarks_deseq_lineage$Phylum,functi
 x<- sort(x,TRUE) # sort these identified phyla in descending order
 # order the sig taxa base on the decreasing order for the fold of changes between tissues
 clarks_deseq_lineage$Phylum <- factor(as.character(clarks_deseq_lineage$Phylum),levels = names(x))
-
+clarks_sig_phylum <- x
 # perform the same ordering procedure with genus too
 x<-tapply(clarks_deseq_lineage$log2FoldChange,clarks_deseq_lineage$Genus,function(x)max(x))
 x<- sort(x,TRUE) # sort these identified genus in descending order
 # order the sig taxa base on the decreasing order for the fold of changes between tissues
 clarks_deseq_lineage$Genus <- factor(as.character(clarks_deseq_lineage$Genus),levels = names(x))
-
+clarks_sig_genus <- x
 ggplot(clarks_deseq_lineage, aes(x=Genus, y=log2FoldChange, color= Phylum))+ geom_point(size=6) + 
   theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))
+```
+
+# OVERVIEW: Comparison Between Three Softwares
+
+### sig different genus kidney vs lung
+```{r}
+# kraken2
+cat("Kraken2:\n")
+kraken2_sig_genus
+
+# clark
+cat("Clark:\n")
+clarks_sig_genus
+
+
+#clark-s
+cat("Clark-s:\n")
+clark_sig_genus
+
+```
+### sig different phylum kidney vs lung
+```{r}
+# kraken2
+cat("Kraken2:\n")
+kraken2_sig_phylum
+
+# clark
+cat("Clark:\n")
+clarks_sig_phylum
+
+
+#clark-s
+cat("Clark-s:\n")
+clark_sig_phylum
+
+```
+### Alpha Diversity
+```{r}
+# kraken2
+cat("Kraken2:\n")
+alpha_diversity_kraken2
+
+# clark
+cat("Clark:\n")
+alpha_diversity_clark
+
+
+#clark-s
+cat("Clark-s:\n")
+clark_sig_phylum
+alpha_diversity_clarks
+
+```
+
+### Beta_Diversity
+
+```{r}
+# kraken2
+cat("Kraken2:\n")
+beta_dist_kraken2
+
+# clark
+cat("Clark:\n")
+beta_dist_clark
+
+
+#clark-s
+cat("Clark-s:\n")
+clark_sig_phylum
+beta_dist_clarks
+
 ```
