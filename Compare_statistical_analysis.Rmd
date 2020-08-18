@@ -10,6 +10,7 @@ library(ggplot2)
 library(tidyverse)
 library(plotly)
 library("phyloseq")
+library(ggrepel)
 ```
 # Kraken2 
 ### Data Wrangling to format for phyloseq analysis
@@ -97,8 +98,11 @@ alpha_diversity_kraken2 <- data.frame(Shannon = diversity(otu_tab, MARGIN =2, in
 
 # plot Alpha diversity 
 # plot Alpha diversity 
-plot_richness(cus_kraken2_physeq, x= "Tissue", color="Subject",measures = c("Shannon", "Simpson", "InvSimpson"),title = "Alpha diversity for each sample")
-
+plot_richness(cus_kraken2_physeq, x= "Tissue", color="Subject",measures = c("Shannon", "Simpson", "InvSimpson"))+
+  geom_point(size=5) +
+   theme_classic()+
+  theme(legend.key.size = unit(1.0, "cm"), legend.text = element_text(size=13),legend.title = element_text(size=14,face="bold"), strip.text = element_text(face="bold",size=12), axis.text.y = element_text(face="bold", angle=-90,size=10),axis.text.x = element_blank(),axis.title = element_blank()) + guides(color = guide_legend(override.aes = list(size=5)))
+# ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/plots/alpha/kraken2_alpha.png")
 alpha_diversity_kraken2
 ```
 
@@ -121,7 +125,13 @@ meta_sample$samples <- rownames(meta_sample)
 mds_kraken2_meta <- left_join(meta_sample,mds_kraken2, by="samples")
 
 ggplot(mds_kraken2_meta,aes(x=MDS1,y=MDS2,color=Tissue))+
-  geom_point()
+  geom_point(size=5) +
+  geom_label_repel(aes(label=samples),
+                  point.padding = 0.5)+
+  theme_classic()+
+  theme(axis.title=element_blank(), axis.text=element_text(size = 10, face = "bold"), legend.text = element_text(size=13), legend.title = element_text(size=14, face="bold"),legend.position = "none",plot.margin = unit(c(0.2,2,0.2,0.2),"cm"))
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/plots/beta/kraken2_beta.png")
+mds_kraken2_meta
 ```
 
 ### Differential Abundant with Deseq2
@@ -239,7 +249,11 @@ cus_clark_physeq <- phyloseq(OTU,TAX,sample_meta)
 alpha_diversity_clark <- data.frame(Shannon = diversity(otu_data, MARGIN =2, index="shannon"), Simpson = diversity(otu_data, MARGIN =2, index="simpson"), Inverse_Simpson = diversity(otu_data, MARGIN =2, index="invsimpson")) 
 
 # plot Alpha diversity 
-plot_richness(cus_clark_physeq, x= "Tissue", color="Subject",measures = c("Shannon", "Simpson", "InvSimpson"),title = "Alpha diversity for each sample")
+plot_richness(cus_clark_physeq, x= "Tissue", color="Subject",measures = c("Shannon", "Simpson", "InvSimpson")) +
+  geom_point(size=5) +
+   theme_classic()+
+  theme(legend.key.size = unit(1.0, "cm"), legend.text = element_text(size=13),legend.title = element_text(size=14,face="bold"), strip.text = element_text(face="bold",size=12), axis.text.y = element_text(face="bold", angle=-90,size=10),axis.text.x=element_blank(),axis.title = element_blank()) + guides(color = guide_legend(override.aes = list(size=5)))
+# ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/plots/alpha/clark_alpha.png")
 alpha_diversity_clark
 ```
 
@@ -259,7 +273,12 @@ meta_sample$samples <- rownames(meta_sample)
 mds_clark_meta <- left_join(meta_sample,mds_clark, by="samples")
 
 ggplot(mds_clark_meta,aes(x=MDS1,y=MDS2,color=Tissue))+
-  geom_point()
+  geom_point(size=5) +
+  geom_label_repel(aes(label=samples),
+                  point.padding = 0.5)+
+  theme_classic()+
+  theme(axis.title=element_blank(), axis.text=element_text(size = 10, face = "bold"), legend.text = element_text(size=13), legend.title = element_text(size=14, face="bold"),legend.position = "none",plot.margin = unit(c(0.2,2,0.2,0.2),"cm"))
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/plots/beta/clark_beta.png")
 ```
 
 ### Differential Abundant with Deseq2
@@ -371,7 +390,11 @@ cus_clarks_physeq <- phyloseq(OTU,TAX,sample_meta)
 alpha_diversity_clarks <- data.frame(Shannon = diversity(otu_data, MARGIN =2, index="shannon"), Simpson = diversity(otu_data, MARGIN =2, index="simpson"), Inverse_Simpson = diversity(otu_data, MARGIN =2, index="invsimpson")) 
 alpha_diversity_clarks
 # plot Alpha diversity 
-plot_richness(cus_clarks_physeq, x= "Tissue", color="Subject",measures = c("Shannon", "Simpson", "InvSimpson"),title = "Alpha diversity for each sample")
+plot_richness(cus_clarks_physeq, x= "Tissue", color="Subject",measures = c("Shannon", "Simpson", "InvSimpson")) +
+  geom_point(size=5) +
+   theme_classic()+
+  theme(legend.key.size = unit(1.0, "cm"), legend.text = element_text(size=13),legend.title = element_text(size=14,face="bold"), strip.text = element_text(face="bold",size=12), axis.text.y  = element_text(face="bold", angle=-90,size=10),axis.text.x=element_blank(),axis.title = element_blank()) + guides(color = guide_legend(override.aes = list(size=5)))
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/plots/alpha/clarks_alpha.png")
 
 ```
 
@@ -391,7 +414,12 @@ meta_sample$samples <- rownames(meta_sample)
 mds_clarks_meta <- left_join(meta_sample,mds_clarks, by="samples")
 
 ggplot(mds_clarks_meta,aes(x=MDS1,y=MDS2,color=Tissue))+
-  geom_point()
+ geom_point(size=5) +
+  geom_label_repel(aes(label=samples),
+                  point.padding = 0.5)+
+  theme_classic()+
+  theme(axis.title=element_blank(), axis.text=element_text(size = 10, face = "bold"), legend.text = element_text(size=13), legend.title = element_text(size=14, face="bold"),legend.position = "none",plot.margin = unit(c(0.2,2,0.2,0.2),"cm"))
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/plots/beta/clarks_beta.png")
 ```
 
 ### Differential Abundant with Deseq2
@@ -413,6 +441,9 @@ alpha = 0.01 # significance threhold
 sigtax_clarks <- Kidney_lung[which(Kidney_lung$padj < alpha),] # get tax below the significance thresholf
 sigtax_clarks$Genus <- rownames(sigtax_clarks) # add a column so genus tax can combine with upper lineages
 
+# add lineages to significant taxa
+clarks_deseq_lineage <- left_join(as.data.frame(sigtax_clarks), tax_data)
+dim(clarks_deseq_lineage)
 
 
 ```
@@ -432,7 +463,10 @@ x<- sort(x,TRUE) # sort these identified genus in descending order
 clarks_deseq_lineage$Genus <- factor(as.character(clarks_deseq_lineage$Genus),levels = names(x))
 clarks_sig_genus <- x
 ggplot(clarks_deseq_lineage, aes(x=Genus, y=log2FoldChange, color= Phylum))+ geom_point(size=6) + 
-  theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))
+  theme_classic()+
+  theme(legend.key.size = unit(1.0, "cm"), legend.text = element_text(size=13),legend.title = element_text(size=14), strip.text = element_text(face="bold",size=12), axis.text.x = element_text(face="bold",size=12,angle = -90, hjust = 0, vjust=0.5), axis.title.y=element_text(size=12, face="bold")) 
+
+
 ```
 
 # OVERVIEW: Comparison Between Three Softwares
@@ -485,6 +519,122 @@ cat("Clark-s:\n")
 clark_sig_phylum
 alpha_diversity_clarks
 
+```
+
+## if the alpha diversity provided for each sample with different software has a significant difference (Friedman Test)
+
+### Shannon
+```{r}
+# friedman test
+# paired test for more than two paired samples that is not normally distributed
+samples <- rep(rownames(alpha_diversity_kraken2),3)
+
+three_alpha <- data.frame(sample_id = samples, software=c(rep("kraken",12),rep("clark",12), rep("clark-s",12)), alpha_index=c(alpha_diversity_kraken2$Shannon,alpha_diversity_clark$Shannon,alpha_diversity_clarks$Shannon))
+three_alpha$software <- factor(three_alpha$software, levels=c("kraken","clark","clark-s"))
+three_alpha$sample_id <- factor(three_alpha$sample_id, levels = rownames(alpha_diversity_kraken2))
+# The null hypothesis is that apart from an effect of blocks, the location parameter of y is the same in each of the groups
+friedman.test(alpha_index ~ sample_id | software, data = three_alpha) # (values ~ group | block)
+
+################# wilcoxon test for pair-wise significance test #######################
+
+# wilcoxon, kraken2 vs clark
+samples <- rep(rownames(alpha_diversity_kraken2),2)
+two_alpha <- data.frame(sample_id= samples, software=c(rep("kraken2",12),rep("clark",12)),alpha_index=c(alpha_diversity_kraken2$Shannon,alpha_diversity_clark$Shannon))
+two_alpha$sample_id <- factor(two_alpha$sample_id, levels =unique(samples))
+two_alpha$software <- factor(two_alpha$software, levels = c("kraken2","clark"))
+wilcox.test(two_alpha$alpha_index ~ two_alpha$software, paired = TRUE) # no rejected
+
+# wilcoxon test for pair-wise significance test
+# wilcoxon, kraken2 vs clark
+samples <- rep(rownames(alpha_diversity_kraken2),2)
+two_alpha <- data.frame(sample_id= samples, software=c(rep("clark",12),rep("clarks",12)),alpha_index=c(alpha_diversity_clark$Shannon,alpha_diversity_clarks$Shannon))
+two_alpha$sample_id <- factor(two_alpha$sample_id, levels =unique(samples))
+two_alpha$software <- factor(two_alpha$software, levels = c("clark","clarks"))
+wilcox.test(two_alpha$alpha_index ~ two_alpha$software, paired = TRUE) # no rejected
+
+# wilcoxon test for pair-wise significance test
+# wilcoxon, kraken2 vs clark
+samples <- rep(rownames(alpha_diversity_kraken2),2)
+two_alpha <- data.frame(sample_id= samples, software=c(rep("kraken2",12),rep("clarks",12)),alpha_index=c(alpha_diversity_kraken2$Shannon,alpha_diversity_clarks$Shannon))
+two_alpha$sample_id <- factor(two_alpha$sample_id, levels =unique(samples))
+two_alpha$software <- factor(two_alpha$software, levels = c("kraken2","clarks"))
+wilcox.test(two_alpha$alpha_index ~ two_alpha$software, paired = TRUE) # no rejected
+```
+
+### Simpson
+```{r}
+# friedman test
+# paired test for more than two paired samples that is not normally distributed
+samples <- rep(rownames(alpha_diversity_kraken2),3)
+
+three_alpha <- data.frame(sample_id = samples, software=c(rep("kraken",12),rep("clark",12), rep("clark-s",12)), alpha_index=c(alpha_diversity_kraken2$Simpson,alpha_diversity_clark$Simpson,alpha_diversity_clarks$Simpson))
+three_alpha$software <- factor(three_alpha$software, levels=c("kraken","clark","clark-s"))
+three_alpha$sample_id <- factor(three_alpha$sample_id, levels = rownames(alpha_diversity_kraken2))
+# The null hypothesis is that apart from an effect of blocks, the location parameter of y is the same in each of the groups
+friedman.test(alpha_index ~ sample_id | software, data = three_alpha) # (values ~ group | block)
+
+################# wilcoxon test for pair-wise significance test #######################
+
+# wilcoxon, kraken2 vs clark
+samples <- rep(rownames(alpha_diversity_kraken2),2)
+two_alpha <- data.frame(sample_id= samples, software=c(rep("kraken2",12),rep("clark",12)),alpha_index=c(alpha_diversity_kraken2$Simpson,alpha_diversity_clark$Simpson))
+two_alpha$sample_id <- factor(two_alpha$sample_id, levels =unique(samples))
+two_alpha$software <- factor(two_alpha$software, levels = c("kraken2","clark"))
+wilcox.test(two_alpha$alpha_index ~ two_alpha$software, paired = TRUE) # no rejected
+
+# wilcoxon test for pair-wise significance test
+# wilcoxon, kraken2 vs clark
+samples <- rep(rownames(alpha_diversity_kraken2),2)
+two_alpha <- data.frame(sample_id= samples, software=c(rep("clark",12),rep("clarks",12)),alpha_index=c(alpha_diversity_clark$Simpson,alpha_diversity_clarks$Simpson))
+two_alpha$sample_id <- factor(two_alpha$sample_id, levels =unique(samples))
+two_alpha$software <- factor(two_alpha$software, levels = c("clark","clarks"))
+wilcox.test(two_alpha$alpha_index ~ two_alpha$software, paired = TRUE) # no rejected
+
+# wilcoxon test for pair-wise significance test
+# wilcoxon, kraken2 vs clark
+samples <- rep(rownames(alpha_diversity_kraken2),2)
+two_alpha <- data.frame(sample_id= samples, software=c(rep("kraken2",12),rep("clarks",12)),alpha_index=c(alpha_diversity_kraken2$Simpson,alpha_diversity_clarks$Simpson))
+two_alpha$sample_id <- factor(two_alpha$sample_id, levels =unique(samples))
+two_alpha$software <- factor(two_alpha$software, levels = c("kraken2","clarks"))
+wilcox.test(two_alpha$alpha_index ~ two_alpha$software, paired = TRUE) # no rejected
+```
+
+### Inverse Simpson
+```{r}
+# friedman test
+# paired test for more than two paired samples that is not normally distributed
+samples <- rep(rownames(alpha_diversity_kraken2),3)
+
+three_alpha <- data.frame(sample_id = samples, software=c(rep("kraken",12),rep("clark",12), rep("clark-s",12)), alpha_index=c(alpha_diversity_kraken2$Inverse_Simpson,alpha_diversity_clark$Inverse_Simpson,alpha_diversity_clarks$Inverse_Simpson))
+three_alpha$software <- factor(three_alpha$software, levels=c("kraken","clark","clark-s"))
+three_alpha$sample_id <- factor(three_alpha$sample_id, levels = rownames(alpha_diversity_kraken2))
+# The null hypothesis is that apart from an effect of blocks, the location parameter of y is the same in each of the groups
+friedman.test(alpha_index ~ sample_id | software, data = three_alpha) # (values ~ group | block)
+
+################# wilcoxon test for pair-wise significance test #######################
+
+# wilcoxon, kraken2 vs clark
+samples <- rep(rownames(alpha_diversity_kraken2),2)
+two_alpha <- data.frame(sample_id= samples, software=c(rep("kraken2",12),rep("clark",12)),alpha_index=c(alpha_diversity_kraken2$Inverse_Simpson,alpha_diversity_clark$Inverse_Simpson))
+two_alpha$sample_id <- factor(two_alpha$sample_id, levels =unique(samples))
+two_alpha$software <- factor(two_alpha$software, levels = c("kraken2","clark"))
+wilcox.test(two_alpha$alpha_index ~ two_alpha$software, paired = TRUE) # no rejected
+
+# wilcoxon test for pair-wise significance test
+# wilcoxon, kraken2 vs clark
+samples <- rep(rownames(alpha_diversity_kraken2),2)
+two_alpha <- data.frame(sample_id= samples, software=c(rep("clark",12),rep("clarks",12)),alpha_index=c(alpha_diversity_kraken2$Inverse_Simpson,alpha_diversity_clark$Inverse_Simpson))
+two_alpha$sample_id <- factor(two_alpha$sample_id, levels =unique(samples))
+two_alpha$software <- factor(two_alpha$software, levels = c("clark","clarks"))
+wilcox.test(two_alpha$alpha_index ~ two_alpha$software, paired = TRUE) # no rejected
+
+# wilcoxon test for pair-wise significance test
+# wilcoxon, kraken2 vs clark
+samples <- rep(rownames(alpha_diversity_kraken2),2)
+two_alpha <- data.frame(sample_id= samples, software=c(rep("kraken2",12),rep("clarks",12)),alpha_index=c(alpha_diversity_kraken2$Inverse_Simpson,alpha_diversity_clark$Inverse_Simpson))
+two_alpha$sample_id <- factor(two_alpha$sample_id, levels =unique(samples))
+two_alpha$software <- factor(two_alpha$software, levels = c("kraken2","clarks"))
+wilcox.test(two_alpha$alpha_index ~ two_alpha$software, paired = TRUE) # no rejected
 ```
 
 ### Beta_Diversity
