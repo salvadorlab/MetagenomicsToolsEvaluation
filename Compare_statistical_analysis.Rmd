@@ -12,6 +12,14 @@ library(plotly)
 library("phyloseq")
 library(ggrepel)
 ```
+
+```{r}
+
+
+sig_phylum_color <-
+  c("#F8766D","#D89000", "#85AD00" ,"#00A5FF","#DC71FA","#00C0B8","#39B600")
+            
+```
 # Kraken2 
 ### Data Wrangling to format for phyloseq analysis
 ```{r}
@@ -170,7 +178,9 @@ dim(sigtax_kraken2_lineage)
 x<-tapply(sigtax_kraken2_lineage$log2FoldChange,sigtax_kraken2_lineage$Phylum,function(x)max(x))
 x<- sort(x,TRUE) # sort these identified phyla in descending order
 # order the sig taxa base on the decreasing order for the fold of changes between tissues
-sigtax_kraken2_lineage$Phylum <- factor(as.character(sigtax_kraken2_lineage$Phylum),levels = names(x))
+sigtax_kraken2_lineage$Phylum <- factor(as.character(sigtax_kraken2_lineage$Phylum),levels = c("Spirochaetes","Proteobacteria","Tenericutes","Firmicutes","Bacteroidetes","Cyanobacteria"))
+sig_phylum_color <-
+  c("#F8766D","#D89000", "#85AD00" ,"#00A5FF","#DC71FA","#39B600")
 kraken2_sig_phylum <- x
 # perform the same ordering procedure with genus too
 x<-tapply(sigtax_kraken2_lineage$log2FoldChange,sigtax_kraken2_lineage$Genus,function(x)max(x))
@@ -178,8 +188,11 @@ x<- sort(x,TRUE) # sort these identified genus in descending order
 # order the sig taxa base on the decreasing order for the fold of changes between tissues
 sigtax_kraken2_lineage$Genus <- factor(as.character(sigtax_kraken2_lineage$Genus),levels = names(x))
 kraken2_sig_genus <- x
-ggplot(sigtax_kraken2_lineage, aes(x=Genus, y=log2FoldChange, color= Phylum))+ geom_point(size=6) + 
-  theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))
+ggplot(sigtax_kraken2_lineage, aes(x=Genus, y=log2FoldChange, color= Phylum))+ geom_point(size=5) + 
+  theme_classic()+
+  theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5,size = 12, face="bold"),legend.key.size = unit(0.6, "cm"), legend.text = element_text(size=12),legend.title = element_text(size=12,face="bold"), axis.text.y = element_text(face="bold",size=10),axis.title = element_blank())+
+  scale_color_manual(values=sig_phylum_color)
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/plots/sigtax/kraken2_kidney_lung.png")
 ```
 
 ---
@@ -312,7 +325,7 @@ dim(clark_deseq_lineage)
 x<-tapply(clark_deseq_lineage$log2FoldChange,clark_deseq_lineage$Phylum,function(x)max(x))
 x<- sort(x,TRUE) # sort these identified phyla in descending order
 # order the sig taxa base on the decreasing order for the fold of changes between tissues
-clark_deseq_lineage$Phylum <- factor(as.character(clark_deseq_lineage$Phylum),levels = names(x))
+clark_deseq_lineage$Phylum <- factor(as.character(clark_deseq_lineage$Phylum),levels = c("Spirochaetes","Proteobacteria","Tenericutes","Firmicutes","Bacteroidetes","Peploviricota","Cyanobacteria"))
 clark_sig_phylum <- x
 # perform the same ordering procedure with genus too
 x<-tapply(clark_deseq_lineage$log2FoldChange,clark_deseq_lineage$Genus,function(x)max(x))
@@ -320,8 +333,11 @@ x<- sort(x,TRUE) # sort these identified genus in descending order
 # order the sig taxa base on the decreasing order for the fold of changes between tissues
 clark_deseq_lineage$Genus <- factor(as.character(clark_deseq_lineage$Genus),levels = names(x))
 clark_sig_genus <- x
-ggplot(clark_deseq_lineage, aes(x=Genus, y=log2FoldChange, color= Phylum))+ geom_point(size=6) + 
-  theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))
+ggplot(clark_deseq_lineage, aes(x=Genus, y=log2FoldChange, color= Phylum))+ geom_point(size=5) + 
+  theme_classic()+
+  theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5,size=12,face="bold"),legend.key.size = unit(0.6, "cm"), legend.text = element_text(size=12),legend.title = element_text(size=12,face="bold"), axis.text.y = element_text(face="bold",size=10),axis.title = element_blank()) +
+  scale_color_manual(values=sig_phylum_color)
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/plots/sigtax/clark_kidney_lung.png")
 ```
  
 ---
@@ -454,7 +470,7 @@ dim(clarks_deseq_lineage)
 x<-tapply(clarks_deseq_lineage$log2FoldChange,clarks_deseq_lineage$Phylum,function(x)max(x))
 x<- sort(x,TRUE) # sort these identified phyla in descending order
 # order the sig taxa base on the decreasing order for the fold of changes between tissues
-clarks_deseq_lineage$Phylum <- factor(as.character(clarks_deseq_lineage$Phylum),levels = names(x))
+clarks_deseq_lineage$Phylum <- factor(as.character(clarks_deseq_lineage$Phylum),levels = c("Spirochaetes","Proteobacteria","Tenericutes","Firmicutes","Bacteroidetes","Peploviricota","Cyanobacteria"))
 clarks_sig_phylum <- x
 # perform the same ordering procedure with genus too
 x<-tapply(clarks_deseq_lineage$log2FoldChange,clarks_deseq_lineage$Genus,function(x)max(x))
@@ -462,9 +478,11 @@ x<- sort(x,TRUE) # sort these identified genus in descending order
 # order the sig taxa base on the decreasing order for the fold of changes between tissues
 clarks_deseq_lineage$Genus <- factor(as.character(clarks_deseq_lineage$Genus),levels = names(x))
 clarks_sig_genus <- x
-ggplot(clarks_deseq_lineage, aes(x=Genus, y=log2FoldChange, color= Phylum))+ geom_point(size=6) + 
+ggplot(clarks_deseq_lineage, aes(x=Genus, y=log2FoldChange, color= Phylum))+ geom_point(size=5) + 
   theme_classic()+
-  theme(legend.key.size = unit(1.0, "cm"), legend.text = element_text(size=13),legend.title = element_text(size=14), strip.text = element_text(face="bold",size=12), axis.text.x = element_text(face="bold",size=12,angle = -90, hjust = 0, vjust=0.5), axis.title.y=element_text(size=12, face="bold")) 
+  theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5,size=12,face="bold"),legend.key.size = unit(0.6, "cm"), legend.text = element_text(size=12),legend.title = element_text(size=12,face="bold"), axis.text.y = element_text(face="bold", size=10),axis.title = element_blank()) +
+  scale_color_manual(values=sig_phylum_color)
+ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/plots/sigtax/clarks_kidney_lung.png")
 
 
 ```
