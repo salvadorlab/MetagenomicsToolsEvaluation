@@ -333,6 +333,8 @@ x<- sort(x,TRUE) # sort these identified genus in descending order
 # order the sig taxa base on the decreasing order for the fold of changes between tissues
 clark_deseq_lineage$Genus <- factor(as.character(clark_deseq_lineage$Genus),levels = names(x))
 clark_sig_genus <- x
+sig_phylum_color <-
+  c("#F8766D","#D89000", "#85AD00" ,"#00A5FF","#DC71FA","#00C0B8","#39B600")
 ggplot(clark_deseq_lineage, aes(x=Genus, y=log2FoldChange, color= Phylum))+ geom_point(size=5) + 
   theme_classic()+
   theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5,size=12,face="bold"),legend.key.size = unit(0.6, "cm"), legend.text = element_text(size=12),legend.title = element_text(size=12,face="bold"), axis.text.y = element_text(face="bold",size=10),axis.title = element_blank()) +
@@ -494,15 +496,22 @@ ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analy
 # kraken2
 cat("Kraken2:\n")
 kraken2_sig_genus
+sig_genus_kraken<- rownames(as.data.frame(kraken2_sig_genus))
 
 # clark
 cat("Clark:\n")
-clarks_sig_genus
+clark_sig_genus
+sig_genus_clark<- rownames(as.data.frame(clark_sig_genus))
+
 
 
 #clark-s
 cat("Clark-s:\n")
-clark_sig_genus
+clarks_sig_genus
+sig_genus_clarks<- rownames(as.data.frame(clarks_sig_genus))
+
+
+intersect(intersect(sig_genus_kraken, sig_genus_clark),sig_genus_clarks)
 
 ```
 ### sig different phylum kidney vs lung
@@ -641,7 +650,7 @@ wilcox.test(two_alpha$alpha_index ~ two_alpha$software, paired = TRUE) # no reje
 # wilcoxon test for pair-wise significance test
 # wilcoxon, kraken2 vs clark
 samples <- rep(rownames(alpha_diversity_kraken2),2)
-two_alpha <- data.frame(sample_id= samples, software=c(rep("clark",12),rep("clarks",12)),alpha_index=c(alpha_diversity_kraken2$Inverse_Simpson,alpha_diversity_clark$Inverse_Simpson))
+two_alpha <- data.frame(sample_id= samples, software=c(rep("clark",12),rep("clarks",12)),alpha_index=c(alpha_diversity_clark$Inverse_Simpson,alpha_diversity_clarks$Inverse_Simpson))
 two_alpha$sample_id <- factor(two_alpha$sample_id, levels =unique(samples))
 two_alpha$software <- factor(two_alpha$software, levels = c("clark","clarks"))
 wilcox.test(two_alpha$alpha_index ~ two_alpha$software, paired = TRUE) # no rejected
@@ -649,7 +658,7 @@ wilcox.test(two_alpha$alpha_index ~ two_alpha$software, paired = TRUE) # no reje
 # wilcoxon test for pair-wise significance test
 # wilcoxon, kraken2 vs clark
 samples <- rep(rownames(alpha_diversity_kraken2),2)
-two_alpha <- data.frame(sample_id= samples, software=c(rep("kraken2",12),rep("clarks",12)),alpha_index=c(alpha_diversity_kraken2$Inverse_Simpson,alpha_diversity_clark$Inverse_Simpson))
+two_alpha <- data.frame(sample_id= samples, software=c(rep("kraken2",12),rep("clarks",12)),alpha_index=c(alpha_diversity_kraken2$Inverse_Simpson,alpha_diversity_clarks$Inverse_Simpson))
 two_alpha$sample_id <- factor(two_alpha$sample_id, levels =unique(samples))
 two_alpha$software <- factor(two_alpha$software, levels = c("kraken2","clarks"))
 wilcox.test(two_alpha$alpha_index ~ two_alpha$software, paired = TRUE) # no rejected
@@ -671,5 +680,56 @@ beta_dist_clark
 cat("Clark-s:\n")
 clark_sig_phylum
 beta_dist_clarks
+
+```
+
+### Friedman test for beta diversities (bray indices) from Kraken2, Clark and Clark-S
+```{r}
+# friedman test
+# paired test for more than two paired samples that is not normally distributed
+between_samples <- as.character(rep(seq(1:66),3)) # use number as index to represent pairwise relationships
+
+# convert distance matrix to vector from top to bottom row by row
+beta_dist_kraken2_matrix <- as.matrix(beta_dist_kraken2)
+kraken2_beta_vector <- beta_dist_kraken2_matrix[lower.tri(beta_dist_kraken2_matrix)][order(row(beta_dist_kraken2_matrix)[lower.tri(row(beta_dist_kraken2_matrix))])]
+# convert distance matrix to vector from top to bottom row by row
+beta_dist_clark_matrix <- as.matrix(beta_dist_clark)
+clark_beta_vector <- beta_dist_clark_matrix[lower.tri(beta_dist_clark_matrix)][order(row(beta_dist_clark_matrix)[lower.tri(row(beta_dist_clark_matrix))])]
+# convert distance matrix to vector from top to bottom row by row
+beta_dist_clarks_matrix <- as.matrix(beta_dist_clarks)
+clarks_beta_vector <- beta_dist_clarks_matrix[lower.tri(beta_dist_clarks_matrix)][order(row(beta_dist_clarks_matrix)[lower.tri(row(beta_dist_clarks_matrix))])]
+
+three_beta <- data.frame(compare_id = between_samples, software=c(rep("kraken",66),rep("clark",66), rep("clark-s",66)), beta_index=c(kraken2_beta_vector,clark_beta_vector,clarks_beta_vector))
+three_beta$software <- factor(three_beta$software, levels=c("kraken","clark","clark-s"))
+three_beta$compare_id <- factor(three_beta$compare_id, levels = as.character(seq(1:66)))
+# The null hypothesis is that apart from an effect of blocks, the location parameter of y is the same in each of the groups
+friedman.test(beta_index ~ compare_id | software, data = three_beta) # (values ~ group | block)
+
+################# wilcoxon test for pair-wise significance test #######################
+
+between_samples <- as.character(rep(seq(1:66),2)) # use number as index to represent pairwise relationships
+# wilcoxon, kraken2 vs clark
+
+two_beta <- data.frame(sample_id= between_samples, software=c(rep("kraken2",66),rep("clark",66)),beta_index=c(kraken2_beta_vector,clark_beta_vector))
+two_beta$sample_id <- factor(two_beta$sample_id, levels =as.character(seq(1:66)))
+two_beta$software <- factor(two_beta$software, levels = c("kraken2","clark"))
+wilcox.test(two_beta$beta_index ~ two_beta$software, paired = TRUE) # no rejected
+
+# wilcoxon test for pair-wise significance test
+# wilcoxon, kraken2 vs clark
+
+two_beta <- data.frame(sample_id= between_samples, software=c(rep("clark",66),rep("clarks",66)),beta_index=c(clark_beta_vector,clarks_beta_vector))
+two_beta$sample_id <- factor(two_beta$sample_id, levels =as.character(seq(1:66)))
+two_beta$software <- factor(two_beta$software, levels = c("clark","clarks"))
+wilcox.test(two_beta$beta_index ~ two_beta$software, paired = TRUE) # no rejected
+
+# wilcoxon test for pair-wise significance test
+# wilcoxon, kraken2 vs clark
+
+two_beta <- data.frame(sample_id= between_samples, software=c(rep("kraken2",66),rep("clarks",66)),beta_index=c(kraken2_beta_vector,clarks_beta_vector))
+two_beta$sample_id <- factor(two_beta$sample_id, levels =as.character(seq(1:66)))
+two_beta$software <- factor(two_beta$software, levels = c("kraken2","clarks"))
+wilcox.test(two_beta$beta_index ~ two_beta$software, paired = TRUE) # no rejected
+
 
 ```

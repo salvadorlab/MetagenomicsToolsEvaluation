@@ -226,7 +226,7 @@ i=0
 for (file in files){
   current_sample <- read.csv(paste(absolute_path,file,sep=""),sep="\t",header=FALSE)
   genus_absolute <- current_sample %>% subset(V4 == "G") %>% mutate(trimed = trimws(V6))  %>% select(c(trimed,V2))
-  genus_absolute <- genus_absolute #%>% subset(trimed!="Rattus" & trimed !="Homo") #%>% subset(V2 >= 300) # deselect genus belongs to Eukrayota
+  genus_absolute <- genus_absolute %>% subset(trimed!="Rattus" & trimed !="Homo") #%>% subset(V2 >= 300) # deselect genus belongs to Eukrayota
   colnames(genus_absolute) <- c("genus", unlist(strsplit(file,".",fixed = TRUE))[1])
   
   if (i == 0){ # if is the first sample, make the table the aggregated data table
@@ -249,7 +249,7 @@ genus_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
 
 # genus I want to factored in order so they can be assigned with a specific color during plotting
 all_genus <- unique(genus_all_samples$genus) # allgenus classified
-order_genus <- c("Homo","Rattus","Xanthomonas","Pseudomonas","Pasteurella","Streptomyces","Calothrix","Andhravirus","Mycoplasma","Spiroplasma","Bacillus","Staphylococcus","Lactobacillus","Clostridium","Mycobacterium","Bordetella","Leptospira","Yersinia","Escherichia","Bartonella","Bacteroides","Microcystis","Nostoc","Mycobacteroides","Alistipes","Parabacteroides","Anabaena","Dolichospermum","Faecalibacterium","Sphaerospermopsis","Prevotella","Achromobacter") 
+order_genus <- c("Xanthomonas","Pseudomonas","Pasteurella","Streptomyces","Calothrix","Andhravirus","Mycoplasma","Spiroplasma","Bacillus","Staphylococcus","Lactobacillus","Clostridium","Mycobacterium","Bordetella","Leptospira","Yersinia","Escherichia","Bartonella","Bacteroides","Microcystis","Nostoc","Mycobacteroides","Alistipes","Parabacteroides","Anabaena","Dolichospermum","Faecalibacterium","Sphaerospermopsis","Prevotella","Achromobacter") 
 remaining_genus <- all_genus %>% data.frame() %>% subset(!c(all_genus %in% order_genus)) # deselect genus subsetted to put in order
 remaining_genus <- remaining_genus$. # data.frame to vector
 
@@ -270,7 +270,7 @@ cus_micro_comp
 manual_color <-c("#54478C","#97CBF0ff","#F94144","#80B918","#FEE440","#4361EE","#FFADAD","#FFD6A5","#FDFFB6","#CAFFBF","#9BF6FF","#A0C4FF","#BDB2FF","#FFC6FF","#233D4D","#FE7F2D","#FCCA46","#A1C181",
                  "#619B8A","#EE6352","#59CD90","#3FA7D6","#FAC05E","#F79D84","#50514F","#F25F5C","#FFE066","#247BA0","#70C1B3",
                  "#FFD1E8","#C8A439","#465D6F","#A94303","#708841","#540D6E","#EE4266","#FFD23F","#3BCEAC","#0EAD69","#E3AB00ff","#D1DED3ff",
-                 "#AD8EB0ff","#58BADCff","#A71D2Eff","#86D8BBff","#0050ADff")
+                 "#AD8EB0ff","#58BADCff","#A71D2Eff","#86D8BBff","#0050ADff","#41EAD4","#FBFF12","#54478C")
 
 plot <- ggplot(major_genus, aes(x=samples,y=Reads,fill=genus)) +
   geom_bar(stat="identity") + 
