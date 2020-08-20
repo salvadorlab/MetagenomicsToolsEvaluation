@@ -111,7 +111,7 @@ relative_plot <- ggplot(domain_relative, aes(x=samples,y=Relative,fill=Domain)) 
   theme_classic() +
   theme(legend.key.size = unit(0.6, "cm"), legend.text = element_text(size=12),legend.title = element_text(size=12,face="bold"), axis.text.y = element_text(face="bold", size=10),axis.title = element_blank(), axis.text.x= element_blank(),legend.position="none") +
   scale_fill_manual(values=manual_color)+
-  scale_y_continuous(labels = scales::percent_format())
+  scale_y_continuous(labels = scales::percent_format(),position="right")
 
 ggplotly(relative_plot)
 relative_plot

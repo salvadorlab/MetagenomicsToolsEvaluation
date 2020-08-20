@@ -65,10 +65,15 @@ mini_other_sequences %>%summarise(mean_other=mean(Reads),std=sd(Reads)) -> mini_
 domain_all_samples %>% subset(Domain == "unclassified") -> mini_unc
 mini_unc %>%summarise(mean_other=mean(Reads),std=sd(Reads)) -> mini_unc_summary
 
+# microbial reads summary
+domain_all_samples %>% subset(Domain == "Eukaryota" | Domain == "Bacteria" | Domain == "Viruses" | Domain == "Archaea") -> microbial_mini
+microbial_mini %>% group_by(samples) %>% summarise(total_microbial=sum(Reads)) -> microbial_mini_summary
 
 mini_total_reads_summary# avg number of reads across sample
 mini_other_sequences_summary # avg number of reads classified into "other sequences"
 mini_unc_summary
+microbial_mini_summary %>% summarise(mean= mean(total_microbial), std= sd(total_microbial))
+microbial_mini_summary
 ```
 
 # standard Kraken2 domain
@@ -126,9 +131,14 @@ other_sequences_std %>% summarise(mean_other=mean(Reads),std=sd(Reads)) -> other
 domain_all_samples %>% subset(Domain == "unclassified") -> std_unc
 std_unc %>%summarise(mean_other=mean(Reads),std=sd(Reads)) -> std_unc_summary
 
+# microbial reads summary
+domain_all_samples %>% subset(Domain == "Eukaryota" | Domain == "Bacteria" | Domain == "Viruses" | Domain == "Archaea") -> microbial_std
+microbial_std %>% group_by(samples) %>% summarise(total_microbial=sum(Reads)) -> microbial_std_summary
+
 std_total_reads_summary
 other_seq_std_summary
 std_unc_summary
+microbial_std_summary %>% summarise(mean= mean(total_microbial), std= sd(total_microbial))
 ```
 
 # Custom db domain 
@@ -182,9 +192,15 @@ cus_other_seq %>% summarise(mean_other=mean(Reads),std=sd(Reads)) -> other_seq_c
 domain_all_samples %>% subset(Domain == "unclassified") -> cus_unc
 cus_unc %>%summarise(mean_other=mean(Reads),std=sd(Reads)) -> cus_unc_summary
 
+# microbial reads summary
+domain_all_samples %>% subset(Domain == "Eukaryota" | Domain == "Bacteria" | Domain == "Viruses" | Domain == "Archaea") -> microbial_cus
+microbial_cus %>% group_by(samples) %>% summarise(total_microbial=sum(Reads)) -> microbial_cus_summary
+
 cus_total_reads_summary # avg number of reads across sample
 other_seq_cus_summary
 cus_unc_summary
+microbial_cus_summary %>% summarise(mean= mean(total_microbial), std= sd(total_microbial))
+
 ```
 
 # "other sequences" reads with custom database is significantly different than the mini and std databases reads
@@ -221,7 +237,38 @@ std_cus_other$db <- factor(std_cus_other$db, levels=c("std","cus"))
 wilcox.test(std_cus_other$other_seq_reads ~ std_cus_other$db) # rejected
 std_cus_other
 ```
+# microbial reads summary comparison
+```{r}
 
+# all three distribution for reads classified into the "other sequences" did not follow a normal distribution with the reject the null hypothesis at 0.05
+shapiro.test(microbial_mini_summary$total_microbial)
+shapiro.test(microbial_std_summary$total_microbial)
+shapiro.test(microbial_cus_summary$total_microbial)
+
+# use Wilcoxon test for difference with non-normal distributed groups
+
+# mini vs custom for other sequences reads
+mini_std_micro <- data.frame(db=c(rep("mini",12),rep("std",12)), microbial_reads=c(microbial_mini_summary$total_microbial,microbial_std_summary$total_microbial))
+# wilcoxon test requires exactly 2 levels of groups factors
+mini_std_micro$db <- factor(mini_std_micro$db, levels=c("mini","std"))
+
+# wilcoxon test 
+# alternative hypothesis, cus db with significantly lesser reads
+# since tested on the same data set with different methods, paired in true
+wilcox.test(mini_std_micro$microbial_reads ~ mini_std_micro$db,paired=TRUE)
+mini_std_micro
+
+# mini vs custom for other sequences reads
+mini_cus_micro <- data.frame(db=c(rep("mini",12),rep("cus",12)), microbial_reads=c(microbial_mini_summary$total_microbial,microbial_cus_summary$total_microbial))
+# wilcoxon test requires exactly 2 levels of groups factors
+mini_cus_micro$db <- factor(mini_cus_micro$db, levels=c("mini","cus"))
+
+# wilcoxon test 
+# alternative hypothesis, cus db with significantly lesser reads
+# since tested on the same data set with different methods, paired in true
+wilcox.test(mini_cus_micro$microbial_reads ~ mini_cus_micro$db, paired = TRUE)
+
+```
 # "unclassified" reads with mini database is significantly more than the mini and std databases reads
 ```{r}
 

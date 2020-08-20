@@ -12,10 +12,10 @@ knitr::opts_knit$set(root.dir = custom_path)
 ```
 ###include a color palette for ggplot
 ```{r}
-manual_color <-c("#F94144","#80B918","#FEE440","#4361EE","#FFADAD","#FFD6A5","#FDFFB6","#CAFFBF","#9BF6FF","#A0C4FF","#BDB2FF","#FFC6FF","#233D4D","#FE7F2D","#FCCA46","#A1C181",
+manual_color <-c("#4361EE","#FFADAD","#FDFFB6","#FFD6A5","#CAFFBF","#A0C4FF","#9BF6FF","#BDB2FF","#FFC6FF","#233D4D","#FE7F2D","#FCCA46","#A1C181",
                  "#619B8A","#EE6352","#59CD90","#3FA7D6","#FAC05E","#F79D84","#50514F","#F25F5C","#FFE066","#247BA0","#70C1B3",
                  "#FFD1E8","#C8A439","#465D6F","#A94303","#708841","#540D6E","#EE4266","#FFD23F","#3BCEAC","#0EAD69","#E3AB00ff","#D1DED3ff",
-                 "#AD8EB0ff","#58BADCff","#A71D2Eff","#86D8BBff","#0050ADff","#97CBF0ff","#67A280ff","#F20089","#41EAD4","#FBFF12","#54478C")
+                 "#AD8EB0ff","#58BADCff","#A71D2Eff","#86D8BBff","#0050ADff","#97CBF0ff","#67A280ff","#F20089","#41EAD4","#FBFF12","#54478C","#F94144","#80B918","#FEE440")
 
 ```
 
@@ -85,9 +85,8 @@ clark_total_reads_summary
 ```{r}
 plot_domain <- ggplot(domain_major, aes(x=Samples, y=Read_Count, fill=Name)) +
   geom_bar(stat="identity") + 
-  theme(axis.text.x=element_text(angle=90)) +
-  labs(title = "Metagenomic Reads Classification with Clark DB (Domain)", y= "Number of Reads",
-       x="Samples")+
+  theme_classic()+
+  theme(legend.key.size = unit(0.6, "cm"), legend.text = element_text(size=12),legend.title = element_text(size=12,face="bold"), axis.text.y = element_text(face="bold", size=10),axis.title = element_blank(), axis.text.x= element_blank(),legend.position = "none") +
   scale_fill_manual(values=manual_color)
 
 plot_domain
@@ -98,9 +97,11 @@ ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analy
 domain_relative <- ggplot(domain_major, aes(x=Samples, y=Percentage, fill=Name)) +
   geom_bar(stat="identity") + 
   theme(axis.text.x=element_text(angle=90)) +
-  labs(title = "Metagenomic Relative Abundance Classification with Clark DB (Domain)",
-       x="Samples") +  scale_y_continuous(labels = scales::percent_format()) +
-  scale_fill_manual(values = manual_color)
+  theme_classic()+
+  theme(legend.key.size = unit(0.6, "cm"), legend.text = element_text(size=12),legend.title = element_text(size=12,face="bold"), axis.text.y = element_text(face="bold", size=10),axis.title = element_blank(), axis.text.x= element_blank(),legend.position = "none") +
+  scale_fill_manual(values = manual_color) +
+  scale_y_continuous(labels = scales::percent_format(),position = "right") 
+  
 ggplotly(domain_relative)
 domain_relative
 ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/plots/Relative/clark_cus_domain_rel.png",width = 8, height = 6)
