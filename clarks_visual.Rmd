@@ -145,7 +145,7 @@ all_phylums <- unique(phylum_full_table$Name) # all phylums classified
 
 
 
-order_phylum <- c("Proteobacteria","Actinobacteria","Cyanobacteria","Firmicutes","Bacteroidetes","Tenericutes","Spirochaetes","Aquificae","Artverviricota","Peploviricota","Deinococcus-Thermus","Planctomycetes") 
+order_phylum <- c("Proteobacteria","Actinobacteria","Cyanobacteria","Firmicutes","Bacteroidetes","Uroviricota","Tenericutes","Spirochaetes","Aquificae","Artverviricota","Peploviricota","Deinococcus-Thermus","Planctomycetes") 
 
 remaining_phylum <- all_phylums %>% data.frame() %>% subset(!c(all_phylums %in% order_phylum))
 remaining_phylum <- remaining_phylum$.
@@ -155,7 +155,7 @@ phylum_full_table$Name <- factor(phylum_full_table$Name, level=c(order_phylum,re
 
 phylum_full_table %>% group_by(Samples) %>% 
   mutate(Total = sum(Read_Count), Percentage = Read_Count/Total) %>%
-  subset(Percentage >= 0.001)-> phylum_major
+  subset(Percentage >= 0.01)-> phylum_major
 
 phylum_major
 ```
@@ -163,16 +163,14 @@ phylum_major
 # Plot Domain level taxaonomy count with UNKNOWN and Eukaryota to have an overall picture of the samples
 ```{r}
 # color palette adjusted to match with Kraken2 color code for genus taxa
-manual_color <-c("#F94144","#80B918","#FEE440","#4361EE","#FFADAD","#FDFFB6","#CAFFBF","#BDB2FF","#FCCA46","#A1C181",
-                 "#619B8A","#EE6352","#59CD90","#3FA7D6","#FAC05E","#F79D84","#50514F","#F25F5C","#FFE066","#247BA0","#70C1B3",
+manual_color <-c("#4361EE","#9BF6FF","#FFADAD","#FDFFB6","#FFD6A5","#A0C4FF","#BDB2FF","#465D6F","#A94303","#EE6352","#59CD90","#3FA7D6","#A94303","#F79D84","#FAC05E","#50514F","#80B918","#FEE440","#4361EE","#FFADAD","#FFD6A5","#FDFFB6","#CAFFBF","#BDB2FF","#FCCA46","#A1C181","#619B8A","#EE6352","#59CD90","#3FA7D6","#FAC05E","#F79D84","#50514F","#F25F5C","#FFE066","#247BA0","#70C1B3",
                  "#FFD1E8","#C8A439","#465D6F","#A94303","#708841","#540D6E","#EE4266","#FFD23F","#3BCEAC","#0EAD69","#E3AB00ff","#D1DED3ff",
                  "#AD8EB0ff","#58BADCff","#A71D2Eff","#86D8BBff","#0050ADff","#97CBF0ff","#67A280ff","#F20089","#41EAD4","#FBFF12","#54478C")
 
 plot_phylum <- ggplot(phylum_major, aes(x=Samples, y=Read_Count, fill=Name)) +
   geom_bar(stat="identity") + 
-  theme(axis.text.x = element_text(angle=90),legend.text = element_text(size = 8),legend.key.size = unit(0.4,"cm")) +
-  labs(title = "Clark-S Microbiome Reads Profile (Phylum)", y= "Number of Reads",
-       x="Samples") +
+theme_classic() +
+  theme(legend.key.size = unit(0.6, "cm"), legend.text = element_text(size=12),legend.title = element_text(size=12,face="bold"), axis.text.y = element_text(face="bold", size=10),axis.title = element_blank(), axis.text.x= element_blank(),legend.position = "none") +
   scale_fill_manual(values = manual_color)
 
 plot_phylum
@@ -185,8 +183,9 @@ ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analy
 
 phylum_relative <- ggplot(phylum_major, aes(x=Samples,y=Percentage, fill=Name)) + 
   geom_bar(stat="identity") +
-  theme(axis.text.x = element_text(angle=90),legend.text = element_text(size = 8),legend.key.size = unit(0.4,"cm"),plot.caption = element_text(hjust = 0, face= "italic"))+
-  labs(title = "Clark-S Microbiome Composition Profile (Phylum)", y= "Percentage", x="Samples" )+scale_y_continuous(labels = scales::percent_format()) +
+theme_classic() +
+  theme(legend.key.size = unit(0.6, "cm"), legend.text = element_text(size=12),legend.title = element_text(size=12,face="bold"), axis.text.y = element_text(face="bold", size=10),axis.title = element_blank(), axis.text.x= element_blank(),legend.position = "none") +
+  scale_y_continuous(labels = scales::percent_format()) +
   scale_fill_manual(values = manual_color)
 
 phylum_relative
