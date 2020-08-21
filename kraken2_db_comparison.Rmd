@@ -255,7 +255,7 @@ mini_std_micro$db <- factor(mini_std_micro$db, levels=c("mini","std"))
 # wilcoxon test 
 # alternative hypothesis, cus db with significantly lesser reads
 # since tested on the same data set with different methods, paired in true
-wilcox.test(mini_std_micro$microbial_reads ~ mini_std_micro$db,paired=TRUE)
+wilcox.test(mini_std_micro$microbial_reads ~ mini_std_micro$db,paired=TRUE,alternative = "less")
 mini_std_micro
 
 # mini vs custom for other sequences reads
@@ -266,8 +266,10 @@ mini_cus_micro$db <- factor(mini_cus_micro$db, levels=c("mini","cus"))
 # wilcoxon test 
 # alternative hypothesis, cus db with significantly lesser reads
 # since tested on the same data set with different methods, paired in true
-wilcox.test(mini_cus_micro$microbial_reads ~ mini_cus_micro$db, paired = TRUE)
+wilcox.test(mini_cus_micro$microbial_reads ~ mini_cus_micro$db, paired = TRUE,alternative="less")
 
+mini_std_micro$microbial_reads
+microbial_std_summary$total_microbial
 ```
 # "unclassified" reads with mini database is significantly more than the mini and std databases reads
 ```{r}
@@ -287,7 +289,7 @@ mini_cus_unc$db <- factor(mini_cus_unc$db, levels=c("mini","cus"))
 # wilcoxon test 
 # alternative hypothesis, cus db with significantly lesser reads
 # since tested on the same data set with different methods, paired in true
-wilcox.test(mini_cus_unc$unc_reads ~ mini_cus_unc$db) # not rejected
+wilcox.test(mini_cus_unc$unc_reads ~ mini_cus_unc$db, paired=TRUE, alternative="greater") # not rejected
 
 # std vs custom for other sequences reads
 mini_std_unc <- data.frame(db=c(rep("mini",12),rep("std",12)), unc_reads=c(mini_unc$Reads,std_unc$Reads))
@@ -297,7 +299,7 @@ mini_std_unc$db <- factor(mini_std_unc$db, levels=c("mini","std"))
 # wilcoxon test 
 # alternative hypothesis, cus db with significantly lesser reads
 # paired because tested the softwares on the same dataset
-wilcox.test(mini_std_unc$unc_reads ~ mini_std_unc$db) # not rejected
+wilcox.test(mini_std_unc$unc_reads ~ mini_std_unc$db, paired =TRUE, alternative="greater") # not rejected
 
 mini_cus_unc
 ```

@@ -273,8 +273,8 @@ manual_color <-c("#54478C","#F94144","#80B918","#FEE440","#4361EE","#FFADAD","#F
 
 plot <- ggplot(major_genus, aes(x=samples,y=Reads,fill=genus)) +
   geom_bar(stat="identity") + 
-  labs(title = "Metagenomic Reads Classification with Standard Kraken2 DB (Genus)", y="Number of Reads", x = "Samples") + 
-  theme(legend.text = element_text(size =8 ),legend.key.size =unit(0.4,"cm")) +
+    theme_classic() +
+  theme(legend.key.size = unit(0.6, "cm"), legend.text = element_text(size=12),legend.title = element_text(size=12,face="bold"), axis.text.y = element_text(face="bold", size=10),axis.title = element_blank(), axis.text.x= element_blank(),legend.position = "none") +
   scale_fill_manual(values=manual_color)
 ggplotly(plot)
 plot
@@ -284,10 +284,9 @@ ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analy
 
 relative_plot <- ggplot(major_genus, aes(x=samples,y=Percentage,fill=genus)) +
   geom_bar(stat="identity") + 
-  labs(title = "Metagenomic Relative Abundance with Standard Kraken2 DB (Genus)", y="Percentage", x = "Samples") + 
-  theme(legend.text = element_text(size =8 ),legend.key.size =unit(0.4,"cm")) +
+    theme_classic() +
+  theme(legend.key.size = unit(0.6, "cm"), legend.text = element_text(size=12),legend.title = element_text(size=12,face="bold"), axis.text.y = element_text(face="bold", size=10),axis.title = element_blank(), axis.text.x= element_blank(),legend.position = "none") +
   scale_y_continuous(labels = scales::percent_format()) +
-  theme(axis.text.x=element_text(angle=90)) + 
   scale_fill_manual(values=manual_color)
 relative_plot
 ggplotly(relative_plot)
