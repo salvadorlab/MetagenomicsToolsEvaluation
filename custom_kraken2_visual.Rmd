@@ -26,7 +26,7 @@ library("phyloseq")
 ###include a color palette for ggplot
 ```{r}
 manual_color <-c("#4361EE","#9BF6FF","#FFADAD","#FDFFB6","#FFD6A5","#CAFFBF","#A0C4FF","#BDB2FF","#FFC6FF","#233D4D","#FE7F2D","#FCCA46","#A1C181",
-                 "#619B8A","#EE6352","#59CD90","#3FA7D6","#FAC05E","#A94303","#50514F","#F25F5C","#FFE066","#247BA0","#70C1B3",
+                 "#619B8A","#EE6352","#59CD90","#3FA7D6","#FAC05E","#50514F","#A94303","#F25F5C","#FFE066","#247BA0","#70C1B3",
                  "#FFD1E8","#C8A439","#465D6F","#A94303","#708841","#540D6E","#EE4266","#FFD23F","#3BCEAC","#0EAD69","#E3AB00ff","#D1DED3ff",
                  "#AD8EB0ff","#58BADCff","#A71D2Eff","#86D8BBff","#0050ADff","#97CBF0ff","#67A280ff","#F20089","#41EAD4","#FBFF12","#54478C","#F94144","#80B918","#FEE440")
 
@@ -177,8 +177,9 @@ phylum_all_samples$Phylum <- factor(phylum_all_samples$Phylum, level=c(order_phy
 
 # subsetting taxonomy with more than 1% in relative composition from each sample
 phylum_all_samples %>% group_by(samples) %>%
-  mutate(Total=sum(Reads), Percentage = Reads/Total) %>% subset(Percentage >= 0.01) ->major_phylum
-major_phylum
+  mutate(Total=sum(Reads), Percentage = Reads/Total) %>% subset(Percentage >= 0.001) ->major_phylum
+major_phylum %>% subset(samples== "R22_K" | samples=="R26_K" | samples == "R27_K") -> krakens_kidney_phylum
+unique(krakens_kidney_phylum$Phylum)
 
 
 ```

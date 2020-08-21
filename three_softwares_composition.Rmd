@@ -229,6 +229,7 @@ phylum_all_samples %>% group_by(samples) %>% summarise(sum_microbial=sum(Reads))
 
 kraken2_microbial_reads %>% summarise(mean_reads= mean(sum_microbial), std= sd(sum_microbial))
 
+
 ```
 
 # clark microbial composition 
@@ -278,6 +279,7 @@ phylum_full_table$Name <- factor(phylum_full_table$Name, level=c(order_phylum,re
 phylum_full_table %>% group_by(Samples) %>% summarise(sum_microbial=sum(Read_Count))  -> clark_microbial_reads
 
 clark_microbial_reads %>% summarise(mean_reads= mean(sum_microbial), std= sd(sum_microbial))
+
 ```
 
 # clark-s microbial composition 
@@ -328,6 +330,8 @@ phylum_full_table$Name <- factor(phylum_full_table$Name, level=c(order_phylum,re
 phylum_full_table %>% group_by(Samples) %>% summarise(sum_microbial=sum(Read_Count)) -> clarks_microbial_reads
 
 clarks_microbial_reads %>% summarise(mean_reads= mean(sum_microbial), std= sd(sum_microbial))
+
+clarks_microbial_reads
 ```
 
 # Friedman test/ wilcoxon
