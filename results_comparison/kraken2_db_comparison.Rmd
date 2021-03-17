@@ -257,12 +257,8 @@ combined_kraken2_db_longer$Domain <- factor(combined_kraken2_db_longer$Domain, l
 library(ggsignif)
 library(scales)
 
-wilcox.test.BH.adjusted <- function(x,y,n){
-  tmp <- wilcox.test(x,y,paired = TRUE)
-  tmp$p.value <- p.adjust(tmp$p.value, n = n,method = "BH")
-  tmp
-}  
 
+### plot 
 plot_kraken2_p <- ggplot(combined_kraken2_db_longer, aes(x= `Kraken2 Database Comparison`, y= `Reads`))+
   geom_boxplot()+
   geom_point(aes(color = samples)) +
@@ -279,7 +275,7 @@ stat_signif(comparisons = combn(levels(combined_kraken2_db_longer$`Kraken2 Datab
     scale_y_continuous(labels = comma)+
   labs(y="Number of Reads")
 plot_kraken2_p 
-ggsave(plot = plot_kraken2_p, width = 10, height = 8, dpi = 500, filename = "/Users/rachel/Desktop/kraken2_db_boxplot.pdf")
+# ggsave(plot = plot_kraken2_p, width = 10, height = 8, dpi = 500, filename = "/Users/rachel/Desktop/kraken2_db_boxplot.pdf")
 ```
 
 ```{r}

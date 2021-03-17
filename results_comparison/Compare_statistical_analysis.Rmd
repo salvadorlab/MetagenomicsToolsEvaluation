@@ -291,7 +291,7 @@ ggplot(mds_clark_meta,aes(x=MDS1,y=MDS2,color=Tissue))+
                   point.padding = 0.5)+
   theme_classic()+
   theme(axis.title=element_blank(), axis.text=element_text(size = 10, face = "bold"), legend.text = element_text(size=13), legend.title = element_text(size=14, face="bold"),legend.position = "none",plot.margin = unit(c(0.2,2,0.2,0.2),"cm"))
-ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/plots/beta/clark_beta.png")
+# ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/plots/beta/clark_beta.png")
 ```
 
 ### Differential Abundant with Deseq2
@@ -437,7 +437,7 @@ ggplot(mds_clarks_meta,aes(x=MDS1,y=MDS2,color=Tissue))+
                   point.padding = 0.5)+
   theme_classic()+
   theme(axis.title=element_blank(), axis.text=element_text(size = 10, face = "bold"), legend.text = element_text(size=13), legend.title = element_text(size=14, face="bold"),legend.position = "none",plot.margin = unit(c(0.2,2,0.2,0.2),"cm"))
-ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/plots/beta/clarks_beta.png")
+# ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/plots/beta/clarks_beta.png")
 ```
 
 ### Differential Abundant with Deseq2
@@ -490,6 +490,86 @@ ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analy
 ```
 
 # OVERVIEW: Comparison Between Three Softwares
+
+## combined alpha diversity
+```{r}
+alpha_diversity_kraken2$samples <- rownames(alpha_diversity_kraken2)
+alpha_diversity_kraken2$software <- "Kraken2"
+alpha_diversity_clark$samples <- rownames(alpha_diversity_clark)
+alpha_diversity_clark$software <- "CLARK"
+alpha_diversity_clarks$samples <- rownames(alpha_diversity_clarks)
+alpha_diversity_clarks$software <- "CLARK-s"
+
+combined_alpha_software <- rbind(alpha_diversity_kraken2, alpha_diversity_clark, alpha_diversity_clarks)
+
+combined_alpha_software_longer <- combined_alpha_software %>% pivot_longer(c("Shannon", "Simpson", "Inverse_Simpson"), names_to = "Alpha Index", values_to = "Index Value")
+
+combined_alpha_software_longer$software <- factor(combined_alpha_software_longer$software, levels=c("Kraken2", "CLARK", "CLARK-s"))
+combined_alpha_software_longer$`Alpha Index`<- factor(combined_alpha_software_longer$`Alpha Index`, levels = c("Shannon", "Simpson", "Inverse_Simpson"))
+
+
+software_alpha_p <- ggplot(combined_alpha_software_longer, aes(x= software, y=`Index Value`))+
+  geom_boxplot()+
+  geom_point(aes(color=samples))+
+  theme_bw()+
+  facet_wrap(vars(`Alpha Index`), scales = "free_y")+
+  stat_signif(comparisons = list(c("Kraken2", "CLARK"), c("Kraken2", "CLARK-s"), c("CLARK","CLARK-s")), map_signif_level =c("***"=0.001,"**"=0.01,"*"=0.05, " "=2), test ="wilcox.test", position = "identity",test.args = list(paired=T, exact=TRUE), vjust=0.6,
+                        textsize=6,
+                        size=0.5,
+                        step_increase = 0.05, na.rm = TRUE, show.legend = TRUE, fontface = "bold")+ theme(axis.text.x = element_text(angle=45, vjust=0.8,hjust = 0.8, size =12),axis.text.y = element_text(size=12), strip.text = element_text(size=12),axis.title = element_text(size=12), legend.text = element_text(size=12),legend.title = element_text(size=12))+
+    scale_y_continuous(labels = comma)+
+  labs(y="Alpha Indices Values")
+  
+ software_alpha_p
+# ggsave(plot = software_alpha_p, width = 10, height = 5, dpi = 500, filename = "/Users/rachel/Desktop/software_alpha_boxplot.pdf")
+
+```
+## combine beta diversity
+```{r}
+# 
+# df_kraken2 <- as.data.frame(as.matrix(beta_dist_kraken2))
+# df_kraken2$Kraken2_1 <- rownames(df_kraken2)
+# df_kraken2 <-  df_kraken2 %>% pivot_longer(head(colnames(df_kraken2),length(colnames(df_kraken2))-1), names_to = "Kraken2_2", values_to = "bray curtis index")
+# ggplot(df_kraken2, aes(x=Kraken2_1 , y=Kraken2_2, fill=`bray curtis index`))+
+#   geom_tile()
+
+library(gplots)
+# pdf('/Users/rachel/Desktop/kraken2_beta_heatmap.pdf')
+# heatmap.2(as.matrix(beta_dist_kraken2),key=TRUE, symkey=FALSE, density.info="none", trace="none",key.title = "Bray Curtis Indices",cexRow = 1.6,cexCol = 1.6,margins = c(6,6))
+# dev.off()
+
+pdf('/Users/rachel/Desktop/clark_beta_heatmap.pdf')
+heatmap.2(as.matrix(beta_dist_clark),key=TRUE, symkey=FALSE, density.info="none", trace="none",cexRow = 1.6,cexCol = 1.6,margins = c(6,6))
+dev.off
+
+
+# pdf('/Users/rachel/Desktop/clark-s_beta_heatmap.pdf')
+# heatmap.2(as.matrix(beta_dist_clarks),key=TRUE, symkey=FALSE, density.info="none", trace="none",cexRow = 1.6,cexCol = 1.6,margins = c(6,6))
+# dev.off
+
+# library(gridGraphics)
+# 
+# grab_grob <- function(){
+#   grid.echo()
+#   grid.grab()
+# }
+# 
+# g <- grab_grob()
+# grid.newpage()
+# 
+# # library(gridExtra)
+# # grid.arrange(g,g, ncol=2, clip=TRUE)
+# 
+# lay <- grid.layout(nrow = 2, ncol=2)
+# pushViewport(viewport(layout = lay))
+# grid.draw(editGrob(g, vp=viewport(layout.pos.row = 1, 
+#                                   layout.pos.col = 1, clip=TRUE)))
+# grid.draw(editGrob(g, vp=viewport(layout.pos.row = 1, 
+#                                   layout.pos.col = 2, clip=TRUE)))
+# grid.draw(editGrob(g, vp=viewport(layout.pos.row = 2, 
+#                                   layout.pos.col = 1, clip=TRUE)))
+# upViewport(1)
+```
 
 ### sig different genus kidney vs lung
 ```{r}

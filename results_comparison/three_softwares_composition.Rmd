@@ -57,6 +57,7 @@ domain_all_samples$Domain <- factor(domain_all_samples$Domain, level=unique(doma
 domain_all_samples %>% subset(Domain == "unclassified") -> cus_unc
 cus_unc %>%summarise(mean_unc=mean(Reads),std=sd(Reads)) -> cus_unc_summary
 
+kraken2_domain <- domain_all_samples 
 cus_unc
 cus_unc_summary
 ```
@@ -105,6 +106,7 @@ domain_full_table %>% group_by(Samples) %>%
 domain_full_table %>% subset(Name == "UNKNOWN") -> clark_unc
 clark_unc %>% summarise(mean_unc=mean(Read_Count),std=sd(Read_Count)) -> clark_unc_summary
 
+clark_domain <- domain_full_table
 clark_unc
 clark_unc_summary
 ```
@@ -152,8 +154,73 @@ domain_full_table$Name <- factor(domain_full_table$Name, levels = c("UNKNOWN", "
 domain_full_table %>% subset(Name == "UNKNOWN") -> clarks_unc
 clarks_unc %>% summarise(mean_unc=mean(Read_Count),std=sd(Read_Count)) -> clarks_unc_summary
 
+clarks_domain <- domain_full_table
+
 clarks_unc
 clarks_unc_summary
+```
+
+
+```{r}
+library(scales)
+library(gridExtra)
+kraken2_domain$software <- "Kraken2"
+clark_domain$software <- "CLARK"
+colnames(clark_domain) <- c("Domain", "samples", "Reads", "software")
+clarks_domain$software <- "CLARK-s"
+colnames(clarks_domain) <- c("Domain", "samples", "Reads", "software")
+
+combined_domain_software <- rbind(kraken2_domain, clark_domain, clarks_domain)
+combined_domain_software$Domain <- str_to_title(combined_domain_software$Domain) 
+combined_domain_software_1 <- combined_domain_software %>% mutate(Domains = sapply(Domain, function(x){
+  if(x == "Unknown"){
+    "Unclassified"
+  }else{
+    x
+  }
+})) 
+
+combined_domain_software_1$Domain <- factor(combined_domain_software_1$Domain, levels = c("Unclassified","Other Sequences", "Eukaryota","Bacteria","Viruses","Archaea"))
+
+combined_domain_software_1$samples <- factor(combined_domain_software_1$samples, levels =   c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S") )
+
+
+combined_domain_software_1 %<>% select(-c("Domain"))
+
+combined_domain_software_wider <- combined_domain_software_1 %>% pivot_wider(names_from = samples, values_from = Reads)
+# write.csv(combined_domain_software_wider, "/Users/rachel/Desktop/software_comparison_domain.csv")
+
+
+combined_domain_software_2 <-  combined_domain_software_1 %>% group_by(software,samples) %>% mutate(sum_reads = sum(Reads)) %>% mutate(Percentage = (Reads/sum_reads)) %>% pivot_longer(c(Reads, Percentage), names_to = "Read_type", values_to="values")
+combined_domain_software_2$Domains <- factor(combined_domain_software_2$Domains, levels  = c("Unclassified","Other Sequences", "Eukaryota","Bacteria","Viruses","Archaea"))
+combined_domain_software_2$Read_type <- factor(combined_domain_software_2$Read_type, levels = c("Reads", "Percentage"))
+
+
+
+manual_color <-c("#3358FF","#A1FFFF","#FFB8B7","#FFFFC3","#FFEAAD","#DBFFCD")
+
+abs_soft_domain <- ggplot(combined_domain_software_2 %>% subset(Read_type == "Reads"), aes(x= samples, y = values))+
+  geom_bar(stat="identity", aes(fill=Domains)) +
+  facet_grid(rows = vars(software), cols = vars(Read_type), switch = "y")+
+  scale_fill_manual(values = manual_color)+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle = 90,size=12), axis.text.y = element_text(size = 10), strip.placement = "left", axis.title = element_text(size=12), axis.title.y = element_blank(), strip.text = element_text(size = 12), legend.title = element_text(size=12), legend.text = element_text(size=12), legend.position = "none")+
+  scale_y_continuous(label=comma)
+
+
+per_sofr_domain <- ggplot(combined_domain_software_2 %>% subset(Read_type == "Percentage"), aes(x= samples, y = values))+
+  geom_bar(stat="identity", aes(fill=Domains)) +
+  facet_grid(rows = vars(software), cols = vars(Read_type))+
+  scale_fill_manual(values = manual_color)+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle = 90,size=12), axis.text.y = element_text(size = 10), strip.placement = "none", axis.title = element_text(size=12), axis.title.y = element_blank(), strip.text = element_text(size = 12), legend.title = element_text(size=12), legend.text = element_text(size=12), legend.position = "none")+
+  scale_y_continuous(labels = scales:: percent,position = "right")
+
+
+
+combined_software_domain <- grid.arrange(abs_soft_domain, per_sofr_domain, ncol=2)
+
+ggsave("/Users/rachel/Desktop/combined_software_domain.pdf", combined_software_domain)
 ```
 
 # difference between Number of unclassified reads across three softwares
