@@ -54,6 +54,8 @@ rownames(all_samples_w_taxa) <- all_samples_w_taxa$OTU
 # write.csv(all_samples_w_taxa$OTU,paste0(path, "kraken2_genus_tax.csv"), quote=FALSE, row.names = FALSE, col.names = NA)
 all_samples_w_taxa[is.na(all_samples_w_taxa)]<-0
 
+genus_Kraken2 <- all_samples_w_taxa
+
 ```
 
 ### input into phyloseq objects
@@ -228,6 +230,7 @@ for (file in files){
 
 genus_full_table[is.na(genus_full_table)] <- 0
 
+genus_clark <- genus_full_table
 ```
 
 # put clark data into phyloseq object
@@ -374,7 +377,7 @@ for (file in files){
 }
 
 genus_full_table[is.na(genus_full_table)] <- 0
-genus_full_table
+genus_clarks <- genus_full_table
 ```
 
 # put clarks data into phyloseq object
@@ -490,6 +493,42 @@ ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analy
 ```
 
 # OVERVIEW: Comparison Between Three Softwares
+## combined Genus data 
+```{r}
+
+genus_Kraken2_1 <- genus_Kraken2 %>% rename(Genus = OTU)
+length(genus_Kraken2_1$Genus)
+genus_Kraken2_1$software <- "Kraken2"
+genus_clark_1 <- genus_clark %>% select(-c(Domain, Phylum))
+length(genus_clark_1$Genus)
+genus_clark_1$software <- "CLARK"
+genus_clarks_1 <- genus_clarks %>% select(-c(Domain, Phylum))
+genus_clarks_1$software <- "CLARK-s"
+length(genus_clarks_1$Genus)
+
+combined_software_genus <- rbind(genus_Kraken2_1, genus_clark_1, genus_clarks_1) 
+
+genus_microbial_summary <- combined_software_genus %>% pivot_longer(c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"), names_to= "samples", values_to = "Reads") %>% group_by(software, samples) %>% summarise(total_reads = sum(Reads))
+
+ggplot(genus_microbial_summary, aes(x= software, y= `total_reads`))+
+  geom_boxplot()+
+  geom_point(aes(color = samples)) +
+stat_signif(comparisons = list(c("Kraken2", "CLARK"), c("Kraken2", "CLARK-s"), c("CLARK","CLARK-s")),
+          map_signif_level =c("***"=0.001,"**"=0.01,"*"=0.05, " "=2), test ="wilcox.test", position = "identity",
+          test.args = list(paired=T, exact=TRUE), vjust=0.6,
+                        textsize=6,
+                        size=0.5,
+                        step_increase = 0.05, na.rm = TRUE, show.legend = TRUE, fontface = "bold")+
+  theme_bw()+
+
+  theme(axis.text.x = element_text(angle=45, vjust=0.8,hjust = 0.8, size =12),axis.text.y = element_text(size=12), strip.text = element_text(size=12),axis.title = element_text(size=12), legend.text = element_text(size=12),legend.title = element_text(size=12))+
+    scale_y_continuous(labels = comma)+
+  labs(y="Number of Reads")
+
+friedman.test(total_reads ~ samples | software, data = genus_microbial_summary)
+
+```
+
 
 ## combined alpha diversity
 ```{r}
@@ -507,11 +546,11 @@ combined_alpha_software_longer <- combined_alpha_software %>% pivot_longer(c("Sh
 combined_alpha_software_longer$software <- factor(combined_alpha_software_longer$software, levels=c("Kraken2", "CLARK", "CLARK-s"))
 combined_alpha_software_longer$`Alpha Index`<- factor(combined_alpha_software_longer$`Alpha Index`, levels = c("Shannon", "Simpson", "Inverse_Simpson"))
 
-
+library(ggsignif)
 software_alpha_p <- ggplot(combined_alpha_software_longer, aes(x= software, y=`Index Value`))+
   geom_boxplot()+
   geom_point(aes(color=samples))+
-  theme_bw()+
+  theme_classic()+
   facet_wrap(vars(`Alpha Index`), scales = "free_y")+
   stat_signif(comparisons = list(c("Kraken2", "CLARK"), c("Kraken2", "CLARK-s"), c("CLARK","CLARK-s")), map_signif_level =c("***"=0.001,"**"=0.01,"*"=0.05, " "=2), test ="wilcox.test", position = "identity",test.args = list(paired=T, exact=TRUE), vjust=0.6,
                         textsize=6,
