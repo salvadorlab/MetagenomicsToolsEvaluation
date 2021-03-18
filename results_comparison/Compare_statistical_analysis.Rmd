@@ -190,9 +190,9 @@ x<- sort(x,TRUE) # sort these identified genus in descending order
 # order the sig taxa base on the decreasing order for the fold of changes between tissues
 sigtax_kraken2_lineage$Genus <- factor(as.character(sigtax_kraken2_lineage$Genus),levels = names(x))
 kraken2_sig_genus <- x
-ggplot(sigtax_kraken2_lineage, aes(x=Genus, y=log2FoldChange, color= Phylum))+ geom_point(size=5) + 
+kraken2_diffab_plot <- ggplot(sigtax_kraken2_lineage, aes(x=Genus, y=log2FoldChange, color= Phylum))+ geom_point(size=5) + 
   theme_classic()+
-  theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5,size = 12, face="bold"),legend.key.size = unit(0.6, "cm"), legend.text = element_text(size=12),legend.title = element_text(size=12,face="bold"), axis.text.y = element_text(face="bold",size=10),axis.title = element_blank())+
+  theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5,size = 12, face="bold"),legend.key.size = unit(0.6, "cm"), legend.text = element_text(size=12),legend.title = element_text(size=12,face="bold"), axis.text.y = element_text(face="bold",size=10),axis.title = element_blank(), legend.position = "none")+
   scale_color_manual(values=sig_phylum_color)
 ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/plots/sigtax/kraken2_kidney_lung.png")
 ```
@@ -338,9 +338,9 @@ clark_deseq_lineage$Genus <- factor(as.character(clark_deseq_lineage$Genus),leve
 clark_sig_genus <- x
 sig_phylum_color <-
   c("#F8766D","#D89000", "#85AD00" ,"#00A5FF","#DC71FA","#00C0B8","#39B600")
-ggplot(clark_deseq_lineage, aes(x=Genus, y=log2FoldChange, color= Phylum))+ geom_point(size=5) + 
+clark_diffab_plot <-ggplot(clark_deseq_lineage, aes(x=Genus, y=log2FoldChange, color= Phylum))+ geom_point(size=5) + 
   theme_classic()+
-  theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5,size=12,face="bold"),legend.key.size = unit(0.6, "cm"), legend.text = element_text(size=12),legend.title = element_text(size=12,face="bold"), axis.text.y = element_text(face="bold",size=10),axis.title = element_blank()) +
+  theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5,size=12,face="bold"),legend.key.size = unit(0.6, "cm"), legend.text = element_text(size=12),legend.title = element_text(size=12,face="bold"), axis.text.y = element_text(face="bold",size=10),axis.title = element_blank(), legend.position = "none") +
   scale_color_manual(values=sig_phylum_color)
 ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/plots/sigtax/clark_kidney_lung.png")
 ```
@@ -483,9 +483,9 @@ x<- sort(x,TRUE) # sort these identified genus in descending order
 # order the sig taxa base on the decreasing order for the fold of changes between tissues
 clarks_deseq_lineage$Genus <- factor(as.character(clarks_deseq_lineage$Genus),levels = names(x))
 clarks_sig_genus <- x
-ggplot(clarks_deseq_lineage, aes(x=Genus, y=log2FoldChange, color= Phylum))+ geom_point(size=5) + 
+clarks_diffab_plot <- ggplot(clarks_deseq_lineage, aes(x=Genus, y=log2FoldChange, color= Phylum))+ geom_point(size=5) + 
   theme_classic()+
-  theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5,size=12,face="bold"),legend.key.size = unit(0.6, "cm"), legend.text = element_text(size=12),legend.title = element_text(size=12,face="bold"), axis.text.y = element_text(face="bold", size=10),axis.title = element_blank()) +
+  theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5,size=12,face="bold"),legend.key.size = unit(0.6, "cm"), legend.text = element_text(size=12),legend.title = element_text(size=12,face="bold"), axis.text.y = element_text(face="bold", size=10),axis.title = element_blank(), legend.position = "none") +
   scale_color_manual(values=sig_phylum_color)
 ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/plots/sigtax/clarks_kidney_lung.png")
 
@@ -582,32 +582,27 @@ heatmap.2(as.matrix(beta_dist_clark),key=TRUE, symkey=FALSE, density.info="none"
 dev.off
 
 
-# pdf('/Users/rachel/Desktop/clark-s_beta_heatmap.pdf')
-# heatmap.2(as.matrix(beta_dist_clarks),key=TRUE, symkey=FALSE, density.info="none", trace="none",cexRow = 1.6,cexCol = 1.6,margins = c(6,6))
-# dev.off
+```
 
-# library(gridGraphics)
-# 
-# grab_grob <- function(){
-#   grid.echo()
-#   grid.grab()
-# }
-# 
-# g <- grab_grob()
-# grid.newpage()
-# 
-# # library(gridExtra)
-# # grid.arrange(g,g, ncol=2, clip=TRUE)
-# 
-# lay <- grid.layout(nrow = 2, ncol=2)
-# pushViewport(viewport(layout = lay))
-# grid.draw(editGrob(g, vp=viewport(layout.pos.row = 1, 
-#                                   layout.pos.col = 1, clip=TRUE)))
-# grid.draw(editGrob(g, vp=viewport(layout.pos.row = 1, 
-#                                   layout.pos.col = 2, clip=TRUE)))
-# grid.draw(editGrob(g, vp=viewport(layout.pos.row = 2, 
-#                                   layout.pos.col = 1, clip=TRUE)))
-# upViewport(1)
+## Combined differential abundance 
+```{r}
+sigtax_kraken2_lineage$software <- "Kraken2"
+clark_deseq_lineage$software <- "CLARK"
+clarks_deseq_lineage$software <- "CLARK-s"
+
+combined_deseq_lineage <- rbind(sigtax_kraken2_lineage, clark_deseq_lineage, clarks_deseq_lineage)
+
+combined_deseq_lineage$software <- factor(combined_deseq_lineage$software, levels= c("Kraken2", "CLARK", "CLARK-s"))
+combined_signab_plot <- ggplot(combined_deseq_lineage, aes(x= Genus, y= log2FoldChange))+
+  geom_point(aes(color=Phylum), size=4)+
+  facet_wrap(vars(software), scales = "free_x")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle=90, size =12),axis.text.y = element_text(size=12), strip.text = element_text(size=14),axis.title = element_text(size=14), legend.text = element_text(size=12),legend.title = element_text(size=12), panel.spacing = unit(2,"lines"))
+
+combined_signab_plot
+
+ggsave("/Users/rachel/Desktop/combined_signab_plot.pdf", combined_signab_plot, width = 14, height=6)
+
 ```
 
 ### sig different genus kidney vs lung
