@@ -114,8 +114,7 @@ plot_richness(cus_kraken2_physeq, x= "Tissue", color="Subject",measures = c("Sha
   theme(legend.key.size = unit(1.0, "cm"), legend.text = element_text(size=13),legend.title = element_text(size=14,face="bold"), strip.text = element_text(face="bold",size=12), axis.text.y = element_text(face="bold", angle=-90,size=10),axis.text.x = element_blank(),axis.title = element_blank()) + guides(color = guide_legend(override.aes = list(size=5)))
 # ggsave("/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/plots/alpha/kraken2_alpha.png")
 alpha_diversity_kraken2
-```
-
+.
 ###Beta Diversity (between samples)
 https://grunwaldlab.github.io/analysis_of_microbiome_community_data_in_r/07--diversity_stats.html
 - Bray–Curtis: The sum of lesser counts for species present in both communities divided by the sum of all counts in both communities. This can be thought of as a quantitative version of the Sørensen index.
