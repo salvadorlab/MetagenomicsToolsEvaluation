@@ -4,7 +4,7 @@ output: html_document
 ---
 
 ```{r}
-path <- "/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/"
+path <- "/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/"
 library(dplyr)
 library(magrittr)
 library(ggplot2)
@@ -20,7 +20,7 @@ library(rstatix)
 mini_path <- paste(path,"minikraken/absolute/",sep="")
 files <- list.files(mini_path)
 
-
+mini_path
 i=0
 
 # iterate through all sample's result for Domain info
@@ -42,7 +42,7 @@ for (file in files){
   i = i + 1
 }
 
-save(domain_all_samples, file ="minikraken_absolute_domain.Rdata")
+# save(domain_all_samples, file ="minikraken_absolute_domain.Rdata")
 
 domain_all_samples[is.na(domain_all_samples)] <- 0
 keys_to_gather <- colnames(domain_all_samples)[-1] # gather samples, exclude "Domain" from colnames
@@ -257,11 +257,13 @@ combined_kraken2_db_longer$Domain <- factor(combined_kraken2_db_longer$Domain, l
 library(ggsignif)
 library(scales)
 
-
+combined_kraken2_db_longer
 ### plot 
-plot_kraken2_p <- ggplot(combined_kraken2_db_longer, aes(x= `Kraken2 Database Comparison`, y= `Reads`))+
-  geom_boxplot()+
-  geom_point(aes(color = samples)) +
+plot_kraken2_p <- ggplot(combined_kraken2_db_longer,aes(x= `Kraken2 Database Comparison`, y= `Reads`))+
+      geom_boxplot()+
+  scale_shape_manual(values=c(seq(1,10,2),seq(10,16,1)))+
+  geom_point(aes(shape=samples),size=2) +
+
 stat_signif(comparisons = combn(levels(combined_kraken2_db_longer$`Kraken2 Database Comparison`),2,simplify = F),
           map_signif_level =c("***"=0.001,"**"=0.01,"*"=0.05, " "=2), test ="wilcox.test", position = "identity",
           test.args = list(n=18,paired=T, exact=TRUE), vjust=0.6,
@@ -275,7 +277,7 @@ stat_signif(comparisons = combn(levels(combined_kraken2_db_longer$`Kraken2 Datab
     scale_y_continuous(labels = comma)+
   labs(y="Number of Reads")
 plot_kraken2_p 
-# ggsave(plot = plot_kraken2_p, width = 10, height = 8, dpi = 500, filename = "/Users/rachel/Desktop/kraken2_db_boxplot.pdf")
+ggsave(plot = plot_kraken2_p, width = 10, height = 8, dpi = 500, filename = "/Users/rx32940/Desktop/kraken2_db_boxplot.pdf")
 ```
 
 ```{r}
