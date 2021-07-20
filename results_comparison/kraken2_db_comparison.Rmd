@@ -436,6 +436,7 @@ for (file in files){
 genus_all_samples[is.na(genus_all_samples)] <- 0
 keys_to_gather <- colnames(genus_all_samples)[-1] # gather samples, exclude "genus" from colnames
 
+kraken_std_genus <- genus_all_samples
 # prepare dataframe for ggplot
 genus_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
 
@@ -486,7 +487,7 @@ for (file in files){
 
 genus_all_samples[is.na(genus_all_samples)] <- 0
 keys_to_gather <- colnames(genus_all_samples)[-1] # gather samples, exclude "genus" from colnames
-
+kraken_cus_genus <- genus_all_samples
 # prepare dataframe for ggplot
 genus_all_samples %<>% gather(keys_to_gather, key="samples", value="Reads")
 
@@ -501,7 +502,7 @@ genus_all_samples$genus <- factor(genus_all_samples$genus, level=c(order_genus,r
 
 # subsetting taxonomy with more than 1% in relative composition from each sample 
 genus_all_samples %>% group_by(samples) %>%
-  mutate(Total=sum(Reads), Percentage = Reads/Total) %>% subset(Percentage >= 0.010) ->major_genus
+  mutate(Total=sum(Reads), Percentage = Reads/Total)# %>% subset(Percentage >= 0.010) ->major_genus
 
 # number of reads classified into microbiome composition (exclude homo and rattus)
 genus_all_samples %>% group_by(samples) %>%
@@ -509,7 +510,16 @@ genus_all_samples %>% group_by(samples) %>%
 cus_micro_comp
 ```
 
-# 
+#combine standard and customized
+```{r}
+# kraken_std_genus
+# write.csv(kraken_std_genus, "/Users/rachel/Desktop/kraken_std_genus.csv")
+# kraken_cus_genus
+# write.csv(kraken_cus_genus, "/Users/rachel/Desktop/kraken_cus_genus.csv")
+
+
+```
+
 ```{r}
 
 # all three distribution for reads classified into the "other sequences" did not follow a normal distribution with the reject the null hypothesis at 0.05
@@ -527,7 +537,7 @@ std_cus_mic$db <- factor(std_cus_mic$db, levels=c("cus","std"))
 # wilcoxon test 
 # alternative hypothesis, cus db with significantly lesser reads
 # paired because tested the softwares on the same dataset
-wilcox.test(std_cus_mic$mic_reads ~ std_cus_mic$db) # not rejected
+wilcox.test(std_cus_mic$mic_reads ~ std_cus_mic$db, paired=TRUE) # not rejected
 
 
 ```

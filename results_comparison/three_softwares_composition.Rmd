@@ -195,7 +195,7 @@ combined_domain_software_2 <-  combined_domain_software_1 %>% group_by(software,
 combined_domain_software_2$Domains <- factor(combined_domain_software_2$Domains, levels  = c("Unclassified","Other Sequences", "Eukaryota","Bacteria","Viruses","Archaea"))
 combined_domain_software_2$Read_type <- factor(combined_domain_software_2$Read_type, levels = c("Reads", "Percentage"))
 
-
+combined_domain_software_2$software<-factor(combined_domain_software_2$software, levels=c("Kraken2", "CLARK", "CLARK-s"))
 
 manual_color <-c("#3358FF","#A1FFFF","#FFB8B7","#FFFFC3","#FFEAAD","#DBFFCD")
 
@@ -204,7 +204,7 @@ abs_soft_domain <- ggplot(combined_domain_software_2 %>% subset(Read_type == "Re
   facet_grid(rows = vars(software), cols = vars(Read_type), switch = "y")+
   scale_fill_manual(values = manual_color)+
   theme_classic()+
-  theme(axis.text.x = element_text(angle = 90,size=12), axis.text.y = element_text(size = 10), strip.placement = "left", axis.title = element_text(size=12), axis.title.y = element_blank(), strip.text = element_text(size = 12), legend.title = element_text(size=12), legend.text = element_text(size=12), legend.position = "none")+
+  theme(axis.text.x = element_text(angle = 90,size=12), axis.text.y = element_text(size = 10), strip.placement = "left", axis.title = element_blank(), axis.title.y = element_blank(), strip.text = element_text(size = 12), legend.title = element_text(size=12), legend.text = element_text(size=12), legend.position = "none")+
   scale_y_continuous(label=comma)
 
 
@@ -213,15 +213,30 @@ per_sofr_domain <- ggplot(combined_domain_software_2 %>% subset(Read_type == "Pe
   facet_grid(rows = vars(software), cols = vars(Read_type))+
   scale_fill_manual(values = manual_color)+
   theme_classic()+
-  theme(axis.text.x = element_text(angle = 90,size=12), axis.text.y = element_text(size = 10), strip.placement = "none", axis.title = element_text(size=12), axis.title.y = element_blank(), strip.text = element_text(size = 12), legend.title = element_text(size=12), legend.text = element_text(size=12), legend.position = "none")+
+  theme(axis.text.x = element_text(angle = 90,size=12), axis.text.y = element_text(size = 10), strip.placement = "none", axis.title = element_blank(), axis.title.y = element_blank(), strip.text = element_text(size = 12), legend.title = element_text(size=12), legend.text = element_text(size=12), legend.position = "none")+
   scale_y_continuous(labels = scales:: percent,position = "right")
 
 
 
 combined_software_domain <- grid.arrange(abs_soft_domain, per_sofr_domain, ncol=2)
 
-ggsave("/Users/rachel/Desktop/combined_software_domain.pdf", combined_software_domain)
+ggsave("/Users/rachel/Desktop/combined_software_domain.pdf", combined_software_domain, height = 6)
 ```
+
+## friedman test for domain level software comparison
+```{r}
+
+friedman.test(Reads ~ samples | software, data = combined_domain_software_1 %>%subset(Domains == "Unclassified"))
+
+friedman.test(Reads ~ samples | software, data = combined_domain_software_1 %>%subset(Domains == "Eukaryota"))
+
+friedman.test(Reads ~ samples | software, data = combined_domain_software_1 %>%subset(Domains == "Bacteria"))
+
+friedman.test(Reads ~ samples | software, data = combined_domain_software_1 %>%subset(Domains == "Viruses"))
+
+friedman.test(Reads ~ samples | software, data = combined_domain_software_1 %>%subset(Domains == "Archaea"))
+```
+
 
 # difference between Number of unclassified reads across three softwares
 - non-parametric two way anova test: Friedman Test
@@ -293,6 +308,8 @@ phylum_all_samples$Phylum <- factor(phylum_all_samples$Phylum, level=c(order_phy
 
 # total number of microbial reads (first 3 kidney samples only)
 phylum_all_samples %>% group_by(samples) %>% summarise(sum_microbial=sum(Reads))  -> kraken2_microbial_reads
+kraken2_phylum <- phylum_all_samples
+length(unique(phylum_all_samples$Phylum))
 
 kraken2_microbial_reads %>% summarise(mean_reads= mean(sum_microbial), std= sd(sum_microbial))
 
@@ -344,7 +361,8 @@ phylum_full_table$Samples <- factor(phylum_full_table$Samples, levels = c("R22_K
 phylum_full_table$Name <- factor(phylum_full_table$Name, level=c(order_phylum,remaining_phylum))
 
 phylum_full_table %>% group_by(Samples) %>% summarise(sum_microbial=sum(Read_Count))  -> clark_microbial_reads
-
+clark_phylum <- phylum_full_table 
+length(unique(phylum_full_table$Name))
 clark_microbial_reads %>% summarise(mean_reads= mean(sum_microbial), std= sd(sum_microbial))
 
 ```
@@ -396,10 +414,70 @@ phylum_full_table$Name <- factor(phylum_full_table$Name, level=c(order_phylum,re
 
 phylum_full_table %>% group_by(Samples) %>% summarise(sum_microbial=sum(Read_Count)) -> clarks_microbial_reads
 
+clarks_phylum <- phylum_full_table
+length(unique(phylum_full_table$Name))
 clarks_microbial_reads %>% summarise(mean_reads= mean(sum_microbial), std= sd(sum_microbial))
 
 clarks_microbial_reads
 ```
+
+## Combine Phylum software
+```{r}
+
+
+kraken2_phylum$software <- "Kraken2"
+clark_phylum$software <- "CLARK"
+clarks_phylum$software <- "CLARK-s"
+
+clark_phylum_1 <- clark_phylum %>% rename( Name = "Phylum", Samples = "samples", Read_Count = "Reads")
+clarks_phylum_1 <- clarks_phylum %>%  rename( Name = "Phylum", Samples = "samples", Read_Count = "Reads")
+
+combined_soft_phylum <- rbind(kraken2_phylum, clark_phylum_1, clarks_phylum_1)
+
+combined_soft_phylum_1 <- combined_soft_phylum %>% group_by(samples, software) %>% mutate(sum_reads = sum(Reads)) %>% mutate(Proportion = Reads/sum_reads)
+combined_soft_phylum_2 <- combined_soft_phylum_1 %>% subset(Proportion >= 0.001)
+
+combined_soft_phylum_longer <- combined_soft_phylum_2 %>% pivot_longer(c(Reads, Proportion), names_to = "Read_type", values_to = "values")
+
+
+manual_color <-c("#A0C4FF","#80B918","#FEE440","#4361EE","#FFADAD","#FFD6A5","#FDFFB6","#CAFFBF","#9BF6FF","#BDB2FF","#FFC6FF","#233D4D","#FE7F2D","#FCCA46","#A1C181",
+                 "#619B8A","#EE6352","#59CD90","#3FA7D6","#FAC05E","#F79D84","#50514F","#F25F5C","#FFE066","#247BA0","#70C1B3",
+                 "#FFD1E8","#C8A439","#465D6F","#A94303","#708841","#540D6E","#EE4266","#FFD23F","#3BCEAC","#0EAD69","#E3AB00ff","#D1DED3ff",
+                 "#AD8EB0ff","#58BADCff","#A71D2Eff","#86D8BBff","#0050ADff","#97CBF0ff","#67A280ff","#F20089","#41EAD4","#FBFF12","#54478C")
+
+combined_soft_phylum_longer_1 <- combined_soft_phylum_longer %>% mutate(Reads.Type= sapply(Read_type, function(x){
+  if(x=="Reads"){
+    "Absolute Number of Reads"
+  }else{
+    "Percentage of Reads"
+  }
+}))
+
+combined_soft_phylum_1$software <- factor(combined_soft_phylum_1$software, levels = c("Kraken2", "CLARK", "CLARK-s"))
+library(gridExtra)
+library(scales)
+abs_phylum_p <- ggplot(combined_soft_phylum_longer_1 %>% subset(Read_type == "Reads"), aes(x= samples, y=values), ncol=2)+
+  geom_bar(stat="identity", aes(fill=Phylum))+
+  facet_grid(rows = vars(software), cols = vars(Reads.Type), switch = "y")+
+  scale_y_continuous(labels = comma)+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle=90,size=12), axis.text = element_text(size=12), axis.title  = element_text(size=12),strip.placement = "outer", axis.title.y = element_blank(),legend.position = "none", strip.text = element_text(size=12), axis.title.x = element_blank(), panel.spacing = unit(1,"lines"))+
+  scale_fill_manual(values = manual_color)
+
+per_phylum_p <- ggplot(combined_soft_phylum_longer_1 %>% subset(Read_type == "Proportion"), aes(x= samples, y=values), ncol=2)+
+  geom_bar(stat="identity", aes(fill=Phylum))+
+  facet_grid(rows = vars(software), cols = vars(Reads.Type))+
+  scale_y_continuous(labels = comma)+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle=90,size=12), axis.text = element_text(size=12) ,axis.title  = element_text(size=12),strip.placement = "outer", axis.title.y = element_blank(), strip.text = element_text(size=12), axis.title.x = element_blank(), panel.spacing = unit(1,"lines"), legend.text = element_text(size=12), legend.title = element_text(size=12))+
+  scale_fill_manual(values = manual_color)+
+  scale_y_continuous(labels= scales::percent,position="right")
+per_phylum_p
+combined_phylum_software <- grid.arrange(abs_phylum_p, per_phylum_p, ncol = 2)
+
+ggsave("/Users/rachel/Desktop/combined_phylum_software.pdf", combined_phylum_software,height = 7)
+```
+
 
 # Friedman test/ wilcoxon
 ```{r}
