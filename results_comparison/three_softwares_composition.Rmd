@@ -16,7 +16,7 @@ library(rstatix)
 ```
 # customized kraken2 domain
 ```{r}
-path = "/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/"
+path = "/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/"
 cus_path = paste(path,"custom/absolute/",sep="")
 files <- list.files(cus_path)
 
@@ -63,7 +63,7 @@ cus_unc_summary
 ```
 # Clark domain
 ```{r}
-custom_path="/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/"
+custom_path="/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/"
 species_path <- paste(custom_path, "species_custom/" , sep="")
 files <- list.files(species_path)
 
@@ -205,22 +205,25 @@ abs_soft_domain <- ggplot(combined_domain_software_2 %>% subset(Read_type == "Re
   scale_fill_manual(values = manual_color)+
   theme_classic()+
   theme(axis.text.x = element_text(angle = 90,size=12), axis.text.y = element_text(size = 10), strip.placement = "left", axis.title = element_blank(), axis.title.y = element_blank(), strip.text = element_text(size = 12), legend.title = element_text(size=12), legend.text = element_text(size=12), legend.position = "none")+
-  scale_y_continuous(label=comma)
+  scale_y_continuous(label=comma)#+
+  scale_fill_grey(start=0,end=1)
 
 
 per_sofr_domain <- ggplot(combined_domain_software_2 %>% subset(Read_type == "Percentage"), aes(x= samples, y = values))+
   geom_bar(stat="identity", aes(fill=Domains)) +
+
   facet_grid(rows = vars(software), cols = vars(Read_type))+
   scale_fill_manual(values = manual_color)+
   theme_classic()+
-  theme(axis.text.x = element_text(angle = 90,size=12), axis.text.y = element_text(size = 10), strip.placement = "none", axis.title = element_blank(), axis.title.y = element_blank(), strip.text = element_text(size = 12), legend.title = element_text(size=12), legend.text = element_text(size=12), legend.position = "none")+
-  scale_y_continuous(labels = scales:: percent,position = "right")
+  theme(axis.text.x = element_text(angle = 90,size=12), axis.text.y = element_text(size = 10), strip.placement = "none", axis.title = element_blank(), axis.title.y = element_blank(), strip.text = element_text(size = 12), legend.title = element_text(size=12), legend.text = element_text(size=12))+
+  scale_y_continuous(labels = scales:: percent,position = "right")#+
+  scale_fill_grey(start=0,end=1)
 
-
+per_sofr_domain
 
 combined_software_domain <- grid.arrange(abs_soft_domain, per_sofr_domain, ncol=2)
 
-ggsave("/Users/rachel/Desktop/combined_software_domain.pdf", combined_software_domain, height = 6)
+ggsave("/Users/rx32940/Desktop/combined_software_domain.pdf", combined_software_domain, height = 6)
 ```
 
 ## friedman test for domain level software comparison
@@ -264,7 +267,7 @@ friedman.test(unc_reads ~ sample_id | software, data = three_unc) # (values ~ gr
 
 # kraken2 microbial composition 
 ```{r}
-path = "/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/"
+path = "/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/kraken2/"
 absolute_path = paste(path,"custom/absolute/",sep="")
 files <- list.files(absolute_path)
 
@@ -318,7 +321,7 @@ kraken2_microbial_reads %>% summarise(mean_reads= mean(sum_microbial), std= sd(s
 
 # clark microbial composition 
 ```{r}
-custom_path <- "/Users/rachel/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/"
+custom_path <- "/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/final_analysis/clark/"
 species_path <- paste(custom_path, "species_custom/" , sep="")
 files <- list.files(species_path)
 
@@ -424,13 +427,13 @@ clarks_microbial_reads
 ## Combine Phylum software
 ```{r}
 
-
+library(dplyr)
 kraken2_phylum$software <- "Kraken2"
 clark_phylum$software <- "CLARK"
 clarks_phylum$software <- "CLARK-s"
 
-clark_phylum_1 <- clark_phylum %>% rename( Name = "Phylum", Samples = "samples", Read_Count = "Reads")
-clarks_phylum_1 <- clarks_phylum %>%  rename( Name = "Phylum", Samples = "samples", Read_Count = "Reads")
+clark_phylum_1 <- clark_phylum %>% dplyr::rename( "Phylum"="Name",  "samples"="Samples",  "Reads"="Read_Count")
+clarks_phylum_1 <- clarks_phylum %>%  dplyr::rename( "Phylum"="Name",  "samples"="Samples",  "Reads"="Read_Count")
 
 combined_soft_phylum <- rbind(kraken2_phylum, clark_phylum_1, clarks_phylum_1)
 
@@ -456,26 +459,30 @@ combined_soft_phylum_longer_1 <- combined_soft_phylum_longer %>% mutate(Reads.Ty
 combined_soft_phylum_1$software <- factor(combined_soft_phylum_1$software, levels = c("Kraken2", "CLARK", "CLARK-s"))
 library(gridExtra)
 library(scales)
-abs_phylum_p <- ggplot(combined_soft_phylum_longer_1 %>% subset(Read_type == "Reads"), aes(x= samples, y=values), ncol=2)+
+combined_soft_phylum_abs <- combined_soft_phylum_longer_1 %>% subset(Read_type == "Reads")
+combined_soft_phylum_abs$software <- factor(combined_soft_phylum_abs$software, levels = c("Kraken2", "CLARK", "CLARK-s"))
+abs_phylum_p <- ggplot(combined_soft_phylum_abs, aes(x= samples, y=values), ncol=2)+
   geom_bar(stat="identity", aes(fill=Phylum))+
   facet_grid(rows = vars(software), cols = vars(Reads.Type), switch = "y")+
   scale_y_continuous(labels = comma)+
   theme_classic()+
   theme(axis.text.x = element_text(angle=90,size=12), axis.text = element_text(size=12), axis.title  = element_text(size=12),strip.placement = "outer", axis.title.y = element_blank(),legend.position = "none", strip.text = element_text(size=12), axis.title.x = element_blank(), panel.spacing = unit(1,"lines"))+
   scale_fill_manual(values = manual_color)
-
-per_phylum_p <- ggplot(combined_soft_phylum_longer_1 %>% subset(Read_type == "Proportion"), aes(x= samples, y=values), ncol=2)+
+abs_phylum_p
+combined_soft_phylum_per <- combined_soft_phylum_longer_1 %>% subset(Read_type == "Proportion")
+combined_soft_phylum_per$software <- factor(combined_soft_phylum_per$software, levels = c("Kraken2", "CLARK", "CLARK-s"))
+per_phylum_p <- ggplot(combined_soft_phylum_per, aes(x= samples, y=values), ncol=2)+
   geom_bar(stat="identity", aes(fill=Phylum))+
   facet_grid(rows = vars(software), cols = vars(Reads.Type))+
   scale_y_continuous(labels = comma)+
   theme_classic()+
-  theme(axis.text.x = element_text(angle=90,size=12), axis.text = element_text(size=12) ,axis.title  = element_text(size=12),strip.placement = "outer", axis.title.y = element_blank(), strip.text = element_text(size=12), axis.title.x = element_blank(), panel.spacing = unit(1,"lines"), legend.text = element_text(size=12), legend.title = element_text(size=12))+
+  theme(axis.text.x = element_text(angle=90,size=12), axis.text = element_text(size=12) ,axis.title  = element_text(size=12),strip.placement = "outer", axis.title.y = element_blank(), strip.text = element_text(size=12), axis.title.x = element_blank(), panel.spacing = unit(1,"lines"), legend.text = element_text(size=12), legend.title = element_text(size=12),legend.position = "none")+
   scale_fill_manual(values = manual_color)+
   scale_y_continuous(labels= scales::percent,position="right")
 per_phylum_p
 combined_phylum_software <- grid.arrange(abs_phylum_p, per_phylum_p, ncol = 2)
-
-ggsave("/Users/rachel/Desktop/combined_phylum_software.pdf", combined_phylum_software,height = 7)
+combined_phylum_software
+ggsave("/Users/rx32940/Desktop/combined_phylum_software.pdf", combined_phylum_software,height = 7)
 ```
 
 

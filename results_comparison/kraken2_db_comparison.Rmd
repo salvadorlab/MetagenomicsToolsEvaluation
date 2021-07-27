@@ -241,7 +241,7 @@ combined_kraken2_db <- df <- data.frame(Date=as.Date(character()),
 for (d in kraken2_domain_list){
   join1 <- left_join(get(paste0(d,"_mini")), get(paste0(d,"_std")), by= c("Domain", "samples"))
   combined_temp <- left_join(join1, get(paste0(d,"_cus")), by= c("Domain", "samples"))
-  combined_temp %<>% rename("MiniKraken2" = Reads.x, "Standard" = Reads.y, "Customized" = Reads)
+  combined_temp %<>% dplyr::rename("MiniKraken2" = Reads.x, "Standard" = Reads.y, "Customized" = Reads)
   combined_kraken2_db <- rbind(combined_kraken2_db, combined_temp)
 }
 
@@ -259,25 +259,57 @@ library(scales)
 
 combined_kraken2_db_longer
 ### plot 
-plot_kraken2_p <- ggplot(combined_kraken2_db_longer,aes(x= `Kraken2 Database Comparison`, y= `Reads`))+
-      geom_boxplot()+
-  scale_shape_manual(values=c(seq(1,10,2),seq(10,16,1)))+
-  geom_point(aes(shape=samples),size=2) +
+# plot_kraken2_p <- ggplot(combined_kraken2_db_longer,aes(x= `Kraken2 Database Comparison`, y= `Reads`))+
+#       geom_boxplot(color="grey",alpha=0.1)+
+#   scale_shape_manual(values = c(19,18,17,15,seq(1,12,1)))+
+#   geom_point(aes(shape=samples),size=2) +
+# 
+# stat_signif(comparisons = combn(levels(combined_kraken2_db_longer$`Kraken2 Database Comparison`),2,simplify = F),
+#           map_signif_level =c("***"=0.001,"**"=0.01,"*"=0.05, " "=2), test ="wilcox.test", position = "identity",
+#           test.args = list(n=18,paired=T, exact=TRUE), vjust=0.6,
+#                         textsize=6,
+#                         size=0.5,
+#                         step_increase = 0.05, na.rm = TRUE, show.legend = TRUE, fontface = "bold")+
+#   facet_wrap(vars(Domain), ncol = 3, scales = "free_y")+
+#   theme_bw()+
+# 
+#   theme(axis.text.x = element_text(angle=45, vjust=0.8,hjust = 0.8, size =12),axis.text.y = element_text(size=12), strip.text = element_text(size=12),axis.title = element_text(size=12), legend.text = element_text(size=12),legend.title = element_text(size=12))+
+#     scale_y_continuous(labels = comma)+
+#   labs(y="Number of Reads")
 
-stat_signif(comparisons = combn(levels(combined_kraken2_db_longer$`Kraken2 Database Comparison`),2,simplify = F),
-          map_signif_level =c("***"=0.001,"**"=0.01,"*"=0.05, " "=2), test ="wilcox.test", position = "identity",
-          test.args = list(n=18,paired=T, exact=TRUE), vjust=0.6,
-                        textsize=6,
-                        size=0.5,
-                        step_increase = 0.05, na.rm = TRUE, show.legend = TRUE, fontface = "bold")+
-  facet_wrap(vars(Domain), ncol = 3, scales = "free_y")+
-  theme_bw()+
+manual_color <- c("#BFC9CA", "#AED6F1", "#0E6251","#0E6251","#6E2C00","#EDBB99")
 
-  theme(axis.text.x = element_text(angle=45, vjust=0.8,hjust = 0.8, size =12),axis.text.y = element_text(size=12), strip.text = element_text(size=12),axis.title = element_text(size=12), legend.text = element_text(size=12),legend.title = element_text(size=12))+
-    scale_y_continuous(labels = comma)+
-  labs(y="Number of Reads")
-plot_kraken2_p 
-ggsave(plot = plot_kraken2_p, width = 10, height = 8, dpi = 500, filename = "/Users/rx32940/Desktop/kraken2_db_boxplot.pdf")
+manual_color <-c("#D6EAF8","#27AE60","#FAD7A0","#4361EE","#FDFFB6","#CAFFBF","#9BF6FF","#BDB2FF","#FFC6FF","#233D4D","#FE7F2D","#FCCA46","#A1C181",
+                 "#619B8A","#EE6352","#59CD90","#3FA7D6","#FAC05E","#F79D84","#50514F","#F25F5C","#FFE066","#247BA0","#70C1B3",
+                 "#FFD1E8","#C8A439","#465D6F","#A94303","#708841","#540D6E","#EE4266","#FFD23F","#3BCEAC","#0EAD69","#E3AB00ff","#D1DED3ff",
+                 "#AD8EB0ff","#58BADCff","#A71D2Eff","#86D8BBff","#0050ADff","#97CBF0ff","#67A280ff","#F20089","#41EAD4","#FBFF12","#54478C")
+
+combined_kraken2_db_longer_1 <- combined_kraken2_db_longer %>% group_by(samples, `Kraken2 Database Comparison`) %>% mutate(`Percentage of Reads` = Reads/sum(Reads) ) %>% pivot_longer(c("Reads",`Percentage of Reads`), names_to = "Reads.Type", values_to = "values")
+
+combined_kraken2_db_longer_1$samples <- factor(combined_kraken2_db_longer_1$samples, levels=c("R22_K","R26_K","R27_K","R28_K","R22_L","R26_L","R27_L","R28_L","R22_S","R26_S","R27_S","R28_S"))
+combined_db_p <- ggplot(combined_kraken2_db_longer_1 %>% subset(Reads.Type == "Reads"), aes(x= samples, y=values), ncol=2)+
+  geom_bar(stat="identity", aes(fill=Domain))+
+  facet_grid(rows = vars(`Kraken2 Database Comparison`), cols = vars(Reads.Type), switch = "y")+
+  scale_y_continuous(labels = comma)+
+  theme_classic()+
+  scale_fill_manual(values = manual_color)+
+  theme(axis.text.x = element_text(angle=90,size=12), axis.text = element_text(size=12), axis.title  = element_text(size=12),strip.placement = "outer", axis.title.y = element_blank(), strip.text = element_text(size=12), axis.title.x = element_blank(), panel.spacing = unit(1,"lines"),legend.position="none")#+
+  scale_fill_grey(start = 0, end=0.9)
+combined_db_p
+combined_db_c <- ggplot(combined_kraken2_db_longer_1%>% subset(Reads.Type == "Percentage of Reads") , aes(x= samples, y=values), ncol=2)+
+  geom_bar(stat="identity", aes(fill=Domain))+
+  facet_grid(rows = vars(`Kraken2 Database Comparison`), cols = vars(Reads.Type))+
+  scale_y_continuous(labels = comma)+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle=90,size=12), axis.text = element_text(size=12) ,axis.title  = element_text(size=12),strip.placement = "outer", axis.title.y = element_blank(), strip.text = element_text(size=12), axis.title.x = element_blank(), panel.spacing = unit(1,"lines"), legend.text = element_text(size=12), legend.title = element_text(size=12))+
+  scale_fill_manual(values = manual_color)+
+  scale_y_continuous(labels= scales::percent,position="right")#+
+  scale_fill_grey(start = 0, end=0.9)
+combined_db_c
+combined_phylum_software <- grid.arrange(combined_db_p, combined_db_c, ncol = 2)
+
+combined_phylum_software 
+ggsave(plot = combined_phylum_software,  dpi = 600, ,width=8,filename = "/Users/rx32940/Desktop/kraken2_db_barplot.pdf")
 ```
 
 ```{r}
