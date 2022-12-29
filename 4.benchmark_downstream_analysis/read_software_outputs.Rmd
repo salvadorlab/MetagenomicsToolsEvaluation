@@ -1,0 +1,311 @@
+---
+title: "read_output"
+author: "Rachel Xu"
+date: "12/28/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/revision/Metagenomics_tools")
+```
+
+# library
+
+```{r}
+library(phyloseq)
+library(dplyr)
+library(ape)
+library(tibble)
+library(tidyr)
+library(ggplot2)
+library(ggsignif)
+library(scales)
+library(rstatix)
+library(ggpubr)
+library(vegan)
+library(pheatmap)
+library(reshape2)
+library(grid)
+library(gridExtra)
+library(xlsx)
+library(tagger)
+# library(matR)
+# library(phangorn)
+# library(seqinr)
+# library(biomaRt)
+# library(DESeq2)
+```
+
+# samples
+
+```{r}
+samples <- c("R22.K", "R22.L", "R22.S", "R26.K", "R26.L", "R26.S", "R27.K", "R27.L", "R27.S", "R28.K", "R28.L", "R28.S")
+
+metadata <- read.csv("4.tables/samples_metadata.csv", fileEncoding="UTF-8-BOM") %>% mutate(samples = sapply(samples, function(x){sub("_", ".", x, fixed=TRUE)})) %>% column_to_rownames(var="samples")
+```
+
+# Functions to read classification outputs
+
+## kraken2 output (or biom format output)
+
+-   **input:** biom format converted using [kraken-biom](https://github.com/smdabdoub/kraken-biom)
+-   **output:** phyloseq obj, whith otu table, taxa table and sample table
+
+```{r}
+
+read_biom <- function(biom_file){
+  biom_phylo <- import_biom(biom_file, parseFunction=parse_taxonomy_default)
+  sample_data <- sample_data(metadata)
+  phylo_obj <- merge_phyloseq(biom_phylo, sample_data)
+  colnames(tax_table(phylo_obj)) <- c("Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species")
+  return(phylo_obj)
+}
+
+biom_file <- "1.output/kraken2.std.biom"
+read_kraken2 <- function(biom_file){
+  biom_phylo <- import_biom(biom_file, parseFunction=parse_taxonomy_default)
+  sample_data <- sample_data(metadata)
+  
+  phylo_obj <- merge_phyloseq(biom_phylo, sample_data)
+  colnames(tax_table(phylo_obj)) <- c("Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species")
+  tax_table(phylo_obj) <- as.matrix(as.data.frame(tax_table(phylo_obj)) %>% mutate(Domain= sapply(Domain, function(s){
+    gsub("k__","d__", s,fixed = TRUE)
+  })))
+  tax_table(phylo_obj) <- apply(tax_table(phylo_obj),c(1,2),function(x){
+    ifelse(nchar(x) < 4, "", x)
+  })
+  return(phylo_obj)
+}
+```
+
+## blastn output
+
+```{r}
+taxa_levels <- c("Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species")
+
+file <- "2.report/blastn/R26.L.summary.txt"
+
+read_blastn_file <- function(file){
+  sample <- paste(unlist(strsplit(basename(file),split= ".", fixed = TRUE))[1:2], collapse =".")
+  df <- read.csv(file, sep=";") %>% dplyr::select(!Kingdom) %>% subset(TaxID != "unknown")
+  colnames(df) <- c("TaxID",eval(sample),"Domain","Phylum","Class", "Order","Family","Genus","Species")
+  df <- df %>% mutate(Domain = mapply(function(x,y){
+    ifelse(grepl("viricota", y), "d__Viruses",x )
+  }, df$Domain, df$Phylum))
+  return(df)
+}
+# df2 %>% subset(Domain =="d__Virus")
+dir <- "2.report/blastn"
+read_blastn <- function(dir){
+ files <- list.files(dir, full.names = TRUE)
+   samples_list <- lapply(files, read_blastn_file)
+   merged_samples <- Reduce(function(...) merge(..., by=c("TaxID", "Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species"), all.x=TRUE, all.y=TRUE),samples_list) %>% column_to_rownames(var="TaxID")
+   merged_samples[is.na(merged_samples)] <-0
+  tax_df <- merged_samples %>% dplyr::select(taxa_levels)
+   taxa <- tax_table(as.matrix(tax_df))
+  otu <- otu_table(as.matrix(merged_samples %>% dplyr::select(samples)), taxa_are_rows = TRUE)
+  sample_obj <- sample_data(metadata)
+  blastn_phylo <- merge_phyloseq(taxa,otu,sample_obj)
+  tax_table(blastn_phylo) <- apply(tax_table(blastn_phylo),c(1,2),function(x){
+    ifelse(unlist(strsplit(x, "__", fixed = TRUE))[2] == "unknown", "", x)
+  })
+  blastn_phylo
+}
+read_blastn(dir)
+```
+
+## Diamond output
+
+-   **input:** biom file exported from **MEGAN**, combine all biom files into one, and read with ```read_biom()``` function
+-   **output:** phyloseq obj, whith otu table, taxa table and sample table
+
+```{r}
+
+diamond_dir <- "2.report/diamond"
+
+# import single biom file as phyloseq object, and rename the sample name
+file <- "2.report/diamond/R22.K.spf"
+read_single_spf<- function(file){
+  df <- read.csv(file,sep = "\t") %>% mutate(TaxID = sapply(Observation.Ids, function(x){
+    unlist(strsplit(x, split="D",fixed = TRUE))[2]
+  })) %>% mutate_at(vars(starts_with("Level")), function(x){
+    ifelse(grepl("(", x,fixed = TRUE), 
+           "",x)
+  }) %>% dplyr::select(!Observation.Ids)
+  sample <- paste(unlist(strsplit(basename(file),split= ".", fixed = TRUE))[1:2], collapse =".")
+  colnames(df) <- c("Domain","Phylum","Class", "Order","Family","Genus","Species",eval(sample),"TaxID")
+  df
+}
+
+read_diamond<- function(diamond_dir){
+  files <- list.files(diamond_dir, pattern = ".spf", full.names = TRUE)
+  samples_list <- lapply(files, read_single_spf)
+  merged_samples <- Reduce(function(...) merge(..., by=c("TaxID", "Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species"), all.x=TRUE, all.y=TRUE),samples_list) %>% column_to_rownames(var="TaxID")
+  merged_samples[is.na(merged_samples)] <-0
+  merged_samples <- merged_samples %>% mutate(Domain = sapply(Domain, function(x){
+    gsub("k__", "d__",x)
+  })) %>% subset(Domain != "") %>% mutate(Phylum = sapply(Phylum, function(s){
+    ifelse(grepl("<", s), unlist(strsplit(s, " <", fixed = TRUE))[1], s)
+  }))
+  tax <- tax_table(as.matrix(merged_samples %>% dplyr::select(!starts_with("R"))))
+  otu <- otu_table(as.matrix(merged_samples %>% dplyr::select(starts_with("R"))),taxa_are_rows = TRUE)
+  sample <- sample_data(metadata)
+  diamond_phylo <- merge_phyloseq(tax,otu,sample)
+  # unique(tax_table(diamond_phylo)[,"Phylum"])
+  diamond_phylo
+}
+
+
+
+ # unique(merged_samples$Domain)
+
+
+```
+
+
+
+## metaphlan output
+
+-   **input:** combined metaphlan3 file generate by util script `merge_metaphlan_tables_absolute.py`
+
+    -   script derived from the `merge_metaphlan_tables.py` script provided by metaphlan3, but instead of merging relative count, estimated absolute read count was merged
+
+-   **output:** phyloseq obj, whith otu table, taxa table and sample table
+
+```{r}
+taxa_levels <- c("Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species")
+# file <- file.path(input, "metaphlan3_all_samples.txt")
+read_metaphlan3 <- function(file){
+  metaphlan <- read.csv(file, sep="\t", skip = 1) %>% separate(clade_name, taxa_levels,sep = "[|]+") %>% subset(!is.na(Species))%>% mutate(assigned_taxa = sapply(clade_taxid,function(x){
+    s <- unlist(strsplit(trimws(x, whitespace = "[|\t\r\n]+"), "|", fixed = TRUE))
+    s[length(s)]
+  }))
+  rownames(metaphlan) <- unlist(metaphlan   %>% dplyr::select(assigned_taxa))
+  taxa_obj <- tax_table(as.matrix(metaphlan %>% dplyr::select(taxa_levels)))
+  count_obj <- otu_table(as.matrix(metaphlan %>% dplyr::select(where(is.numeric))), taxa_are_rows=TRUE)
+  sample_obj <- sample_data(metadata)
+  metaphlan_phylo <- merge_phyloseq(taxa_obj, count_obj,sample_obj)
+  return(metaphlan_phylo)
+}
+
+```
+
+## clark output
+
+-   **input:** path to dir with clark output
+-   **output:** phyloseq obj, whith otu table, taxa table and sample table
+
+```{r}
+taxa_levels <- c("Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species")
+
+read_clark_file <- function(file){
+    csv <- read.csv(file)
+    sample <- paste(unlist(strsplit(basename(file), split = ".", fixed = TRUE))[c(1,2)], collapse = ".")
+    df <- csv %>% separate(Lineage,sep=";", into =c("Domain", "Phylum", "Class", "Order", "Family", "Genus")) %>% subset(Name != "UNKNOWN") %>% dplyr::rename(Species = Name)  %>% dplyr::select(-c("Proportion_All...", "Proportion_Classified...")) 
+    colnames(df) <- c("Species","TaxID","Domain","Phylum","Class","Order","Family","Genus", eval(sample)) 
+    df
+}
+dir_path <- "2.report/clark/"
+read_clark <- function(dir_path){
+  files <- list.files(dir_path, full.names = TRUE, pattern = "*.summary.csv")
+  samples_list <- lapply(files, read_clark_file)
+  merged_samples <- Reduce(function(...) merge(..., by=c("TaxID", "Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species"), all.x=TRUE, all.y=TRUE),samples_list) %>% column_to_rownames(var="TaxID")
+  merged_samples[is.na(merged_samples)]<-0
+  lineage_taxa_df <- merged_samples %>% dplyr::select(taxa_levels) %>% mutate(Domain = paste0("d__", Domain))  %>% mutate(Phylum = paste0("p__", Phylum)) %>% mutate(Class = paste0("c__", Class)) %>% mutate(Order = paste0("o__", Order)) %>% mutate(Family = paste0("f__", Family)) %>% mutate(Genus = paste0("g__", Genus)) %>% mutate(Species = paste0("s__", Species)) 
+  taxa <- tax_table(as.matrix(lineage_taxa_df))
+  otu <- otu_table(as.matrix(merged_samples %>% dplyr::select(samples)), taxa_are_rows = TRUE)
+  sample_obj <- sample_data(metadata)
+  clark_phylo <- merge_phyloseq(taxa,otu,sample_obj)
+  tax_table(clark_phylo) <- apply(tax_table(clark_phylo),c(1,2),function(x){
+    ifelse(nchar(x) < 4, "", x)
+  })
+  return(clark_phylo)
+
+}
+
+```
+
+## clark-s output
+
+-   this function requires the function *read_clark_file*
+-   **input:** path to dir with clark-s output
+-   **output:** phyloseq obj, whith otu table, taxa table and sample table
+
+```{r}
+# clarks_file <- "2.report/clark-s/bacteria/R22.K.summary.csv"
+# 
+clarks_dir <- "2.report/clark-s/"
+read_clark_s <- function(clarks_dir){
+  bacteria_files <- list.files(file.path(clarks_dir, "bacteria"), full.names = TRUE, pattern = "*.summary.csv")
+  virus_files <- list.files(file.path(clarks_dir, "virus"), full.names = TRUE, pattern = "*.summary.csv")
+  
+ bacteria_list <- lapply(bacteria_files, read_clark_file)
+merged_bacteria <- Reduce(function(...) merge(..., by=c("TaxID", "Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species"), all.x=TRUE, all.y=TRUE),bacteria_list) %>% column_to_rownames(var="TaxID")
+
+ virus_list <- lapply( virus_files, read_clark_file)
+merged_virus <- Reduce(function(...) merge(..., by=c("TaxID", "Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species"), all.x=TRUE, all.y=TRUE),virus_list) %>% column_to_rownames(var="TaxID")
+
+  clarks_df <- rbind(merged_bacteria, merged_virus)
+  clarks_df[is.na(clarks_df)]<-0
+  
+    lineage_taxa_df <- clarks_df %>% dplyr::select(taxa_levels) %>% mutate(Domain = paste0("d__", Domain))  %>% mutate(Phylum = paste0("p__", Phylum)) %>% mutate(Class = paste0("c__", Class)) %>% mutate(Order = paste0("o__", Order)) %>% mutate(Family = paste0("f__", Family)) %>% mutate(Genus = paste0("g__", Genus)) %>% mutate(Species = paste0("s__", Species)) 
+  taxa <- tax_table(as.matrix(lineage_taxa_df))
+  otu <- otu_table(as.matrix(clarks_df %>% dplyr::select(samples)), taxa_are_rows = TRUE)
+  sample_obj <- sample_data(metadata)
+  clarks_phylo <- merge_phyloseq(taxa,otu,sample_obj)
+  tax_table(clarks_phylo) <- apply(tax_table(clarks_phylo),c(1,2),function(x){
+    ifelse(nchar(x) < 4, "", x)
+  })
+  return(clarks_phylo)
+  
+}
+
+
+
+```
+
+## kaiju output
+
+-   **input:** summarised kaiju file generate by util script `kaiju2table`
+-   **output:** phyloseq obj, whith otu table, taxa table and sample table
+
+```{r}
+taxa_levels <- c("Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species")
+
+read_kaiju <- function(file){
+  
+  kaiju.file <- read.csv(file,sep="\t") %>% dplyr::select(-c(percent)) %>% pivot_wider(names_from = "file", values_from = "reads")
+  kaiju.file[is.na(kaiju.file)] <- 0
+  kaiju.file.filter <- kaiju.file %>% separate(taxon_name, into = taxa_levels,sep=";") %>% subset(taxon_id != 0)%>% column_to_rownames(var="taxon_id")
+  taxa_kaiju <- tax_table(as.matrix(kaiju.file.filter %>% dplyr::select(taxa_levels)))
+  count_kaiju <- otu_table(as.matrix(kaiju.file.filter %>% dplyr::select(where(is.numeric))), taxa_are_rows=TRUE)
+  sample_kaiju <- sample_data(metadata)
+  kaiju_phylo <- merge_phyloseq(taxa_kaiju, count_kaiju,sample_kaiju)
+  return(kaiju_phylo)
+   
+}
+
+```
+
+## Remove taxa
+
+```{r}
+pop_taxa = function(physeq, badTaxa){
+  allTaxa = taxa_names(physeq)
+  allTaxa <- allTaxa[!(allTaxa %in% badTaxa)]
+  return(prune_taxa(allTaxa, physeq))
+}
+
+```
+
+## write to excel
+```{r}
+
+add_sheet <- function(wb, sheetname, dataframe){
+  openxlsx::addWorksheet(wb,sheetName = sheetname)
+  openxlsx::writeData(wb, sheetname, dataframe)
+}
+
+```
+

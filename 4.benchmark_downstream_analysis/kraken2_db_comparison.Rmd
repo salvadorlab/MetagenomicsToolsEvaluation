@@ -1,0 +1,455 @@
+---
+title: "database_comparison"
+author: "Rachel Xu"
+date: "12/29/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/revision/Metagenomics_tools")
+```
+
+```{r}
+databases <- factor(c("minikraken", "standard", "customized", "maxikraken"), levels = c("minikraken", "standard", "customized", "maxikraken"))
+
+samples <- factor(c("R22.K","R26.K","R27.K","R28.K","R22.L","R26.L","R27.L","R28.L","R22.S","R26.S","R27.S","R28.S" ), levels = c("R22.K","R26.K","R27.K", "R28.K","R22.L","R26.L","R27.L","R28.L","R22.S","R26.S","R27.S","R28.S" ))
+
+# metatdata for samples
+samples_df <- metadata %>% rownames_to_column(var="samples")
+
+
+kraken.db.xlsx <- openxlsx::createWorkbook()
+```
+
+# read in kraken2 results
+
+```{r}
+
+kraken2_bioms <- list.files("1.output", pattern = "kraken2.*biom", full.names = TRUE)
+
+for(file in kraken2_bioms){
+  db_used <- unlist(strsplit(basename(file), split=".", fixed = TRUE))[2]
+  database <- switch(
+    db_used,
+    cus = "customized",
+    max = "maxikraken",
+    mini = "minikraken",
+    std = "standard"
+  )
+  assign(eval(database), read_kraken2(file)) # assign variable name based on database
+
+}
+
+
+```
+
+# combine classification of kraken2 DBs
+- combine number of reads classified by each DB in to the same data frame 
+- add taxonomy ranks to each taxID
+- write to file
+```{r}
+
+# combine otu tables of all databases
+#### need to first run lines in the loop before decale combined db
+all_db_df_count <- data.frame(rowname =otu_db_df$rowname)
+for (db in databases){
+  otu_db_df <- as.data.frame(otu_table(get(db))) %>% dplyr::rename_with(~paste(.x, eval(db), sep = ".")) %>% rownames_to_column()
+  all_db_df_count <-full_join(otu_db_df,all_db_df_count, by = "rowname")
+}
+
+all_db_df_count[is.na(all_db_df_count)] <- 0
+
+# combine taxonomy ranks tables of all databases
+all_db_df_taxa <- data.frame(rowname=as.character(),Domain=as.character(), Phylum=as.character(), Class=as.character(), Order=as.character(), Family=as.character(), Genus=as.character(),Species=as.character())
+for (db in databases){
+  tax_db_df <- as.data.frame(tax_table(get(db))) %>% rownames_to_column()
+  all_db_df_taxa <- full_join(all_db_df_taxa, tax_db_df, by = c("rowname","Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species"))
+}
+
+# combine taxonomy ranks with count of the ranks
+full_kraken2_db_df <- left_join(all_db_df_count, all_db_df_taxa, by = "rowname") %>% dplyr::rename(TaxID = rowname)
+# colnames(full_kraken2_db_df) 
+full_kraken2_db_df <- full_kraken2_db_df[c("Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species","TaxID",paste0(samples, ".minikraken"),paste0(samples, ".standard"), paste0(samples, ".customized"), paste0(samples, ".maxikraken"))]
+
+m <- full_kraken2_db_df%>% subset(Domain == "d__Bacteria") %>% select(c(Genus,Species,TaxID,ends_with("minikraken"))) %>% subset(Species != "") %>% pivot_longer(ends_with("minikraken")) %>% group_by(Species) %>% summarise(sum = sum(value)) %>% subset(sum != 0) %>% mutate(total=sum(sum)) %>% mutate(prop=(sum/total)*100) %>% arrange(desc(prop))
+s <- full_kraken2_db_df%>% subset(Domain == "d__Bacteria") %>% select(c(Genus,Species,TaxID,ends_with("standard"))) %>% subset(Species != "")%>% pivot_longer(ends_with("standard")) %>% group_by(Species) %>% summarise(sum = sum(value)) %>% subset(sum != 0)%>% mutate(total=sum(sum)) %>% mutate(prop=(sum/total)*100)%>% arrange(desc(prop))
+c <- full_kraken2_db_df%>% subset(Domain == "d__Bacteria") %>% select(c(Genus,Species,TaxID,ends_with("customized"))) %>% subset(Species != "")%>% pivot_longer(ends_with("customized")) %>% group_by(Species) %>% summarise(sum = sum(value)) %>% subset(sum != 0) %>% mutate(total=sum(sum))%>% mutate(prop=(sum/total)*100)%>% arrange(desc(prop))
+mx <- full_kraken2_db_df%>% subset(Domain == "d__Bacteria") %>% select(c(Genus,Species,TaxID,ends_with("maxikraken"))) %>% subset(Species != "")%>% pivot_longer(ends_with("maxikraken")) %>% group_by(Species) %>% summarise(sum = sum(value)) %>% subset(sum != 0)%>% mutate(total=sum(sum)) %>% mutate(prop=(sum/total)*100)%>% arrange(desc(prop))
+
+m
+s
+c
+mx
+# c %>% subset(!TaxID %in% intersect(s$TaxID,c$TaxID))
+
+intersect(s$TaxID,c$TaxID)
+
+# add_sheet(kraken.db.xlsx,"1.kraken.db.full", full_kraken2_db_df)
+
+
+ full_kraken2_db_df %>% subset(Genus == "g__Homo") %>% pivot_longer(starts_with("R")) %>% tidyr::separate(name, c("samples", "Tissue","software"), sep="[.]+") %>% unite("sample",c("samples", "Tissue"), sep=".") %>% group_by(software) %>% summarise(sum(value))
+
+
+```
+
+# identify Leptospira
+```{r}
+
+
+# lepto.kraken2.db.xlsx <- openxlsx::createWorkbook()
+lepto_full.db <- full_kraken2_db_df  %>% subset(Genus == "g__Leptospira") %>% pivot_longer(cols = colnames(full_kraken2_db_df)[!colnames(full_kraken2_db_df) %in%c("Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species","TaxID")], names_to = "samplesdatabase", values_to = "count") %>% tidyr::separate(samplesdatabase,c("samples", "Tissue","database"), sep="[.]+") %>% unite("sample",c("samples", "Tissue"), sep=".")
+
+lepto_full.db %>% subset(database == "customized") #%>% subset(count != 0) %>% distinct(Species)
+
+unique_sp_count_db <- lepto_full.db %>% group_by(sample, database) %>% subset(count !=0) %>% summarise(n_species = n_distinct(TaxID))
+unique_sp_db <- lepto_full.db %>% group_by(sample, database) %>% subset(count !=0) %>% distinct(TaxID, .keep_all = TRUE)
+lepto_count_summary_db <- lepto_full.db %>% group_by(sample, database) %>% subset(count !=0) %>% summarise(total=sum(count)) 
+
+lepto_present_matrix_db <- unique_sp_count_db %>% dplyr::select(-n_species)%>%  mutate(present = "x")%>%pivot_wider(names_from = sample, values_from = present)
+lepto_present_matrix_db[is.na(lepto_present_matrix_db)] <- ""
+
+# add_sheet(lepto.kraken2.db.xlsx,"1.DB.identified.lepto", lepto_full.db)
+# add_sheet(lepto.kraken2.db.xlsx,"2.unique.Species.count.DB", unique_sp_count_db)
+# add_sheet(lepto.kraken2.db.xlsx,"present_absent.DB", lepto_present_matrix_db)
+# add_sheet(lepto.kraken2.db.xlsx,"3.count.summary.DB", lepto_count_summary_db)
+
+# openxlsx::saveWorkbook(lepto.kraken2.db.xlsx, file = "4.tables/III.lepto.kraken2.db.diagnostic.xlsx", overwrite = TRUE)
+
+```
+
+# Reads classified under each domain
+```{r}
+domain_count_kraken2 <- data.frame(taxa = character(), Domain = character(), samples = character(), count=numeric(), Tissue=character(), Subject=character(), database=character())
+for (db in databases){
+  
+  db_domain_counts <- data.frame(otu_table(tax_glom(get(db), "Domain"))) %>% rownames_to_column(var="taxa")
+  
+  domain_anot <- data.frame(tax_table(get(db))) %>% dplyr::select(Domain) %>% rownames_to_column(var="taxa")
+  
+  domain_count_db <- left_join(db_domain_counts, domain_anot, by="taxa") %>% pivot_longer(cols =samples, names_to = "samples", values_to = "count")
+  
+  domain_count_db_anot <- left_join(domain_count_db,samples_df, by="samples" ) %>% mutate(Domain = sapply(Domain, function(x){
+    unlist(strsplit(x, "__"))[2]
+  })) %>% mutate(database=db)
+  
+  domain_count_kraken2 <- rbind(domain_count_kraken2,domain_count_db_anot)
+}
+
+
+domain_db_summary <- domain_count_kraken2 %>% group_by(database, samples) %>% summarise(total=sum(count))%>% group_by(database)  %>% summarise(average=mean(total), std=sd(total))
+
+domain_db_summary.domain <- domain_count_kraken2 %>%group_by(database,Domain) %>% summarise(total=sum(count))  %>% group_by(database) %>% mutate(total.db=sum(total)) %>% mutate(percentage = total/total.db)
+
+# add_sheet(kraken.db.xlsx,"2.DBs.summary.stats", domain_db_summary)
+```
+
+### plot number of reads classified under each domain
+```{r}
+domain_count_kraken2$samples <- factor(domain_count_kraken2$samples, levels=samples)
+domain_count_kraken2$database <- factor(domain_count_kraken2$database, levels = databases)
+# shapes <- c(16:18, 6:14)
+
+domain.count.stat.db <- domain_count_kraken2 %>%
+  group_by(Domain) %>%
+  wilcox_test(count~database,p.adjust.method ="holm", paired = TRUE) %>%
+  add_significance()%>%
+  add_xy_position(x = "database", dodge = 0.01) %>%
+  add_y_position(fun="max", step.increase = 0.08, scales = "free_y")
+domain.count.stat.db[domain.count.stat.db["Domain"] == "Bacteria", "y.position"] <- seq(60000, 80000, 4000)
+domain_count_kraken2$Domain <- factor(domain_count_kraken2$Domain, levels=c("Eukaryota", "Bacteria", "Viruses", "Archaea"))
+p <- ggplot(domain_count_kraken2, aes(x=database, y=count))+
+  geom_boxplot(outlier.shape = NA, color = "gray")+
+  geom_point(aes(color=samples),size=2, position = position_jitter(0.1))+
+  scale_color_manual(values=RColorBrewer::brewer.pal(12, "Paired"))+
+  stat_pvalue_manual(domain.count.stat.db, label = "p.adj.signif", hide.ns = TRUE,size =5,bracket.shorten = 0, tip.length = 0.01)+
+  facet_wrap(~Domain, scales = "free_y", ncol = 4)+
+  theme_classic2()+
+  theme(text=element_text(size=18), title=element_text(size=17),axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.2),tagger.panel.tag.background = element_rect(linetype = 0))+
+  scale_y_continuous(label=comma)+
+  labs(x="kraken2 databases", y="Domain Level Read Count")
+
+p
+
+
+domain.count.stat.db
+
+# add_sheet(kraken.db.xlsx,"3.DBs.domain.stats", domain.count.stat.db %>% dplyr::select(Domain, group1, group2, p, p.adj, p.adj.signif))
+# ggsave("5.figures/kraken2.db.comparison.domain.counts.tiff", p, width = 12,height = 6)
+
+```
+# higher level analyese
+
+### aggregate reads at genus level
+```{r}
+# databases
+# for(db in databases){
+#   print(eval(db))
+#   software_obj <- db
+#   genus_obj <- tax_glom(get(db), "Genus")
+#   assign(paste(db,"genus", sep = "_"), genus_obj)
+# }
+# 
+# genus_list <- list(minikraken=minikraken_genus, standard=standard_genus, customized=customized_genus,maxikraken=maxikraken_genus) 
+# phylum taxa count: 23, 40, 44, 45
+# genus taxa count: 467, 1084, 1141, 1329
+```
+
+
+### combine each software's phylum count into one dataframe
+```{r}
+# db<- names(genus_list)[1]
+# read_genus_to_df <- function(db){
+#   db_obj <- paste(db, sep = "")
+#   otu_df <- as.data.frame(otu_table(get(db_obj))) %>% rownames_to_column()
+#   # otu_df_anot <- left_join(otu_df, data.frame(tax_table(get(db))) %>% rownames_to_column(), by="rowname")
+#   otu_df_longer <- pivot_longer(otu_df, names_to = "samples", values_to = "count", cols = starts_with("R2"))
+#   tax_df <-as.data.frame(tax_table(get(db_obj)))%>% rownames_to_column() %>% dplyr::select(c(rowname, Domain,Genus,Species))
+#   df_combined <- left_join(otu_df_longer, tax_df, by="rowname")%>% dplyr::select(!rowname)
+#   # df_combined <- df_combined %>% group_by(samples) %>% mutate(Total = sum(count)) %>% mutate(percent = (count/Total)*100) %>% pivot_longer(names_to = "stat", values_to = "value", cols = c(count, percent)) %>% dplyr::select(!Total)
+#   colnames(df_combined) <- c( "samples",  eval(db), "domain","genus","species")
+#  # sum(df_combined[df_combined["samples"] == "R26.S"  & df_combined["stat"] == "percent","value"])
+#   df_combined
+# }
+# 
+# # read_genus_to_df("kraken2")
+# databases[1]
+# unique(genus_df[[1]] %>% subset(domain=="d__Archaea"))
+# genus_df <- lapply(names(genus_list), read_genus_to_df)
+# genus_df[[1]] %>% group_by(genus,species) %>% arrange(desc(minikraken))%>% subset(domain=="d__Viruses") %>% summarise(sum=sum(minikraken))%>% arrange(desc(sum))
+# genus_df[[1]]%>% subset(domain=="d__Eukaryota") %>% subset(minikraken !=0) %>%group_by(genus) %>% summarise(sum(minikraken))
+# genus_df[[2]] %>% group_by(genus,species) %>% arrange(desc(standard))  %>% subset(domain=="d__Viruses")%>% summarise(sum=sum(standard))%>% arrange(desc(sum))
+# # genus_df[[2]]%>% subset(domain=="d__Viruses") %>% subset(standard !=0)%>% summarise(unique(species))
+# genus_df[[2]]%>% subset(domain=="d__Eukaryota") %>% subset(standard !=0)%>%group_by(genus)%>% summarise(sum(standard))
+# genus_df[[3]] %>% group_by(genus,species) %>% arrange(desc(customized))  %>% subset(domain=="d__Viruses")%>% summarise(sum=sum(customized))%>% arrange(desc(sum))
+# # genus_df[[3]]%>% subset(domain=="d__Viruses") %>% summarise(unique(species))
+# genus_df[[3]]%>% subset(domain=="d__Eukaryota") %>% subset(customized !=0)%>%group_by(genus)%>% summarise(sum(customized))
+# genus_df[[4]] %>% group_by(genus,species) %>% arrange(desc(maxikraken))  %>% subset(domain=="d__Viruses")%>% summarise(sum=sum(maxikraken))%>% arrange(desc(sum))
+# # genus_df[[4]]%>% subset(domain=="d__Viruses") %>% summarise(unique(species))
+# genus_df[[4]]%>% subset(domain=="d__Eukaryota") %>% subset(maxikraken !=0)%>%group_by(genus, species)%>% summarise(sum=sum(maxikraken)) %>% arrange(desc(sum))
+# genus_df_combined <- Reduce(function(...) merge(..., by=c("samples","species"),all=TRUE), genus_df)
+# 
+# # any_dup<- genus_df_combined %>% subset(stat =="count") %>% dplyr::select(c(samples,genus,stat))
+# # any_dup[duplicated(any_dup),]
+# # test <- data.frame(otu_table(metaphlan3_genus))
+# 
+# genus_df_combined[is.na(genus_df_combined)] <- 0
+# 
+# genus_df_combined_longer <- genus_df_combined %>% pivot_longer(names_to = "databases", values_to = "values", cols = databases)
+# 
+# 
+# # some tax with same genus, but different families or order (higher ranks) cause duplication in rows, we will take the average of these genus for uniqueness
+# genus_df_combined_longer <- genus_df_combined_longer %>% group_by(samples,genus,databases) %>% summarise(values=mean(values))
+```
+### keep top 10 genus for each software, combine rest phylum into one category
+```{r}
+# top_5_genus_df <- genus_df_combined_longer %>% ungroup()%>% group_by(databases,samples) %>%slice_max(order_by = values, n=5, with_ties = FALSE)
+# 
+# 
+# top_5_genus<- unique(top_5_genus_df$genus)
+# 
+# rest_genus_df <- genus_df_combined_longer %>% subset(!genus %in% top_5_genus) %>% group_by(samples, databases) %>% summarise(values =sum(values)) %>% mutate(genus = "g__Other.Genus")
+# 
+# genus_df_simplified <- rbind(top_5_genus_df, rest_genus_df)
+# unique(genus_df_simplified$genus)
+# genus_df_simplified$genus <- factor(genus_df_simplified$genus, levels= c("g__Other.Genus", "g__Rattus","g__Homo",unique(genus_df_simplified$genus)[-c(1,4,48)]))
+# 
+# genus_df_simplified %>% group_by(databases, genus) %>% subset(genus %in% c("g__Rattus", "g__Homo")) %>% summarise(sum=sum(values))
+# genus_df_simplified %>% group_by(databases, genus, samples)  %>% summarise(sum=values)%>%dplyr::arrange(sum, descending =TRUE) %>% subset(samples=="R22.S")
+```
+### plot genus level abundance
+```{r}
+
+# manual_color <-c("#A0C4FF","#708841","#50514F","#FEE440","#4361EE","#FFADAD","#FFD6A5","#FDFFB6","#CAFFBF","#9BF6FF","#BDB2FF","#FFC6FF","#233D4D","#FE7F2D","#FCCA46","#A1C181",
+#                  "#619B8A","#EE6352","#59CD90","#3FA7D6","#FAC05E","#F79D84","#F25F5C","#FFE066","#247BA0","#70C1B3",
+#                  "#FFD1E8","#C8A439","#465D6F","#A94303","#540D6E","#EE4266","#FFD23F","#3BCEAC","#0EAD69","#E3AB00ff","#D1DED3ff",
+#                  "#AD8EB0ff","#58BADCff","#A71D2Eff","#86D8BBff","#0050ADff","#97CBF0ff","#67A280ff","#F20089","#41EAD4","#FBFF12","#54478C")
+# 
+# genus_df_simplified$databases <- factor(genus_df_simplified$databases, levels = databases)
+# # genus_df_simplified$stat <- factor(genus_df_simplified$stat , levels =c("count", "percent"))
+# p1 <- ggplot(genus_df_simplified , aes(x= samples, y= values,fill=genus))+
+#   geom_bar(stat = "identity")+
+#   facet_wrap(~databases, scale="free_y", ncol = 1, strip.position = "left")+
+#     theme_classic()+
+#   theme(text=element_text(size=20), title=element_text(size=17),axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.2),tagger.panel.tag.background = element_rect(linetype = 0,fill = alpha("white", 0)),legend.position = "none",panel.spacing  = unit(0.08, "cm"), axis.title.x = element_blank())+
+#   tag_facets()+
+# guides(fill=guide_legend(ncol=2, bycol=TRUE))+
+#   scale_y_continuous(label=comma)+
+#   labs(y="genus abudance count")+
+#   scale_fill_manual(values = manual_color)
+# p1
+# p2 <- ggplot(genus_df_simplified , aes(x= samples, y= values,fill=genus))+
+#   geom_bar(stat = "identity", position = "fill")+
+#   facet_wrap(~databases, scale="free_y", ncol = 1)+
+#     theme_classic()+
+#   theme(text=element_text(size=20), title=element_text(size=17),axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.2),tagger.panel.tag.background = element_rect(linetype = 0,fill = alpha("white", 0)),strip.background = element_blank(), strip.text = element_blank(), axis.title.y.right  = element_text(margin = margin(l = 10)), panel.spacing = unit(0.08, "cm"), axis.title.x = element_blank())+
+#   # tag_facets()+
+# guides(fill=guide_legend(ncol=1, bycol=TRUE))+
+#   scale_y_continuous(label=comma,position = "right")+
+#   labs(y="genus abudance count")+
+#   scale_fill_manual(values = manual_color)
+# p2
+# pc <- grid.arrange(p1,p2,ncol=2)
+# ggsave("5.figures/I.database_genus_bar.pdf",pc,width =15, height=15)
+# 
+# unique(genus_df_simplified$Genus)
+# l <- ggplot(genus_df_simplified , aes(x= samples, y= values,fill=Genus))+
+#   geom_bar(stat = "identity")+
+#   facet_wrap(~software, scale="free_y", ncol = 1)+
+#     theme_classic()+
+#   theme(text=element_text(size=20), title=element_text(size=17),axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.2),tagger.panel.tag.background = element_rect(linetype = 0,fill = alpha("white", 0)),strip.background = element_blank(), strip.text = element_blank(), axis.title.y.right  = element_text(margin = margin(l = 10)), panel.spacing = unit(0.08, "cm"), axis.title.x = element_blank())+
+#   # tag_facets()+
+# guides(fill=guide_legend(ncol=1, bycol=TRUE))+
+#   scale_y_continuous(label=comma,position = "right")+
+#   labs(y="genus abudance count")+
+#   scale_fill_manual(values = manual_color)
+# # ggsave("5.figures/II.software_genus_bar.legend.pdf",l,width =15, height=15)
+
+```
+
+
+
+# microbiom analysis
+- host taxa (Eukaryota) were **removed** from the downstream analysis
+- also, taxa for all databases are aggregating at Species level to 
+```{r}
+databases <- c("minikraken", "standard", "customized", "maxikraken")
+db <- databases[1]
+for(db in databases){
+  print(eval(db))
+  eukary_taxa <- rownames(tax_table(get(db))[tax_table(get(db))[,"Domain"] == "d__Eukaryota",])
+  eurkary_phylo <- pop_taxa(get(db), eukary_taxa)
+  print(paste(eval(db)))
+
+  eukary_sp <- tax_glom(eurkary_phylo, "Species")
+  assign(paste(db,"sp", sep = "_"), eukary_sp)
+}
+db_species <- list(minikraken_sp=minikraken_sp, standard_sp = standard_sp,customized_sp=customized_sp,maxikraken_sp=maxikraken_sp)
+
+# lapply(db_species, ntaxa)
+
+```
+
+# alpha diversity
+
+```{r}
+alpha.diversity <- data.frame(samples = character(), Observed=numeric(), Shannon = numeric(), Simpson = numeric(), database=character())
+for (db in names(db_species)){
+  
+ alpha.diversity <- rbind(alpha.diversity, estimate_richness(get(db), measures = c("Observed","shannon", "Simpson")) %>% rownames_to_column(var="samples") %>% mutate(database = db))
+}
+
+
+alpha.diversity.longer <- alpha.diversity %>% pivot_longer(c("Observed","Shannon", "Simpson"), names_to = "alpha_index", values_to = "values") %>% mutate(database = sapply(database, function(x){
+  unlist(strsplit(x, "_", fixed = TRUE))[1]
+}))
+```
+
+
+```{r}
+
+alpha.diversity.longer$samples <- factor(alpha.diversity.longer$samples, levels=samples)
+alpha.diversity.longer$database <- factor(alpha.diversity.longer$database, levels = databases)
+# shapes <- c(16:18, 6:14)
+
+alpha.stat.db <- alpha.diversity.longer %>%
+  group_by(alpha_index) %>%
+  wilcox_test(values~database,p.adjust.method ="holm", paired = TRUE) %>%
+  add_significance()%>%
+  add_xy_position(x = "database", dodge = 0.8)%>%
+  add_y_position(fun="max", step.increase = 0.08, scales = "free_y")
+
+alpha.stat.db.1 <- alpha.stat.db %>% subset(alpha_index == "Observed"&p.adj.signif != "ns") %>% mutate(y.position = sapply(group1, function(x){
+  switch(
+    x,
+    "minikraken" = 2800,
+    "standard" = 2800 + 300,
+    "customized" = 2800 + 300*2)})) %>% mutate(p.adj.signif.2 = c(c(rep("",2),"**"),c(rep("",2),"**")))
+# alpha.stat.db[alpha.stat.db["alpha_index"] == "Observed" & alpha.stat.db["p.adj.signif"] != "ns", "y.position"] <- seq(3483, 3483+ (500 * 29), 500)
+alpha.stat.db.2 <- alpha.stat.db %>% subset(alpha_index == "Shannon"&p.adj.signif != "ns") %>% mutate(y.position = sapply(group1, function(x){
+  switch(
+    x,
+    "minikraken" = 6)})) %>% mutate(p.adj.signif.2 = c("","**"))
+
+alpha.stat.db.all <- rbind(alpha.stat.db.1,alpha.stat.db.2)
+
+
+p <- ggplot(alpha.diversity.longer, aes(x=database, y=values))+
+  geom_boxplot(outlier.shape = NA, color = "darkgray")+
+  scale_color_manual(values=RColorBrewer::brewer.pal(12, "Paired"))+
+  geom_point(aes(color=samples),size=3, position = position_jitter(0.1))+
+  stat_pvalue_manual(alpha.stat.db.all, label = "p.adj.signif.2", hide.ns = TRUE,size=5,bracket.size = 0.3, tip.length = 0.01)+
+  facet_wrap(~alpha_index, scales = "free_y")+
+  theme_classic()+
+  theme(text=element_text(size=18), title=element_text(size=17),axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.2),tagger.panel.tag.background = element_rect(linetype = 0,fill = alpha("white", 0)))+
+  scale_y_continuous(label=comma)+
+  labs(x="kraken2 databases", y="Species Level Alpha Diversity")
+
+p
+getwd()
+ggsave("5.figures/kraken2.db.comparison.alpha.indices.tiff", p, width = 12, height=7)
+
+
+# add_sheet(kraken.db.xlsx,"4.DBs.alpha.stats", alpha.stat.db %>% dplyr::select(alpha_index, group1, group2, p, p.adj, p.adj.signif))
+```
+
+# beta diversity
+
+### function to plot beta heatmap
+```{r}
+
+plot_beta_heatmap <- function(phyloseq_obj){
+annot_colors<- list(Subject= c(R22 = "#0b7fab", R26="#e9723d", R27="#f4d75e", R28="#7c7b89"), Tissue=c(Kidney = "#c33124", Lung="#a1dffb", Spleen="#e8a628"))
+title <- unlist(strsplit(eval(phyloseq_obj), split = "_", fixed = TRUE))[1]
+beta_dist_db <- as.matrix(vegdist(t(otu_table(get(phyloseq_obj))), index="bray"))
+pheatmap::pheatmap(beta_dist_db, col = colorRampPalette(c("red", "#FFA701","lightyellow"))(50), annotation = metadata, annotation_colors = annot_colors,legend = FALSE, annotation_legend = FALSE,silent = TRUE,  treeheight_row = 0, treeheight_col = 30, main = title)
+
+}
+
+```
+
+### generate beta hap map for all kraken2 databses
+```{r}
+
+databases <- list("minikraken_sp", "standard_sp", "customized_sp", "maxikraken_sp")
+
+kraken2_db_beta_heatmaps <- lapply(databases, plot_beta_heatmap)
+
+
+combined_kraken2_heatmap <- grid.arrange(grid.arrange(),grobs = list(kraken2_db_beta_heatmaps[[1]][[4]], kraken2_db_beta_heatmaps[[2]][[4]], kraken2_db_beta_heatmaps[[3]][[4]], kraken2_db_beta_heatmaps[[4]][[4]])) # fourth item of every pheatmap object is the plot
+
+ggsave("5.figures/kraken2.db.comparison.beta.heatmap.tiff", combined_kraken2_heatmap, height=7, width = 7)
+
+```
+
+### test significance for difference between kraken2 databases' beta indicies 
+```{r}
+# must run one loop first
+beta_dist_stat_sign <- data.frame(comparison = beta_dist_db_df_combined$comparison )
+for (db in names(db_species)){
+  # beta_dist_db<- vegdist(t(otu_table(get(db))))
+  beta_dist_db_df <-as.matrix(vegdist(t(otu_table(get(db))), index="bray")) 
+  beta_dist_db_df_upper <- melt(beta_dist_db_df)[melt(upper.tri(beta_dist_db_df))$value,]
+  beta_dist_db_df_combined <- beta_dist_db_df_upper %>% mutate(comparison = paste(Var1, Var2, sep="-")) %>% dplyr::select(-c(Var1, Var2)) 
+  title <- unlist(strsplit(eval(db), split = "_", fixed = TRUE))[1]
+  colnames(beta_dist_db_df_combined) <-  c(title, "comparison")
+  beta_dist_stat_sign <- left_join(beta_dist_stat_sign, beta_dist_db_df_combined, by="comparison")
+}
+
+
+databases <- c("minikraken", "standard", "customized", "maxikraken")
+beta_dist_stat_sign_longer <- beta_dist_stat_sign %>% pivot_longer(cols = databases, names_to = "databases", values_to = "bray_curtis" )
+
+# if the between samples diversity different when classified by different databases
+beta_stat_db <- beta_dist_stat_sign_longer %>%
+  wilcox_test(`bray_curtis`~databases, paired = TRUE, p.adjust.method = "holm") 
+
+# add_sheet(kraken.db.xlsx,"5.DBs.beta.stats", beta_stat_db)
+```
+
+# write analyses to csv
+```{r}
+# openxlsx::saveWorkbook(kraken.db.xlsx, file = "4.tables/I.kraken2_db_comparison.xlsx", overwrite = TRUE)
+
+
+```

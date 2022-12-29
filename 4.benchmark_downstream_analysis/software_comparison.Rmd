@@ -1,0 +1,1515 @@
+---
+title: "software_comparison"
+author: "Rachel Xu"
+date: "1/3/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/revision/Metagenomics_tools")
+
+software.xlsx <- openxlsx::createWorkbook()
+```
+# load analyses output of all software
+```{r}
+input <- "1.output"
+
+blastn_phylo <- read_blastn("2.report/blastn") # 3890 taxa
+diamond_megan_phylo <- read_diamond("2.report/diamond") # 1417 taxa
+kraken2_std_phylo <- read_kraken2(file.path(input, "kraken2.std.biom")) # 3074 taxa
+kraken2_mini_phylo <- read_kraken2(file.path(input, "kraken2.mini.biom")) # 1171 taxa
+kraken2_max_phylo <- read_kraken2(file.path(input, "kraken2.max.biom")) # 4589 taxa
+kraken2_cus_phylo <- read_kraken2(file.path(input, "kraken2.cus.biom")) # 3318 taxa
+centrifuge_phylo <- read_kraken2(file.path(input, "centrifuge.biom")) # 4571 taxa
+kaiju_phylo <- read_kraken2(file.path(input, "kaiju.cus.biom")) # 4816 taxa
+bracken_phylo <- read_kraken2(file.path(input, "bracken.std.biom")) # 505 taxa
+metaphlan3_phylo <- read_metaphlan3(file.path(input, "metaphlan3_all_samples.txt")) # 18 taxa
+clark_phylo <- read_clark("2.report/clark/") # 1628 taxa
+clarks_phylo <- read_clark_s("2.report/clark-s/") # 1376 taxa
+
+software_list <- list(blastn=blastn_phylo, diamond_megan = diamond_megan_phylo,kraken2_std=kraken2_std_phylo,kraken2_mini=kraken2_mini_phylo,kraken2_max=kraken2_max_phylo,kraken2_cus=kraken2_cus_phylo,bracken=bracken_phylo,centrifuge = centrifuge_phylo,clark = clark_phylo,clarks = clarks_phylo,metaphlan3 = metaphlan3_phylo,kaiju =kaiju_phylo)
+
+softwares <-  c("blastn","clark","clarks" ,"metaphlan3","diamond_megan", "kaiju","centrifuge","bracken", "kraken2_std","kraken2_mini","kraken2_cus","kraken2_max")
+samples <- factor(c("R22.K","R26.K","R27.K","R28.K","R22.L","R26.L","R27.L","R28.L","R22.S","R26.S","R27.S","R28.S" ), levels = c("R22.K","R26.K","R27.K", "R28.K","R22.L","R26.L","R27.L","R28.L","R22.S","R26.S","R27.S","R28.S" ))
+samples_df <- metadata %>% rownames_to_column(var="samples")
+
+
+```
+
+# runtime
+```{r}
+runtimes_df <- read.csv("4.tables/runtime_profiles.csv") %>% subset(Software !="") %>% pivot_longer(starts_with("R2"), names_to="sample", values_to="runtime") %>% mutate(software = ifelse(Software == "Metaphlan", "metaphlan3",ifelse(Software == "CLARK-s","clarks",ifelse(Software == "Diamond", "diamond_megan",tolower(Software)))))
+sample_size <- read.csv("4.tables/sequencing_stats_before_after_filter.csv") %>% select(sample, host_filtered) 
+
+runtime_samplesize <- left_join(runtimes_df, sample_size)
+
+runtime_samplesize$software <- factor(runtime_samplesize$software, levels = softwares)
+pt <- ggplot(runtime_samplesize, aes(x=host_filtered, y = runtime, color=software, label=sample))+
+  geom_point()+
+  geom_line()+
+  scale_color_manual(values=RColorBrewer::brewer.pal(12, "Paired"))+
+  theme_bw()+
+  scale_x_continuous(label=comma, breaks = seq(0, 842789, 100000))+
+  labs(x="Number of Reads in Sample",  y = "Runtime (seconds)")+
+  scale_y_continuous(breaks = seq(0,26689,1800))+
+  theme(axis.text = element_text(size=10),axis.text.x = element_text(size=10, angle = 45, vjust=1,hjust=1))
+pt
+# ggsave("5.figures/run_time_filesize.tiff", dpi=300, height=5, width=7)
+plotly::ggplotly(pt)
+```
+
+# combine classification of different softwares
+- combine number of reads classified by each DB in to the same data frame 
+- add taxonomy ranks to each taxID
+- write to file
+```{r}
+
+# combine otu tables of all databases
+#### need to first run lines in the loop before decale combined db
+all_df_count <- data.frame(rowname =otu_df$rowname)
+for (sf in softwares){
+  soft_phylo <- paste0(sf, "_phylo")
+  otu_df <- as.data.frame(otu_table(get(soft_phylo)))  %>% dplyr::rename_with(~paste(.x, eval(sf), sep = ".")) %>% rownames_to_column()
+  all_df_count <-full_join(otu_df,all_df_count, by = "rowname")
+}
+
+all_df_count[is.na(all_df_count)] <- 0
+
+# combine taxonomy ranks tables of all databases
+all_df_taxa <- data.frame(rowname=as.character(),Domain=as.character(), Phylum=as.character(), Class=as.character(), Order=as.character(), Family=as.character(), Genus=as.character(),Species=as.character())
+for (sf in softwares){
+  soft_phylo <- paste0(sf, "_phylo")
+  tax_df <- as.data.frame(tax_table(get(soft_phylo))) %>% rownames_to_column()
+  all_df_taxa <- full_join(all_df_taxa, tax_df, by = c("rowname","Domain", "Phylum", "Class", "Order", "Family", "Genus"))
+}
+
+# merge species annotation based on this order
+all_df_taxa %>% pivot_longer(starts_with("Species")) %>% subset(!is.na(value)) %>% group_by(name) %>% summarise(number_sp = n()) %>% arrange(desc(number_sp))
+
+
+# merge species names from different software
+all_df_taxa$Species <- ifelse(!is.na(all_df_taxa$Species.x.x.x.x), all_df_taxa$Species.x.x.x.x, ifelse(
+    !is.na(all_df_taxa$Species), all_df_taxa$Species, ifelse(
+      !is.na(all_df_taxa$Species.y.y.y.y), all_df_taxa$Species.y.y.y.y, ifelse(
+        !is.na(all_df_taxa$Species.y), all_df_taxa$Species.y, ifelse(
+          !is.na(all_df_taxa$Species.y.y.y.y.y.y), all_df_taxa$Species.y.y.y.y.y.y, ifelse(
+            !is.na(all_df_taxa$Species.y.y.y.y.y), all_df_taxa$Species.y.y.y.y.y, ifelse(
+              !is.na(all_df_taxa$Species.x.x), all_df_taxa$Species.x.x, ifelse(
+                !is.na(all_df_taxa$Species.y.y.y), all_df_taxa$Species.y.y.y, ifelse(
+                  !is.na(all_df_taxa$Species.y.y), all_df_taxa$Species.y.y, ifelse(
+                    !is.na(all_df_taxa$Species.x.x.x.x.x.x), all_df_taxa$Species.x.x.x.x.x.x, ifelse(
+                      !is.na(all_df_taxa$Species.x.x.x.x.x), all_df_taxa$Species.x.x.x.x.x, ifelse(
+                        !is.na(all_df_taxa$Species.x.x.x.x.x), all_df_taxa$Species.x.x.x.x.x, ifelse(
+                          !is.na(all_df_taxa$Species.x.x.x), all_df_taxa$Species.x.x.x, NA
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+    )
+  )
+))
+
+all_df_taxa_merge <- all_df_taxa %>% dplyr::select(!starts_with("Species.x") & !starts_with("Species.y")) # remove conflicting species name
+
+all_df_taxa_unique <- all_df_taxa_merge %>%mutate(n_char = sapply(Species, nchar))  %>% group_by(rowname, Domain, Phylum, Class, Order, Family, Genus) %>% dplyr::slice(which.min(n_char)) %>% dplyr:: select(!n_char) %>% as.data.frame() %>% dplyr::distinct(rowname, .keep_all = TRUE) # if there is duplicate in species name, select the one with the shortest name
+
+# combine taxonomy ranks with count of the ranks
+software_df <- left_join(all_df_count, all_df_taxa_unique , by = "rowname") %>% dplyr::rename(TaxID = rowname)
+# colnames(software_df)
+
+# rest of the TaxID without taxonomy, largely from BLASTN or DIAMOND's eukaryotic taxa, fill with BLATSN first
+software_df[is.na(software_df$Domain), ] <- left_join( software_df %>% subset(is.na(Domain)) %>% select(-c("Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species")),  as.data.frame(tax_table(blastn_phylo)) %>% rownames_to_column() %>% dplyr::rename(TaxID=rowname) , by="TaxID")
+
+# reorder columns of the df
+software_df <- software_df[c("Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species","TaxID",paste0(samples, ".blastn"),paste0(samples, ".diamond_megan"), paste0(samples, ".kraken2_std"),paste0(samples, ".kraken2_mini"),paste0(samples, ".kraken2_max"),paste0(samples, ".kraken2_cus"),paste0(samples, ".bracken"), paste0(samples, ".centrifuge"), paste0(samples, ".clark"), paste0(samples, ".clarks"), paste0(samples, ".metaphlan3"),  paste0(samples, ".kaiju"))]
+
+# add_sheet(software.xlsx,"1.software.full", software_df)
+
+software_df %>% subset(Domain == "d__Eukaryota")
+
+software_df.1 <- software_df %>% pivot_longer(starts_with("R2"), names_to = "samples", values_to = "count") %>% mutate(sample = sapply(samples, function(x){
+  s <- unlist(strsplit(x, split = ".", fixed = TRUE))
+  paste(s[1], s[2], sep=".")
+}))%>% mutate(software = sapply(samples, function(x){
+  s <- unlist(strsplit(x, split = ".", fixed = TRUE))
+  s[3]
+})) 
+# software_df.1%>% select(Genus, Species, TaxID, count, software) %>% subset(Species != "")%>% ungroup() %>% group_by(TaxID,software)%>% mutate(total = sum(count))%>% subset(count != 0) %>% mutate(percentage = (count/total)*100) %>% subset(TaxID %in% intersect_sp )
+# software_df.1 %>% subset(Species == "s__Rattus norevgicus") %>% subset(count != 0)
+# 
+# software_df %>% subset(Phylum == "p__Firmicutes") %>%select(Phylum,Genus ,Species,starts_with("R27.L")) #%>% subset(R22.K.clark != 0 | R22.K.clarks != 0 | R22.K.kaiju != 0)
+# 
+# software_df.1 %>% subset(count != 0)  %>% group_by(software) %>% mutate(total = sum(count)) %>% mutate(prop = (count/total)*100) %>% group_by(Domain,software)%>% summarise(sum(prop), sum(count), n())
+# 
+# software_df.1 %>% subset(count != 0) %>% subset(Genus == "g__Mycoplasma")
+
+software_df
+
+# write.csv(software_df, "4.tables/I.all_software_DBs_complete_profiles.csv", row.names = FALSE, col.names = TRUE)
+```
+
+# General Statistics
+## 1) general summary
+- total number of reads vs. ntaxa
+```{r}
+
+software_df_longer <- software_df %>% pivot_longer(starts_with("R"), names_to = "names", values_to = "count") %>% mutate(samples = sapply(names, function(x){paste(unlist(strsplit(x, split=".", fixed = TRUE))[c(1,2)], collapse = ".")})) %>% mutate(software = sapply(names, function(x){paste(unlist(strsplit(x, split=".", fixed = TRUE))[3], collapse = ".")}))
+
+software_df_longer_summary <- software_df_longer %>% subset(count != 0) %>% group_by(software)  %>% summarise(total=sum(count), mean=mean(count, na.rm = TRUE), stdev=sd(count, na.rm = TRUE), n_taxa= n_distinct(TaxID)) %>% mutate(include_outlier=sapply(software, function(x){
+  ifelse(grepl("diamond_megan", x), NA, "no")
+}))
+
+software_df_longer_summary
+
+library(scales)
+# regression line equation
+lm_eqn <- function(df){
+    m <- lm(y ~ x, df);
+    eq <- substitute(~~italic(r)^2~"="~r2, 
+         list(r2 = format(summary(m)$r.squared, digits = 3)))
+    as.character(as.expression(eq));
+}
+
+wo_outlier_software_df_longer_summary <- software_df_longer_summary %>% subset(software != "diamond_megan")
+p1 <- ggplot(software_df_longer_summary, aes(x = n_taxa, y = total))+
+  geom_point( aes(color=software))+
+  geom_smooth(method='lm', formula= y~x, se = FALSE, color="red", alpha=0.5)+
+  geom_smooth(method='lm', formula= y~x, se = FALSE, color="black" ,aes(fill=include_outlier))+
+  scale_color_manual(values=c(RColorBrewer::brewer.pal(12, "Paired"),RColorBrewer::brewer.pal(12, "Set1")))+
+  scale_y_continuous(label = comma) +
+  theme_bw()+
+  theme()+
+  geom_text(x = 2000, y = 350000, label = lm_eqn(software_df_longer_summary %>% select(n_taxa, total) %>% dplyr::rename(x= n_taxa,y=total)), parse = TRUE, color="red")+
+  geom_text(x = 4000, y = 200000, label = lm_eqn(wo_outlier_software_df_longer_summary %>% select(n_taxa, total) %>% dplyr::rename(x= n_taxa,y=total)), parse = TRUE, color="black")+
+   labs(x="Number of Distinct Taxa Identified", y= "Total Number of Classified Reads")
+p1
+
+# p2 <- ggplot(wo_outlier_software_df_longer_summary, aes(x = n_taxa, y = total))+
+#   geom_point( aes(color=software))+
+#   geom_smooth(method='lm', formula= y~x, se = FALSE)+
+#   scale_color_manual(values=RColorBrewer::brewer.pal(12, "Paired")[-6])+
+#   scale_y_continuous(label = comma) +
+#   geom_text(x = 2000, y = 500000, label = lm_eqn(wo_outlier_software_df_longer_summary %>% select(n_taxa, total) %>% dplyr::rename(x= n_taxa,y=total)), parse = TRUE)+
+#   labs(x="Number of Distinct Taxa Identified")+
+#    theme_bw()
+# 
+# cp <- cowplot::plot_grid(p1,p2,  align = "v", ncol = 1, rel_widths  = c(0.375, 0.625))
+# cp
+ggsave("5.figures/total_number_reads_v_n_taxa_plot.tiff", p1,height = 5, width = 7, dpi = 300)
+  
+```
+
+## 2) domain summary
+- total number of reads vs. ntaxa
+```{r}
+domain_summary <- software_df_longer %>% subset(count!=0) %>% group_by(software) %>% mutate(total = sum(count)) %>% group_by(Domain, software, total) %>% dplyr::summarise(total_domain=sum(count), avg=mean(count), std=sd(count), n_taxa= n_distinct(TaxID)) %>% mutate(domain_percentage = (total_domain/total)*100)
+
+domain_summary
+
+
+```
+- Rattus reads classified
+```{r}
+
+
+
+rat_summary <- software_df_longer %>% subset(count!=0) %>% subset(Genus == "g__Rattus") %>% mutate(subject=sapply(names, function(x){unlist(strsplit(x, ".", fixed=TRUE))[1]})) %>% group_by(subject, Species, software) %>% summarise(total_sp = sum(count)) %>% arrange(software)
+
+rat_summary %>% group_by(software) %>% mutate(total_all = sum(total_sp))
+```
+
+
+# identify Leptospira
+```{r}
+
+
+# lepto.xlsx <- openxlsx::createWorkbook()
+lepto_full <- software_df %>% subset(Genus == "g__Leptospira") %>% pivot_longer(cols = colnames(software_df)[!colnames(software_df) %in%c("Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species","TaxID")], names_to = "samplessoftware", values_to = "count") %>% tidyr::separate(samplessoftware, c("samples", "Tissue","software"), sep="[.]+") %>% unite("sample",c("samples", "Tissue"), sep=".")
+
+unique_sp_count <- lepto_full %>% group_by(sample, software) %>% subset(count !=0) %>% summarise(n_species = n_distinct(TaxID))
+unique_sp <- lepto_full %>% group_by(sample, software) %>% subset(count !=0) %>% distinct(TaxID, .keep_all = TRUE)
+lepto_count_summary <- lepto_full %>% group_by(sample, software) %>% subset(count !=0) %>% summarise(total=sum(count)) 
+lepto_count_summary %>% group_by(sample) %>% summarise(mean=mean(total), sd=sd(total))
+lepto_present_matrix <- unique_sp_count %>% dplyr::select(-n_species)%>%  mutate(present = "x")%>%pivot_wider(names_from = sample, values_from = present)
+lepto_present_matrix[is.na(lepto_present_matrix)] <- ""
+lepto_present_matrix
+
+lepto_dict <- read.csv(file.path("4.tables/lepto.species.group.dict.csv")) %>% dplyr::rename(TaxID = taxaID)
+lepto_dict$TaxID <- as.character(lepto_dict$TaxID)
+
+
+lepto_full_anot <- left_join(lepto_full,lepto_dict, by = "TaxID") 
+lepto_full_anot$group <- factor(lepto_full_anot$group )
+lepto_count_unique_sp <- lepto_full_anot %>% group_by(sample, software, group, .drop = FALSE) %>% subset(count !=0) %>% summarise(group_total=n_distinct(Species)) %>% ungroup() %>% group_by(sample, software) %>% mutate(total = sum(group_total)) %>% mutate(n_species = paste0(total, "(", group_total, ")")) %>% subset(group == "p1") %>% select(sample, software, n_species) %>%pivot_wider(names_from = sample, values_from = n_species )
+lepto_count_unique_sp[is.na(lepto_count_unique_sp)] <- ""
+lepto_count_unique_sp
+
+lepto_full_anot %>% subset(sample == "R22.S" & software == "centrifuge"& count !=0) %>% distinct(Species, group)
+
+unique_sp_1 <- unique_sp %>% group_by(software) %>% subset(Species != "")%>% summarise(species_total = n_distinct(Species))
+unique_sp_1
+unique_sp %>% subset(sample == "R22.L") %>% distinct(software, Species)#%>% subset(!software %in% c("bracken", "metaphlan3")) #%>% select(Species) %>% distinct()
+lepto_count_summary %>% group_by(sample) %>% summarise(mean=mean(total), sd=sd(total))
+
+
+# write.csv(lepto_count_unique_sp,"4.tables/Leptopsira.Diagonistic.csv")
+# add_sheet(lepto.xlsx,"1.software.identified.lepto", unique_sp)
+# add_sheet(lepto.xlsx,"2.unique.Species.count", unique_sp_count)
+# add_sheet(lepto.xlsx,"present_absent", lepto_present_matrix)
+# add_sheet(lepto.xlsx,"3.lepto.count.summary", lepto_count_summary)
+
+# openxlsx::saveWorkbook(lepto.xlsx, file = "4.tables/III.lepto.diagnostic.xlsx", overwrite = TRUE)
+```
+
+# change the taxa table with the tax table merged from all softwares
+- uniform species taxa
+```{r}
+all_df_uniqueTax <- as.matrix(all_df_taxa_unique %>% column_to_rownames(var="rowname") )
+
+
+tax_table(blastn_phylo) <- all_df_uniqueTax
+tax_table(diamond_megan_phylo) <- all_df_uniqueTax
+tax_table(kraken2_std_phylo) <- all_df_uniqueTax
+tax_table(kraken2_cus_phylo) <- all_df_uniqueTax
+tax_table(kraken2_mini_phylo) <- all_df_uniqueTax
+tax_table(kraken2_max_phylo) <- all_df_uniqueTax
+tax_table(bracken_phylo) <- all_df_uniqueTax
+tax_table(centrifuge_phylo) <- all_df_uniqueTax
+tax_table(clark_phylo) <- all_df_uniqueTax
+tax_table(clarks_phylo) <- all_df_uniqueTax
+tax_table(metaphlan3_phylo) <- all_df_uniqueTax
+tax_table(kaiju_phylo) <- all_df_uniqueTax
+
+
+##### check if all phylo object has the same species taxa
+# intersect(rownames(tax_table(blastn_phylo)), rownames(tax_table(kaiju_phylo)))
+# 
+# tax_table(blastn_phylo)[rownames(tax_table(blastn_phylo)) == "173",]
+# tax_table(kaiju_phylo)[rownames(tax_table(kaiju_phylo)) == "173",]
+```
+
+# Rarefraction curve
+```{r}
+# library(vegan)
+# 
+# kraken.otu.t <- t(otu_table(kraken2_std_phylo))
+# 
+# spec.kraken <- specnumber(kraken.otu.t, groups = samples) # number of species per sample
+# # spec.kraken <- diversity(kraken.otu.t, index = "shannon")
+# # minimum sample count
+# raremax <-min(rowSums(kraken.otu.t)) # min number of reads out of all samples (each row is a samples, each column is a species)
+# 
+# Srare.kraken <- rarefy(kraken.otu.t, raremax)
+# 
+# plot(spec.kraken , Srare.kraken, xlab = "Observed No. of Species", ylab = "Rarefied No. of Species")
+# 
+# abline(0, 1)
+# 
+# 
+# library(tidyverse)
+# 
+# phylo <- "metaphlan3_phylo"
+# get_rarefy_data <- function(phylo){
+# 
+# otu.t <- t(otu_table(get(phylo)))
+# 
+# raremax <-min(rowSums(otu.t)) # min number of reads out of all samples (each row is a samples, each column is a species)
+# 
+# curve_data <- rarecurve(otu.t, step =1, sample = raremax, col = "blue", cex = 0.4)
+# x3 <- map_dfr(curve_data, ~as_data_frame(t(.))) # transform every list as dataframe (each list is transformed as a row (transpose)), then rbind (colbind requires same length / column)
+# x4 <- as_data_frame(t(x3))
+# colnames(x4) <- colnames(otu_table(get(phylo)))
+# rownames(x4) <- seq(1, nrow(x4[,1]),1)
+# x4$number_of_reads <- seq(1, nrow(x4[,1]),1)
+# x5 <- x4 %>% pivot_longer(colnames(.)[colnames(.) != "number_of_reads"], names_to = "samples", values_to = "number of species")
+# 
+# s <- unlist(strsplit(phylo, split="_", fixed = TRUE))
+# x5$sample <- paste(s[-length(s)], collapse = "_")
+# x5
+# }
+# 
+# software_list_char <- list(blastn="blastn_phylo", diamond_megan = "diamond_megan_phylo",kraken2_std="kraken2_std_phylo", kraken2_mini="kraken2_mini_phylo",kraken2_cus="kraken2_cus_phylo",kraken2_max="kraken2_max_phylo",bracken="bracken_phylo",centrifuge = "centrifuge_phylo",clark = "clark_phylo",clarks = "clarks_phylo",metaphlan3 = "metaphlan3_phylo",kaiju ="kaiju_phylo")
+# rare_list <- lapply(software_list_char, get_rarefy_data)
+# 
+# library(scales)
+# rare_all_df <- do.call(rbind, rare_list)
+# rare_all_df$sample <- factor(rare_all_df$sample, levels = softwares)
+# prc <- ggplot(rare_all_df, aes(x = number_of_reads, y=`number of species`, color=samples))+
+#   geom_line()+
+#   theme_bw()+
+#   theme(axis.text.x = element_text(angle=90))+
+#   facet_wrap(~sample)+
+#   labs(x="Number of Reads Classified")+
+#   scale_x_continuous(breaks = seq(0, 120000, 20000), limits = c(0,150000), labels = comma)+
+#   scale_color_manual(values = RColorBrewer::brewer.pal(12, "Paired"))
+# 
+# 
+# prc
+# 
+# ggsave("5.figures/rarefraction_curve_number_reads_vs_species_richness.tiff", prc, width = 12, height = 10)
+```
+
+
+## get domain level read counts for each software
+```{r}
+
+software_domain_count <- data.frame(taxa = character(), Domain = character(), samples = character(), count=numeric(), Tissue=character(), Subject=character(), software=character())
+for(i in 1:length(software_list)){
+  otu <- data.frame(otu_table(tax_glom(unname(software_list[i])[[1]]), "Domain")) %>% rownames_to_column(var="taxa")
+  lineage_df <- data.frame(tax_table(unname(software_list[i])[[1]])) %>% rownames_to_column(var="taxa")
+   domain_df <- left_join(otu, lineage_df, by="taxa") %>% pivot_longer(cols =samples, names_to = "samples", values_to = "count")
+  domain_anot_df <- left_join(domain_df,samples_df, by="samples" ) %>% mutate(Domain = sapply(Domain, function(x){
+    unlist(strsplit(x, "__"))[2]
+  })) %>%  mutate(software=names(software_list[i]))
+  
+  software_domain_count <- rbind(software_domain_count,domain_anot_df)
+
+}
+
+numTaxa <- as.data.frame(unlist(lapply(software_list,ntaxa))) %>% rownames_to_column()
+colnames(numTaxa) <- c("software", "ntaxa")
+software_summary <- software_domain_count %>% group_by(samples, software) %>% summarise(total=sum(count)) %>% pivot_wider(names_from = software, values_from = total) # summary of count per sample
+software_summary_mean <-software_domain_count %>% group_by(samples, software) %>% summarise(total=sum(count))%>% group_by(software) %>% summarise(mean=mean(total), sd=sd(total))
+software_summary_mean <-left_join(software_summary_mean,numTaxa, by ="software")
+
+# add_sheet(software.xlsx,"2.software.samples.summary", as.data.frame(software_summary))
+# add_sheet(software.xlsx,"2.software.summary", software_summary_mean)
+# unique(software_domain_subset$software)
+```
+### plot number of reads classified under each domain
+```{r}
+# software_domain_count$samples <- factor(software_domain_count$samples, levels=samples)
+# software_domain_count$software<- factor(software_domain_count$software, levels = softwares)
+# shapes <- c(16:18, 6:14)
+
+software_domain_subset <- software_domain_count %>% subset(!Domain %in% c("unknown"))
+software_domain_subset$samples <- factor(software_domain_subset$samples, levels=unique(software_domain_subset$samples))
+software_domain_subset$software<- factor(software_domain_subset$software, levels = c("blastn", "clark", "clarks" ,"metaphlan3", "diamond_megan", "kaiju", "centrifuge", "bracken","kraken2_std","kraken2_mini", "kraken2_cus", "kraken2_max"))
+
+software.domain.stat <- software_domain_subset %>%
+  group_by(Domain) %>%
+  wilcox_test(count~software,p.adjust.method ="holm", paired = TRUE) %>%
+  add_significance()%>%
+  add_xy_position(x = "software", dodge = 0.1, scales = "free") %>%
+  add_y_position(fun="max", step.increase = 0.08, scales = "free")
+
+##############################################################################
+####### adjust x position for the error bar 
+### function to query coresponding position in each domain
+id.in.data.frame = function(soft){
+df[soft]
+} 
+## viruses
+#### put software and position in a dict
+soft_in_virus <- list(unique(c(software.domain.stat$group1[software.domain.stat$Domain =="Viruses"],software.domain.stat$group2[software.domain.stat$Domain =="Viruses"])))[[1]]
+virus_software_dict<-  seq(1,length(soft_in_virus))
+names(virus_software_dict)<-soft_in_virus
+#### assign dict to the value of parameter
+df <- virus_software_dict
+# assign to min and max of error bar
+software.domain.stat[software.domain.stat$Domain == "Viruses","xmin"] <- mapply(id.in.data.frame,soft= unlist(software.domain.stat[software.domain.stat$Domain == "Viruses","group1"]))
+software.domain.stat[software.domain.stat$Domain == "Viruses","xmax"] <- mapply(id.in.data.frame,soft= unlist(software.domain.stat[software.domain.stat$Domain == "Viruses","group2"]))
+
+## eukaryota
+#### put software and position in a dict
+soft_in_eu <- list(unique(c(software.domain.stat$group1[software.domain.stat$Domain =="Eukaryota"],software.domain.stat$group2[software.domain.stat$Domain =="Eukaryota"])))[[1]]
+eu_software_dict<-  seq(1,length(soft_in_eu))
+names(eu_software_dict)<-soft_in_eu
+#### assign dict to the value of parameter
+df <- eu_software_dict
+# assign to min and max of error bar
+software.domain.stat[software.domain.stat$Domain == "Eukaryota","xmin"] <- mapply(id.in.data.frame,soft= unlist(software.domain.stat[software.domain.stat$Domain == "Eukaryota","group1"]))
+software.domain.stat[software.domain.stat$Domain == "Eukaryota","xmax"] <- mapply(id.in.data.frame,soft= unlist(software.domain.stat[software.domain.stat$Domain == "Eukaryota","group2"]))
+
+## Archaea
+#### put software and position in a dict
+soft_in_arc <- list(unique(c(software.domain.stat$group1[software.domain.stat$Domain =="Archaea"],software.domain.stat$group2[software.domain.stat$Domain =="Archaea"])))[[1]]
+arc_software_dict<-  seq(1,length(soft_in_arc))
+names(arc_software_dict)<-soft_in_arc
+#### assign dict to the value of parameter
+df <- arc_software_dict
+# assign to min and max of error bar
+software.domain.stat[software.domain.stat$Domain == "Archaea","xmin"] <- mapply(id.in.data.frame,soft= unlist(software.domain.stat[software.domain.stat$Domain == "Archaea","group1"]))
+software.domain.stat[software.domain.stat$Domain == "Archaea","xmax"] <- mapply(id.in.data.frame,soft= unlist(software.domain.stat[software.domain.stat$Domain == "Archaea","group2"]))
+###########################################################################################################################################################
+
+# # only keep stat with significant p value, change the y position
+# software.domain.stat[software.domain.stat["Domain"] == "Bacteria" & software.domain.stat["p.adj.signif"] != "ns", "y.position"] <- seq(250000, 250000+ 12000 * nrow(software.domain.stat[software.domain.stat["Domain"] == "Bacteria" & software.domain.stat["p.adj.signif"] != "ns", "y.position"])-1, 12000) # minimum y position for the domain, n-1 incremention where n is comparison that is significant
+# software.domain.stat[software.domain.stat["Domain"] == "Archaea" & software.domain.stat["p.adj.signif"] != "ns", "y.position"] <- seq(1750, 1750 + 150 * nrow(software.domain.stat[software.domain.stat["Domain"] == "Archaea" & software.domain.stat["p.adj.signif"] != "ns", "y.position"])-1, 150)
+# software.domain.stat[software.domain.stat["Domain"] == "Viruses" & software.domain.stat["p.adj.signif"] != "ns", "y.position"] <- seq(2500, 2500 + 150 * nrow(software.domain.stat[software.domain.stat["Domain"] == "Viruses" & software.domain.stat["p.adj.signif"] != "ns", "y.position"])-1, 150)
+
+##########################################################################################################################################
+################################ combine error bars from software 1 in comparisons
+software.domain.stat.1 <- software.domain.stat %>% subset(Domain == "Eukaryota"&p.adj.signif != "ns") %>% mutate(y.position = sapply(group1, function(x){
+  switch(
+    x,
+    "blastn" = 27703,
+    "clark" = 27703 + 5000,
+    "diamond_megan" = 27703 + 5000*2,
+    "centrifuge" = 27703 + 5000*3,
+    "bracken" = 27703 + 5000*4,
+    "kraken2_std" = 27703 + 5000*5,
+    "kraken2_mini" = 27703 + 5000*6,
+    "kraken2_cus" = 27703 + 5000*7)})) %>% mutate(p.adj.signif.2 = c(c(rep("",7),"*"),c(rep("",6),"*"), c(rep("",4),"*"), c(rep("",4),"*"),c(rep("",1),"*"),c(rep("",1),"*"),c(rep("",1),"*"), "*" ))
+software.domain.stat.2 <- software.domain.stat %>% subset(Domain == "Bacteria"&p.adj.signif != "ns") %>% mutate(y.position = sapply(group1, function(x){
+ switch(
+    x,
+    "blastn" = 250000,
+    "clark" = 250000 + 15000,
+    "clarks" = 250000 + 15000*2,
+    "diamond_megan" = 250000 + 15000*3,
+    "centrifuge" = 250000 + 15000*4,
+    "kraken2_std" = 250000 + 15000*5,
+    "kraken2_mini" = 250000 + 15000*6,
+    "kraken2_cus" = 250000 + 15000*7)})) %>% mutate(p.adj.signif.2 = c(c(rep("",2),"*"),c(rep("",4),"*"), c(rep("",2),"*"), c("*"),c("*"),c(rep("",1),"*"),c("*"), "*" ))
+software.domain.stat.3 <- software.domain.stat %>% subset(Domain == "Viruses"&p.adj.signif != "ns") %>% mutate(y.position = sapply(group1, function(x){
+ switch(
+    x,
+    "blastn" = 2500,
+    "clark" = 2500 + 300,
+    "clarks" =2500 + 300*2,
+    "kaiju" =2500 + 300*3,
+    "centrifuge" = 2500 + 300*4)})) %>% mutate(p.adj.signif.2 = c(c(rep("",5),"*"),c(rep("",4),"*"), c(rep("",2),"*"), c(rep("",2),"*"),c("*")))
+software.domain.stat.4 <- software.domain.stat %>% subset(Domain == "Archaea"&p.adj.signif != "ns") %>% mutate(y.position = sapply(group1, function(x){
+ switch(
+    x,
+    "blastn" = 1750,
+    "clark" = 1750 + 150,
+    "clarks" =1750 + 150*2,
+    "centrifuge" = 1750+ 150*4)})) %>% mutate(p.adj.signif.2 = c("*","*","*","*"))
+
+software.domain.stat.all <- rbind(software.domain.stat.1,software.domain.stat.2,software.domain.stat.3,software.domain.stat.4)
+##########################################################################################################################################
+
+software.domain.stat.all$Domain <- factor(software.domain.stat.all$Domain, levels=c("Eukaryota", "Bacteria", "Viruses" , "Archaea"))
+software_domain_subset$Domain <- factor(software_domain_subset$Domain, levels=c("Eukaryota", "Bacteria", "Viruses", "Archaea"))
+p <- ggplot(software_domain_subset, aes(x=software, y=count))+
+  geom_boxplot(outlier.shape = NA,color="gray")+
+  geom_point(aes(color=samples),size=2, position = position_jitter(0.1))+
+  scale_color_manual(values = RColorBrewer::brewer.pal(12,"Paired"))+
+  stat_pvalue_manual(software.domain.stat.all, label = "p.adj.signif.2", hide.ns = TRUE,size =5, bracket.shorten =0 ,bracket.size = 0.3, tip.length = 0.01)+
+  facet_wrap(~Domain, scales = "free",ncol=4)+
+  theme_classic()+
+  theme(text=element_text(size=18), title=element_text(size=17),axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.2),tagger.panel.tag.background = element_rect(linetype = 0,fill = alpha("white", 0)))+
+  scale_y_continuous(label=comma)+
+  labs(x="Software", y="Domain Level Read Count")
+
+software.domain.stat
+p
+
+software_domain_subset %>% group_by(software, Domain, samples) %>%  summarise(mean=mean(count)) %>% group_by(software, Domain) %>%  summarise(mean=mean(mean)) %>% subset(Domain == "Viruses")
+# add_sheet(software.xlsx,"3.software.domain.stats", software.domain.stat %>% dplyr::select(Domain, group1, group2, p, p.adj, p.adj.signif))
+ggsave("5.figures/software.comparison.domain.counts.tiff", p, width = 15, height = 6)
+
+```
+
+# microbiom analysis
+- host taxa (Eukaryota) were **removed** from the downstream analysis
+- also, taxa for all software are aggregating at Species level to 
+```{r}
+software_w_eukary <- c("blastn", "diamond_megan", "centrifuge", "clark", "bracken", "kraken2_std", "kraken2_max","kraken2_min","kraken2_cus")
+for(software in names(software_list)){
+  print(eval(software))
+  software_obj <- paste(software,"phylo", sep = "_")
+  if(software %in% software_w_eukary){
+    eukary_taxa <- rownames(tax_table(get(software_obj))[tax_table(get(software_obj))[,"Domain"] == "d__Eukaryota",])
+    eurkary_phylo <- pop_taxa(get(software_obj), eukary_taxa)
+    print(paste(eval(software_obj),"with eukaryota"))
+  }else{
+    eurkary_phylo <-get(software_obj)
+    print(paste(eval(software_obj),"without eukaryota"))
+  }
+  
+  
+  eukary_sp <- tax_glom(eurkary_phylo, "Species")
+  assign(paste(software,"sp", sep = "_"), eukary_sp)
+}
+
+software_species <- list(blastn=blastn_sp, diamond_megan = diamond_megan_sp,kraken2_std=kraken2_std_sp,kraken2_mini=kraken2_mini_sp,kraken2_max=kraken2_max_sp,kraken2_std=kraken2_cus_sp,bracken=bracken_sp,centrifuge = centrifuge_sp,clark = clark_sp,clarks = clarks_sp,metaphlan3 = metaphlan3_sp,kaiju =kaiju_sp)
+
+# lapply(software_species, ntaxa)
+
+```
+# characterize samples at the species level
+
+### full microbial species table
+```{r}
+software_list_char <- list(blastn="blastn_sp", diamond_megan = "diamond_megan_sp",kraken2_std="kraken2_std_sp",kraken2_mini="kraken2_mini_sp",kraken2_max="kraken2_max_sp",kraken2_std="kraken2_cus_sp",bracken="bracken_sp",centrifuge = "centrifuge_sp",clark = "clark_sp",clarks = "clarks_sp",metaphlan3 = "metaphlan3_sp",kaiju ="kaiju_sp")
+
+
+x<- software_list_char[[1]]
+get_sp_taxa <- function(x){
+  y <- as.data.frame(otu_table(get(x))) %>% rownames_to_column() %>% dplyr::rename(TaxID = rowname) 
+  y1 <- y %>% pivot_longer(starts_with("R")) %>% subset(value != 0) 
+  name <- unlist(strsplit(x, "_", fixed = TRUE))
+  if(name[1] == "kraken2" | name[1] == "diamond"){
+    colnames(y1) <- c("TAXID","samples", paste(name[1],name[2], sep="_"))
+  }else{
+    colnames(y1) <- c("TAXID","samples", name[1])
+  }
+  y1
+}
+
+full_species_table_df <- Reduce(full_join,lapply(software_list_char,get_sp_taxa))
+full_species_table_df[is.na(full_species_table_df)] <- 0
+
+
+Taxa_table <- Reduce(full_join, lapply(software_list, function(x){
+  as.data.frame(tax_table(x)) %>% rownames_to_column() %>% dplyr::rename(TAXID = rowname) 
+}))
+
+full_micorbial_species_table <- left_join(full_species_table_df, Taxa_table, by="TAXID")
+
+full_micorbial_species_table
+```
+
+### get pairwise intersection between software
+- recall rate of the distinct species taxa profile of one software from the profile of another software 
+  - num of intersect species taxa / total number of taxa identified in the **first** software (left, first loop software)
+  - num of intersect species taxa / total number of taxa identified in the **second** software (right, second loop software)
+  
+```{r}
+
+full_species_table_df_presence <- full_species_table_df %>% pivot_longer(softwares, names_to = "software", values_to = "count") %>% mutate(presence = ifelse(count == 0, "", "X")) %>% select(!count)
+# soft <- softwares[1]
+# soft_c <- softwares[2]
+i = 1
+sp_intersect_df <- data.frame(samples = as.character(), total_left=as.character, total_right=as.character(), num_intersect=as.numeric(), left_recall = as.double(), right_recall= as.double())
+for(soft in softwares[1: length(softwares)-1]){
+  i = i + 1
+  for(soft_c in softwares[i: length(softwares)]){
+    print(paste("software1", soft, "; " , "software2", soft_c))
+    if(soft_c != soft){
+      t <- full_species_table_df_presence %>% subset(software %in%c(eval(soft), eval(soft_c)))  %>% pivot_wider(names_from = "software", values_from = "presence") %>% subset(!(get(soft) == "" & get(soft_c) == "")) %>% mutate(isIntersect=mapply(function(x,y){
+        if(x == y){
+          1
+        }else{
+          0
+        }
+      },get(soft), get(soft_c)))%>% group_by(samples) %>% mutate(total_left = sum(get(soft) == "X"))%>% mutate(total_right = sum(get(soft_c) == "X"))%>% group_by(samples,total_left, total_right) %>% summarise(num_intersect = sum(isIntersect)) %>% mutate(left_recall = (num_intersect/total_left)*100, right_recall = (num_intersect/total_right)*100)
+      t$pairs <- paste(soft, soft_c, sep=" vs. ")
+      t
+      sp_intersect_df <- rbind(sp_intersect_df, t)
+    }
+  }
+}
+
+
+
+sp_intersect_df_longer <- sp_intersect_df %>% ungroup()%>%select(-c("total_left", "total_right", "num_intersect")) %>% pivot_longer(ends_with("recall"), names_to = "side", values_to = "value")
+
+compairsons_sp <- unique(sp_intersect_df_longer$pairs)
+# sp_intersect_df_longer$pairs <- factor(sp_intersect_df_longer$pairs, levels = rev(c(compairsons_sp[grepl("blastn ", compairsons_sp)], compairsons_sp[grepl("clark ", compairsons_sp)],compairsons_sp[grepl("clarks ", compairsons_sp)],compairsons_sp[grepl("metaphlan3 ", compairsons_sp)],compairsons_sp[grepl("diamond ", compairsons_sp)],compairsons_sp[grepl("kaiju ", compairsons_sp)],compairsons_sp[grepl("centrifuge ", compairsons_sp)],compairsons_sp[grepl("bracken ", compairsons_sp)],compairsons_sp[grepl("^kraken2_[std|min|cus|max]", compairsons_sp)])))
+
+sp_intersect_df_longer.1 <- sp_intersect_df_longer %>% mutate(software1=sapply(pairs, function(x){
+  unlist(strsplit(as.character(x), split = " vs. ", fixed = TRUE))[1]
+})) %>% mutate(software2=sapply(pairs, function(x){
+  unlist(strsplit(as.character(x), split = " vs. ", fixed = TRUE))[2]
+})) 
+
+
+
+sp_intersect_df_longer.1$software1 <- factor(sp_intersect_df_longer.1$software1, levels=rev(c("blastn", "clark", "clarks" ,"metaphlan3", "diamond_megan", "kaiju", "centrifuge", "bracken",softwares[grepl("kraken2",softwares)])))
+
+colors <- RColorBrewer::brewer.pal(12,"Paired")
+plot1 <- sp_intersect_df_longer.1 %>% subset(side == "right_recall")%>%
+  ggplot(aes(x = pairs, y = value, color=software2)) +
+  geom_boxplot(size = 0.5, alpha = 0.75) +
+  ylab("Relative Precision") +
+  theme_bw() +
+  theme(axis.title.y = element_blank(), axis.text.y = element_text(hjust = 0.5))+
+  coord_flip()+
+  scale_color_manual(values=c("blastn" = colors[1], "clark"= colors[2], "clarks" = colors[3],"metaphlan3"= colors[4], "diamond_megan"= colors[5], "kaiju"= colors[6], "centrifuge"= colors[7], "bracken"= colors[8],"kraken2_std"= colors[9],"kraken2_mini"= colors[10], "kraken2_cus"= colors[11],"kraken2_max"= colors[12] ))
+
+plot2 <- sp_intersect_df_longer.1 %>% subset(side == "left_recall")%>%
+  ggplot(aes(x = pairs, y = value, color=software1)) +
+  geom_boxplot(size = 0.5, alpha = 0.75) +
+  scale_y_reverse()+
+  scale_x_discrete(position = "top")+
+  ylab("Relative Precision") +
+  theme_bw() +
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank(), legend.position = "none")+
+  coord_flip()+
+  scale_color_manual(values=c(RColorBrewer::brewer.pal(12,"Paired")))+
+  scale_color_manual(values=c("blastn" = colors[1], "clark"= colors[2], "clarks" = colors[3],"metaphlan3"= colors[4], "diamond_megan"= colors[5], "kaiju"= colors[6], "centrifuge"= colors[7], "bracken"= colors[8],"kraken2_std"= colors[9],"kraken2_mini"= colors[10], "kraken2_cus"= colors[11],"kraken2_max"= colors[12] ))
+# Draw the two plot aligned vertically, with the top plot 1/3 of the height
+# of the bottom plot
+rp <- cowplot::plot_grid(plot2,plot1,  align = "h", ncol = 2, rel_widths  = c(0.375, 0.625))
+rp
+ggsave("5.figures/distinct_microbial_taxa_intersect_proportion_between_software.tiff", rp, width = 12, height = 9 )
+
+```
+- distinct species taxa comparisons stat
+```{r}
+sp_intersect_df_longer.1 %>% group_by(pairs,side) %>% summarise(mean=mean(value, na.rm=TRUE), sd=sd(value, na.rm=TRUE), median = median(value, na.rm=TRUE)) %>% subset(grepl("bracken", pairs))
+
+
+```
+## number of most abundant taxa intersect between software
+- top 0-300 most abundant species taxa's percentage of intersection across samples
+```{r}
+
+
+sum_samples_species_prop <-  full_species_table_df %>% pivot_longer(softwares, names_to = "software", values_to = "count") %>% subset(count !=0) %>% select(!samples) %>% group_by(software) %>% mutate(total= sum(count)) %>% mutate(prop = (count/total)*100) %>% group_by(software) %>% arrange(desc(prop), .by_group = TRUE) 
+
+
+pairwise_topN_species_intersect <- data.frame(pairs = as.character(), intersect_size = as.numeric(), top_n=as.numeric())
+i = 1
+for(soft in softwares[1: length(softwares)]){
+  # i = i + 1
+  for(soft_c in softwares[1: length(softwares)]){
+    print(paste("software1", soft, "; " , "software2", soft_c))
+  for(n in seq(0, 300, 5)){
+      t <- sum_samples_species_prop %>% 
+        subset(software %in% c(eval(soft), eval(soft_c))) %>% 
+        slice_max(order_by = prop ,n = n) %>% distinct(TAXID, .keep_all = TRUE) %>%
+        select(TAXID, software)%>% mutate(present = "x") %>%
+        pivot_wider(names_from = software, values_from = present) 
+      t[is.na(t)] <- ""
+      if(dim(t)[1] != 0){
+        t <- t %>% mutate(is_intersect = mapply(function(x,y){
+        ifelse(x == y, 1, 0)
+          },get(soft), get(soft_c))) %>% 
+        summarise(pairs=paste(eval(soft),eval(soft_c), sep="-"),intersect_size = (sum(is_intersect)/nrow(.))*100, top_n=n)
+      
+        pairwise_topN_species_intersect <- rbind(pairwise_topN_species_intersect, t) 
+      }else{
+        t <- data.frame(pairs=paste(eval(soft),eval(soft_c), sep="-"),intersect_size = 0, top_n=n)
+        pairwise_topN_species_intersect <- rbind(pairwise_topN_species_intersect, t) 
+      }
+  }
+  }
+}
+pairwise_topN_species_intersect
+
+pairwise_topN_species_intersect.1 <- pairwise_topN_species_intersect %>% mutate(first_software = sapply(pairs, function(x){
+  unlist(strsplit(x, "-", fixed = TRUE))[1]
+}))%>% mutate(Compare_To = sapply(pairs, function(x){
+  unlist(strsplit(x, "-", fixed = TRUE))[2]
+})) %>% subset(first_software != Compare_To)
+
+pairwise_topN_species_intersect.1$first_software <- factor(pairwise_topN_species_intersect.1$first_software, levels = softwares)
+
+unique(pairwise_topN_species_intersect.1$first_software)
+# pairwise_topN_species_intersect.1 %>% subset(first_software)
+
+pa <- ggplot(pairwise_topN_species_intersect.1, aes(x=top_n, y = intersect_size, color=Compare_To))+
+  geom_line()+
+  theme_bw()+
+  scale_x_continuous(breaks =seq(0,300,10))+
+  facet_wrap(~first_software, ncol=3)+
+  theme(axis.text.x = element_text(angle=90))+
+  scale_color_manual(values=c(RColorBrewer::brewer.pal(12,"Paired")))+
+  labs(x= "Top # Most Abundant Micorbial Species Taxa", y = "Percentage of Intersection (%)")
+
+
+pa
+
+ggsave("5.figures/top_n_microbial_taxa_intersect_line_species.tiff", pa, width=12, height = 9)
+
+
+library(plotly)
+ggplotly(pa)
+
+
+pairwise_topN_species_intersect.1 %>% subset(top_n== 15)
+```
+### intersecting top N genus
+```{r}
+level = "Genus"
+
+sum_samples_level_prop <-  full_micorbial_species_table  %>% pivot_longer(softwares, names_to = "software", values_to = "count") %>% group_by(get(level), software) %>% summarise(level_count = sum(count)) %>% subset("get(level)" != "")%>% subset(level_count!=0) %>% group_by(software) %>% mutate(total= sum(level_count)) %>% mutate(prop = (level_count/total)*100) %>% group_by(software) %>% arrange(desc(prop), .by_group = TRUE) 
+
+colnames(sum_samples_level_prop) <- c(level, "software", "level_count", "total", "prop")
+
+pairwise_topN_level_intersect <- data.frame(pairs = as.character(), intersect_size = as.numeric(), top_n=as.numeric())
+i = 1
+for(soft in softwares[1: length(softwares)]){
+  # i = i + 1
+  for(soft_c in softwares[1: length(softwares)]){
+    print(paste("software1", soft, "; " , "software2", soft_c))
+  for(n in seq(0, 300, 5)){
+      t <- sum_samples_level_prop %>% 
+        subset(software %in% c(eval(soft), eval(soft_c))) %>% 
+        slice_max(order_by = prop ,n = n) %>% distinct(get(level), .keep_all = TRUE) %>%
+        select(eval(level), software)%>% mutate(present = "x") %>%
+        pivot_wider(names_from = software, values_from = present) 
+      t[is.na(t)] <- ""
+      if(dim(t)[1] != 0){
+        t <- t %>% mutate(is_intersect = mapply(function(x,y){
+        ifelse(x == y, 1, 0)
+          },get(soft), get(soft_c))) %>% 
+        summarise(pairs=paste(eval(soft),eval(soft_c), sep="-"),intersect_size = (sum(is_intersect)/nrow(.))*100, top_n=n)
+      
+        pairwise_topN_level_intersect <- rbind(pairwise_topN_level_intersect, t) 
+      }else{
+        t <- data.frame(pairs=paste(eval(soft),eval(soft_c), sep="-"),intersect_size = 0, top_n=n)
+        pairwise_topN_level_intersect <- rbind(pairwise_topN_level_intersect, t) 
+      }
+  }
+  }
+}
+pairwise_topN_level_intersect
+
+pairwise_topN_level_intersect.1 <- pairwise_topN_level_intersect %>% mutate(first_software = sapply(pairs, function(x){
+  unlist(strsplit(x, "-", fixed = TRUE))[1]
+}))%>% mutate(Compare_To = sapply(pairs, function(x){
+  unlist(strsplit(x, "-", fixed = TRUE))[2]
+})) %>% subset(first_software != Compare_To)
+
+pairwise_topN_level_intersect.1$first_software <- factor(pairwise_topN_level_intersect.1$first_software, levels = softwares)
+
+pa <- ggplot(pairwise_topN_level_intersect.1, aes(x=top_n, y = intersect_size, color=Compare_To))+
+  geom_line()+
+  theme_bw()+
+  scale_x_continuous(breaks =seq(0,300,10))+
+  facet_wrap(~first_software, ncol=3)+
+  theme(axis.text.x = element_text(angle=90))+
+  scale_color_manual(values=c(RColorBrewer::brewer.pal(12,"Paired")))+
+  labs(x= paste0("Top # Most Abundant Micorbial ",level ," Taxa"), y = "Percentage of Intersection")
+
+
+pa
+
+ggsave(paste0("5.figures/top_n_microbial_taxa_intersect_line_",level,".tiff"), pa, width=12, height = 9)
+
+# 
+# library(plotly)
+# ggplotly(pa)
+  
+```
+
+## calculate euclidean distances between the overall abundance profiles between softwares within each sample
+- L2 distances is then compared taking the average L2 distances of all samples
+```{r}
+
+
+euclidean <- function(a, b) sqrt(sum((a - b)^2))
+scalar1 <- function(x) {x / sqrt(sum(x^2))} # normalize the vector X, Xi/sqrt(sum(Xi^2 + ... + Xn^2))
+
+# cur_comp <- full_species_table_df %>% subset(samples == "R22.S") %>% subset(blastn != 0& diamond_megan !=0) %>% select(blastn,diamond)
+
+
+all_pairwise_l2_df <- data.frame(sofwate1 = as.character(), sofwate2 = as.character(), sample = as.character(), L2 = as.numeric(), L2_norm = as.numeric())
+for(sample in as.character(samples)){
+  print(sample)
+  i = 1
+  sample_pairwise_l2_df <- data.frame(sofwate1 = as.character(), sofwate2 = as.character(), sample = as.character(), L2 = as.numeric(), L2_norm = as.numeric())
+  for(soft in softwares[1: length(softwares)-1]){
+    i = i + 1
+    for(soft_c in softwares[i: length(softwares)]){
+        print(paste("software1", soft, "; " , "software2", soft_c))
+        #only checking abundance profiles of the overlapping taxa between software at the same sample
+        cur_comp <- full_species_table_df %>% subset(samples == eval(sample)) %>% select(eval(soft),eval(soft_c)) 
+        cur_l2 <- euclidean(cur_comp[,eval(soft)], cur_comp[,eval(soft_c)])
+        cur_df <- data.frame(software1 = soft, software2= soft_c, sample = eval(sample), L2 = cur_l2, L2_norm = 0) 
+        sample_pairwise_l2_df <- rbind(sample_pairwise_l2_df, cur_df)
+        
+      }
+  
+  }
+    sample_pairwise_l2_df$L2_norm <- scalar1(sample_pairwise_l2_df$L2)
+    all_pairwise_l2_df <- rbind(all_pairwise_l2_df, sample_pairwise_l2_df)
+}
+
+all_pairwise_l2_df_summary <- all_pairwise_l2_df %>% group_by(software1, software2) %>% summarise(avg_L2_norm = mean(L2_norm)) # average L2_distance across samples
+
+all_pairwise_l2_df_summary #%>% pivot_wider(names_from = software2, values_from = avg_L2_norm) %>% column_to_rownames("software1")
+all_pairwise_l2_df_summary.1 <- data.frame(software1 = all_pairwise_l2_df_summary$software2, software2 = all_pairwise_l2_df_summary$software1, avg_L2_norm = all_pairwise_l2_df_summary$avg_L2_norm )
+all_pairwise_l2_df_summary.full <- rbind(all_pairwise_l2_df_summary, all_pairwise_l2_df_summary.1)%>% pivot_wider(names_from = software2, values_from = avg_L2_norm) %>% column_to_rownames("software1")
+all_pairwise_l2_df_summary.full[is.na(all_pairwise_l2_df_summary.full)] <- 0
+mat <- as.matrix(all_pairwise_l2_df_summary.full)
+hclust(dist(mat[lower.tri(mat)]))
+
+all_pairwise_l2_df_summary.full <- all_pairwise_l2_df_summary.full[c("diamond_megan", "kaiju", "clarks", "bracken","blastn","kraken2_max", "kraken2_min", "metaphlan3", "kraken2_cus", "clark", "centrifuge", "kraken2_std" ),]
+
+tiff(paste0("5.figures/pairwise_L2_dist.tiff"), width=800, height =800, res=300)
+pheatmap(all_pairwise_l2_df_summary.full,cluster_cols =TRUE,cluster_rows = FALSE, col = colorRampPalette(c("white", "lightyellow","orange","red"))(25), fontsize = 6,treeheight_col = 30)
+dev.off()
+```
+
+
+### species with at least 10% reads from each samples identified from each software
+```{r}
+# 
+# phylo_sp <- software_species[[1]]
+# tenPer_sp <- function(phylo_sp){
+# tenPer_df <- as.data.frame(otu_table(phylo_sp)) %>% rownames_to_column()%>%pivot_longer(names_to="samples", values_to="count", cols =samples)%>% group_by(samples) %>% mutate(total = sum(count)) %>% mutate(tenPercent = total * 0.1) %>% subset(count >= tenPercent) %>% arrange(desc(count), .by_group = TRUE)
+# unique(tenPer_df$rowname)
+# }
+# 
+# # intersect(unlist(unique(tenPer_sp_software_list)),intersect_sp)
+# 
+# tenPer_sp_software_list <- lapply(software_species, tenPer_sp)
+# table(unlist(tenPer_sp_software_list))[names(table(unlist(tenPer_sp_software_list))) %in%intersect_sp ]
+# tenPer_sp_software_list_count <- lapply(tenPer_sp_software_list , length)
+# 
+# intersect_tenPer <- Reduce(intersect, tenPer_sp_software_list[names(tenPer_sp_software_list)] )
+# s1 <- data.frame(tax_table(blastn_sp))
+# # s1 %>% rownames_to_column() %>% subset(rowname %in% c(173,807))
+# 
+# mtp <- make_comb_mat(tenPer_sp_software_list, mode = "intersect")
+# 
+# as.data.frame(comb_size(mtp)[order(comb_size(mtp), decreasing = TRUE)])
+# 
+# UpSet(mtp)
+
+```
+
+## estimate alpha diversity obtained from the classification of each software
+```{r}
+
+software.alpha <- data.frame(samples = character(), Observed=numeric(), Shannon = numeric(), Simpson = numeric(), database=character())
+for(i in 1:length(software_species)){
+  
+ software.alpha <- rbind(software.alpha, estimate_richness(unname(software_species[i])[[1]], measures = c("Observed","shannon", "Simpson")) %>% rownames_to_column(var="samples") %>% mutate(software = names(software_list[i])))
+}
+
+
+ software.alpha.longer <-  software.alpha %>% pivot_longer(c("Observed","Shannon", "Simpson"), names_to = "alpha_index", values_to = "values")
+ unique(software.alpha.longer$software)
+
+```
+
+# alpha diversity
+
+```{r}
+
+software.alpha.longer$samples <- factor(software.alpha.longer$samples, levels=samples)
+software.alpha.longer$software <- factor(software.alpha.longer$software, levels = softwares)
+# shapes <- c(16:18, 6:14)
+
+alpha.stat.soft <- software.alpha.longer %>%
+  group_by(alpha_index) %>%
+  wilcox_test(values~software,p.adjust.method ="holm", paired = TRUE) %>%
+  add_significance()%>%
+  add_xy_position(x = "software", dodge = 0.1, scales = "free") %>%
+  add_y_position(fun="max", step.increase = 0.2, scales = "free")
+
+
+alpha.stat.soft.1 <- alpha.stat.soft %>% subset(alpha_index == "Observed"&p.adj.signif != "ns") %>% mutate(y.position = sapply(group1, function(x){
+  switch(
+    x,
+    "blastn" = 2800,
+    "clark" = 2800 + 200,
+    "clarks" = 2800 + 200*2,
+    "metaphlan3" = 2800 + 200*3,
+    "diamond_megan" = 2800 + 200*4,
+    "kaiju" = 2800 + 200*5,
+    "centrifuge" = 2800 + 200*6,
+  "bracken" = 2800 + 200*7,
+"kraken2_std" = 2800 + 200*8,
+"kraken2_mini" = 2800 + 200*9,
+"kraken2_cus" = 2800 + 200*10) })) %>% mutate(p.adj.signif.2 = c(c(rep("",6),"*"),c(rep("",8),"*"), c(rep("",8),"*"), c(rep("",7),"*"),c(rep("",5),"*"),c(rep("",4),"*"),c(rep("",4), "*"),c(rep("",2), "*"),c(rep("",2),"*"),c(rep("",1),"*"), "*"))
+# alpha.stat.soft[alpha.stat.soft["alpha_index"] == "Observed" & alpha.stat.soft["p.adj.signif"] != "ns", "y.position"] <- seq(3483, 3483+ (500 * 29), 500)
+alpha.stat.soft.2 <- alpha.stat.soft %>% subset(alpha_index == "Shannon"&p.adj.signif != "ns") %>% mutate(y.position = sapply(group1, function(x){
+  switch(
+       x,
+    "blastn" =7,
+    "clark" = 7 + 0.4,
+    "clarks" = 7 + 0.4*2,
+    "metaphlan3" = 7 + 0.4*3,
+    "diamond_megan" = 7 + 0.4*4,
+    "kaiju" = 7 + 0.4*5,
+    "centrifuge" = 7 + 0.4*6,
+  "bracken" = 7+ 0.4*7,
+"kraken2_std" = 7 + 0.4*8,
+"kraken2_mini" = 7 + 0.4*9)})) %>% mutate(p.adj.signif.2 = c(c(rep("",2),"*"), c(rep("",5),"*"), c(rep("",4),"*"),c(rep("",6),"*"),c(rep("",3),"*"),c(rep("",3),"*"),c(rep("",2),"*"),c(rep("",2),"*"),"*","*"))
+# alpha.stat.soft[alpha.stat.soft["alpha_index"] == "Shannon" & alpha.stat.soft["p.adj.signif"] != "ns", "y.position"] <- seq(7, 7+ 0.6 * 22, 0.6)
+alpha.stat.soft.3 <- alpha.stat.soft %>% subset(alpha_index == "Simpson"&p.adj.signif != "ns") %>% mutate(y.position = sapply(group1, function(x){
+  switch(
+    x,
+    "blastn"=1.1,
+    "clarks" = 1.1+0.05,
+    "kaiju" = 1.1 + 0.05*2,
+    "centrifuge" = 1.1 + 0.05 *3
+)})) %>% mutate(p.adj.signif.2 = c("*", c(rep("",1),"*"), "*","*"))
+
+# alpha.stat.soft[alpha.stat.soft["alpha_index"] == "Simpson" & alpha.stat.soft["p.adj.signif"] != "ns", "y.position"] <- seq(1.1, 1.1+ 0.05 * 6, 0.05)
+
+alpha.stat.soft.all <- rbind(alpha.stat.soft.1,alpha.stat.soft.2,alpha.stat.soft.3)
+
+
+
+p <- ggplot(software.alpha.longer, aes(x=software, y=values))+
+  geom_boxplot(outlier.shape = NA, color = "gray")+
+  geom_point(aes(color=samples),size=3, position = position_jitter(0.1))+
+  scale_color_manual(values = RColorBrewer::brewer.pal(12,"Paired"))+
+  facet_wrap(~alpha_index, scales = "free_y")+
+  stat_pvalue_manual(alpha.stat.soft.all, label = "p.adj.signif.2", hide.ns = TRUE,size=5, bracket.shorten =0 ,bracket.size = 0.3, tip.length = 0.01)+
+  theme_classic()+
+  theme(text=element_text(size=20), title=element_text(size=17),axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.2),tagger.panel.tag.background = element_rect(linetype = 0,fill = alpha("white", 0)))+
+  scale_y_continuous(label=comma)+
+  labs(x="Software", y="Species Level Alpha Diversity")
+p
+
+
+# add_sheet(software.xlsx,"5.alpha.stats", alpha.stat.soft %>% dplyr::select(alpha_index, group1, group2, p, p.adj, p.adj.signif))
+ggsave("5.figures/software.comparison.alpha.indices.tiff", p,width = 15,height = 7)
+
+#  software.alpha.longer
+# write.csv(software.alpha.longer, "4.tables/II.alpha.indices.all.profiles.csv", row.names = FALSE)
+stats.alpha <- alpha.stat.soft %>% dplyr::select(alpha_index, group1, group2, p, p.adj, p.adj.signif)
+# write.csv(stats.alpha ,"4.tables/II.alpha.indices.comparisons_stats.csv", row.names = FALSE)
+
+```
+
+# beta diversity
+
+### function to plot beta heatmap
+```{r}
+plot_beta_heatmap <- function(software){
+phyloseq_obj <- paste0(software, "_sp")
+annot_colors<- list(Subject= c(R22 = "#0b7fab", R26="#e9723d", R27="#f4d75e", R28="#7c7b89"), Tissue=c(Kidney = "#c33124", Lung="#a1dffb", Spleen="#e8a628"))
+beta_dist_db <- as.matrix(vegdist(t(otu_table(get(phyloseq_obj))), index="bray"))
+beta_dist_db[is.na(beta_dist_db)] <- 1 # 1 in bray curtis index means not related
+p <- pheatmap::pheatmap(beta_dist_db, col = colorRampPalette(c("red", "#FFA701","lightyellow"))(50), annotation = metadata %>% select(Tissue, Sample),  annotation_colors = annot_colors,silent = TRUE, legend = FALSE, annotation_legend = FALSE, treeheight_row = 0, treeheight_col = 30,main = software)
+# ggsave("5.figures/legend.pdf",p, width = 12, height = 12)
+}
+
+```
+
+### generate beta hap map for all kraken2 databses
+```{r}
+software_species_char <- softwares
+
+software_beta_heatmaps <- lapply(software_species_char, plot_beta_heatmap)
+
+
+combined_software_heatmap <- grid.arrange(grid.arrange(),grobs = list(software_beta_heatmaps[[1]][[4]], software_beta_heatmaps[[2]][[4]], software_beta_heatmaps[[3]][[4]], software_beta_heatmaps[[4]][[4]], software_beta_heatmaps[[5]][[4]], software_beta_heatmaps[[6]][[4]], software_beta_heatmaps[[7]][[4]],software_beta_heatmaps[[8]][[4]],software_beta_heatmaps[[9]][[4]],software_beta_heatmaps[[10]][[4]],software_beta_heatmaps[[11]][[4]],software_beta_heatmaps[[12]][[4]]),ncol =3) # fourth item of every pheatmap object is the plot
+
+ggsave("5.figures/software.comparison.beta.heatmap.tiff", combined_software_heatmap,width = 12, height = 16)
+
+```
+### beta diversity statistics
+```{r}
+# must run one loop first
+beta_dist_stat <- data.frame(comparison = beta_dist_df_combined$comparison )
+
+for (software in softwares){
+  soft_phylo <- paste(software, "sp", sep="_") 
+  beta_dist <-as.matrix(vegdist(t(otu_table(get(soft_phylo))), index="bray")) 
+  beta_dist[is.na(beta_dist)] <- 1
+  beta_dist_upper <- melt(beta_dist)[melt(upper.tri(beta_dist))$value,]
+  ifelse(software == "metaphlan3",beta_dist_df_combined <- beta_dist_upper %>% mutate(comparison = paste(Var1, Var2, sep="-")) %>% dplyr::select(-c(Var1, Var2)) , beta_dist_df_combined <- beta_dist_upper %>% mutate(comparison = paste(Var2, Var1, sep="-")) %>% dplyr::select(-c(Var1, Var2)) )
+  colnames(beta_dist_df_combined) <-  c(eval(software), "comparison")
+  beta_dist_df_combined$comparison <- sort(beta_dist_df_combined$comparison)
+  beta_dist_stat <- left_join(beta_dist_stat, beta_dist_df_combined, by="comparison")
+}
+
+
+beta_dist_stat_longer <- beta_dist_stat %>% pivot_longer(cols = softwares, names_to = "software", values_to = "bray_curtis" )
+
+# if the between samples diversity different when classified by different databases
+beta_stat <- beta_dist_stat_longer %>%
+  wilcox_test(`bray_curtis`~software, paired = TRUE, p.adjust.method = "holm") 
+
+beta_stat
+
+# write.csv(beta_dist_stat, "4.tables/III.beta_diversity_BC_indices.csv", row.names = FALSE)
+# write.csv(beta_stat, "4.tables/III.beta_comparisons_stat.csv", row.names = FALSE)
+# add_sheet(software.xlsx,"6.beta.stats", beta_stat %>% dplyr::select(.y., group1, group2, p, p.adj, p.adj.signif))
+# write.xlsx(beta_stat_db,"4.tables/I.kraken2_db_comparison.xlsx",sheetName = "4.DB.beta.stat", append=TRUE)
+
+```
+
+
+# significantly abudnant taxa
+```{r}
+library(DESeq2)
+# software <- "kaiju"
+ref_tissue <- "Lung"
+contrast_t <- "Spleen"
+# function to do differential abudance analyses
+# software <- softwares[1]
+diff_abund_test <- function(software){
+  software_obj <- paste(software, "sp", sep="_")
+  KL_subset <- subset_samples(get(software_obj), Tissue %in%  c(ref_tissue , contrast_t))
+  sample_data(KL_subset)$Tissue <- relevel(factor(unique(sample_data(KL_subset)$Tissue)), ref_tissue)
+  
+  deseq2_obj <- phyloseq_to_deseq2(KL_subset, ~ Tissue)
+  deseq_out <- DESeq(deseq2_obj, test="Wald", sfType="poscounts")
+  
+  # resultsNames(deseq_out)
+  # plotDispEsts(deseq_out)
+  
+  LK_sigTax <- results(deseq_out, cooksCutoff = FALSE, contrast = c("Tissue", ref_tissue,contrast_t))
+  sign_taxa <- data.frame(LK_sigTax[which(LK_sigTax$padj < 0.05),]) %>% rownames_to_column()
+  KL_taxa <- data.frame(tax_table(KL_subset))%>% rownames_to_column()
+  sign_taxa_lineage <- left_join(sign_taxa, KL_taxa, by="rowname") %>% mutate(software = software)
+  sign_taxa_lineage
+}
+
+
+# sig_tax_df <- DA_df[[1]]
+summarize_DA <- function(sig_tax_df){
+  software <- sig_tax_df$software[1]
+  neg <- sig_tax_df %>% subset(log2FoldChange <0) %>% dplyr::select(Domain,Phylum, Genus, rowname) %>% group_by(Domain,Phylum, Genus) %>% summarise(negative =n())
+  pos <- sig_tax_df %>% subset(log2FoldChange >0) %>% dplyr::select(Domain,Phylum,Genus,rowname) %>% group_by(Domain,Phylum, Genus) %>% summarise(positive =n())
+  summary_df <- full_join(neg, pos, by=c("Domain","Phylum","Genus")) %>% pivot_longer(names_to = "direction", values_to = "n_species", cols = c("negative","positive")) %>% mutate(software =software)
+  summary_df[is.na(summary_df)] <- 0
+  summary_df
+}
+
+
+
+```
+
+
+```{r}
+
+# diff_abund_test(software="kaiju")
+DA_df <- lapply( softwares[softwares != "metaphlan3"], diff_abund_test) 
+# number of diffAbundant species  Lung vs. Kidney:172, 10, 141, 139, 596, 66,51, 549
+# number of diffAbundant species Lung vs. Spleen: 169, 44, 159, 171, 457, 86, 57, 484
+# number of diffAbundant species Kidney vs. Spleen: 57,6,42,41, 25, 47,38, 38
+
+combined_DA_species <- do.call(rbind, DA_df )
+
+i <- 1
+sp_list <- list()
+for(i in 1:11){
+  sp_list <- append(sp_list,list(DA_df[[i]]$Species))
+  i <- i + 1
+}
+names(sp_list) <- softwares[softwares != "metaphlan3"]
+Reduce(intersect, sp_list)
+DA_df[[10]][DA_df[[10]]["Species"] == "s__neurolyticum", ]
+# add_sheet(software.xlsx,"7.diffAbd_LvK", combined_DA_species %>% dplyr::rename(TaxID = rowname))
+# add_sheet(software.xlsx,"8.diffAbd_KvS", combined_DA_species %>% dplyr::rename(TaxID = rowname))
+# add_sheet(software.xlsx,"9.diffAbd_LvS", combined_DA_species %>% dplyr::rename(TaxID = rowname))
+DA_summary <- lapply(DA_df, summarize_DA)
+
+combined_DA_summary <- do.call(rbind, DA_summary)
+
+combined_DA_summary <- combined_DA_summary %>% mutate(direction = sapply(direction, function(x){
+  ifelse(x=="positive", eval(contrast_t), eval(ref_tissue))
+}))
+
+combined_DA_summary$Phylum<-  mapply(function(x, y){
+  ifelse(x == "" & y != "", paste0("p__", unlist(strsplit(y, "__", fixed = TRUE))[2]), ifelse(
+    x == "" & y == "", "p__unknown", x))
+},combined_DA_summary$Phylum, combined_DA_summary$Genus)
+
+combined_DA_summary$Genus <- mapply(function(x, y){
+  ifelse(x == "" & y != "", paste0("g__", unlist(strsplit(y, "__", fixed = TRUE))[2]), ifelse(
+    x == "" & y == "", "c__unknown", x))
+}, combined_DA_summary$Genus,combined_DA_summary$Phylum)
+
+# DA_df[[2]]
+
+# write.csv(combined_DA_species, "4.tables/IIII.DA_taxa_LvS", row.names = FALSE)
+```
+
+
+```{r}
+
+# manual_color <-c("#A0C4FF","#80B918","#FFC6FF","#4361EE","#FFADAD","#FFD6A5","#FDFFB6","#CAFFBF","#9BF6FF","#BDB2FF","#233D4D","#FE7F2D","#FCCA46","#A1C181",
+#                  "#619B8A","#EE6352","#59CD90","#3FA7D6","#FAC05E","#F79D84","#50514F","#F25F5C","#FFE066","#247BA0","#70C1B3",
+#                  "#FFD1E8","#C8A439","#465D6F","#A94303","#708841","#540D6E","#EE4266","#FFD23F","#3BCEAC","#0EAD69","#E3AB00ff","#D1DED3ff",
+#                  "#AD8EB0ff","#58BADCff","#A71D2Eff","#86D8BBff","#0050ADff","#97CBF0ff","#67A280ff","#F20089","#41EAD4","#FBFF12","#FEE440","#54478C")
+# 
+# combined_DA_summary %>% subset(software =="kaiju")
+# t1 <- combined_DA_summary %>% subset(Genus != "p__unknown")%>% subset(n_species != 0) %>% dplyr::select(Genus, software, direction)
+# p1 <- ggplot(combined_DA_summary %>% subset(Genus != "p__unknown")%>% subset(n_species != 0) %>% dplyr::select(Genus, software, direction) , aes(x=software))+
+#   geom_bar(aes(fill=direction))+
+#   geom_text(stat='count', aes(label=..count..), hjust = 1)+
+#   coord_flip()+
+#   scale_y_reverse()+
+#   theme_classic()+
+#   theme(text = element_text(size=16),axis.text.x = element_text(angle= 90), legend.position = "none", axis.text.y = element_blank(), axis.title.y = element_blank(),axis.title.x = element_text(vjust =-0.5),)+
+#   labs(y="Differentially Abundant Genera")+
+#   scale_x_discrete(position = "top")+
+#   coord_flip()+
+# scale_fill_manual(values= manual_color)
+#   # geom_text(aes(label=sum(n_species)), stat="identity")
+# p1 
+# 
+# unique_diffabd_phyla <- combined_DA_summary %>% subset(Phylum != "p__unknown")%>% subset(n_species != 0) %>% group_by(software, direction) %>% summarise(n_phylum = n_distinct(Phylum))
+# 
+# 
+# p2 <- ggplot(unique_diffabd_phyla, aes(x= software, y= n_phylum)) +
+#   geom_bar(stat="identity", aes(fill=direction))+
+#   theme_classic()+
+#    stat_summary(
+#     aes(label = stat(y)), fun.y = 'sum', geom = 'text', hjust = -0.1
+#   ) +
+#   theme(text = element_text(size=16),axis.text.x = element_text(angle= 90),axis.text.y = element_text(hjust=0.5), axis.title.y =element_blank() )+
+#   labs(y="Differentially Abundant Phyla")+
+#   coord_flip()+
+# scale_fill_manual(values= manual_color)
+# p2
+# plot <- grid.arrange(cbind(ggplotGrob(p1), ggplotGrob(p2), size = "last"))
+# 
+# unique_diffabd_phyla
+# 
+# ggsave("5.figures/III. software_diffAbdundant_bar_LvK.tiff", plot, width =15)
+# # ggsave("5.figures/III. software_diffAbdundant_bar_LvS.pdf", plot, width =15)
+# # ggsave("5.figures/software_diffAbdundant_bar_KvS.tiff", plot, width =15)
+```
+
+```{r}
+library(UpSetR)
+library(ComplexHeatmap)
+
+# make input dataframe for upsetR plot
+# present of a unique phyla in each software into binary matrix
+upsetR_species_matrix <- combined_DA_species%>% dplyr::select(c(Domain, Phylum,Genus,Species,software)) %>% distinct() %>% mutate(species_present = as.integer(1)) %>%pivot_wider(names_from = software, values_from = species_present) 
+upsetR_species_matrix[is.na(upsetR_species_matrix)] <- 0
+upsetR_species_matrix <- upsetR_species_matrix[,c("Species",softwares[softwares != "metaphlan3"], "Domain")] # reset column order
+upsetR_species_matrix <- as.data.frame(upsetR_species_matrix) # erase groups and other class objects on the variable
+
+# number of genus within each unique phylum annotation for each software
+# Family_count_diffAbd <- combined_DA_species %>% group_by(software) %>% summarise(Num.Families = n_distinct(Family))
+
+# function to check the number of phylum in each domain (ex. d__Viruses), use for query
+which_domain <- function(row, domain) {
+    data <- (row["Domain"]  == domain)
+}
+
+
+# tiff(file="5.figures/software_species_upset_LvS.tiff", res = 300, width = 2000, height = 1500)
+# pdf(file="5.figures/III.software_species_upset_LvS.pdf", width =9, height=5)
+# tiff(file="5.figures/software_species_upset_KvS.tiff", res = 300, width = 2000, height = 1500)
+upset(upsetR_species_matrix,  number.angles =0,query.legend = "top",sets = c(softwares[softwares != "metaphlan3"]), 
+order.by = "freq", sets.x.label = "Num.Species", queries = list(list(query = which_domain, params = list("d__Viruses"), color = "gray", active = T,query.name = "Viruses")))
+dev.off()
+
+upsetR_species_matrix %>% subset(diamond_megan !=0)
+```
+
+
+```{r}
+
+
+get_n_intersect_taxa <- function(df){
+  software_list <- colnames(df)[-1]
+  unique_taxa_list <- lapply(software_list, function(x){
+    unlist(df %>% select(colnames(df)[1], x) %>% subset(get(x) == 1) %>% distinct(get(colnames(df)[1])))
+    })
+  all_unique_taxa <- unlist(df %>% distinct(get(colnames(df)[1])))
+  length(Reduce(intersect,unique_taxa_list))/length(all_unique_taxa)
+}
+
+all_level_DA_per_intersect <- data.frame(Level = as.character(), per_intersect = as.numeric())
+for(lvl in colnames(tax_table(kaiju_sp))[-1]){
+
+  present_matrix <- combined_DA_species %>% dplyr::select(c(eval(lvl),software)) %>% subset(get(lvl) != "") %>% distinct() %>% mutate(phyla_present = as.integer(1))%>%pivot_wider(names_from = software, values_from = phyla_present) 
+  per_intersect <- get_n_intersect_taxa(present_matrix)
+  cur_lvl_intersect <- data.frame(Level = eval(lvl), per_intersect = per_intersect*100)
+  all_level_DA_per_intersect <- rbind(all_level_DA_per_intersect,cur_lvl_intersect)
+}
+
+all_level_DA_per_intersect$Level <- factor(all_level_DA_per_intersect$Level, levels =c(colnames(tax_table(kaiju_sp))[-1]))
+
+dap <- ggplot(all_level_DA_per_intersect, aes(x = Level, y = per_intersect,group=1))+
+  geom_point()+
+  geom_path()+
+  theme_bw()+
+  labs(y = "Percentage of DA taxa intersected (%)", x = "Taxonomy Level")+
+  theme(axis.text = element_text(size=10))
+dap
+
+# ggsave("5.figures/percent_DA_intersect_across_taxnomy_LvS.tiff", dap,dpi=300, height=5, width=6)
+
+```
+
+
+```{r}
+# library(pheatmap)
+# # check the exact phyla intersect between software using heatmap
+# upsetR_phylum_matrix <- combined_DA_species%>% dplyr::select(c(Domain, Genus ,software)) %>% distinct() %>% mutate(phyla_present = as.integer(1))%>%pivot_wider(names_from = software, values_from = phyla_present) 
+# upsetR_phylum_matrix[is.na(upsetR_phylum_matrix)] <- 0
+# phyla_matrix <- data.frame(upsetR_phylum_matrix[upsetR_phylum_matrix["Genus"]!="",])
+# rownames(phyla_matrix) <- phyla_matrix$Genus
+# phyla_matrix_final <- as.matrix(phyla_matrix %>% dplyr::select(softwares[softwares != "metaphlan3"]))
+# 
+# metadata_phyla <- phyla_matrix %>% dplyr::select(Domain, Genus) %>% dplyr::select(Domain)
+# domain_colors <- list(Domain = c(d__Bacteria = "#0b7fab", d__Viruses = "#e9723d", d__Archaea = "#f4d75e"))
+# 
+# tiff(file="5.figures/software_phyla_heatmap_KvL.tiff",res = 300, width=1500, height=2000)
+# # pdf(file="5.figures/III.software_phyla_heatmap_LvS.pdf", width=7, height=7)
+# # tiff(file="5.figures/software_phyla_heatmap_KvS.tiff",res = 300, width=2000, height=1500)
+# pheatmap(phyla_matrix_final,col = colorRampPalette(c("lightblue", "red"))(2), annotation_row  = metadata_phyla, annotation_colors = domain_colors,  treeheight_row =0, treeheight_col = 30, legend = FALSE, fontsize_col=12, fontsize_row=10,show_rownames = F)
+# 
+# dev.off()
+```
+
+# DA statistics
+```{r}
+combined_DA_species %>% group_by(software) %>% summarise(n_DA= n_distinct(Species))
+
+Reduce(intersect, sp_list)
+```
+
+# higher level analyese
+
+### aggregate reads at genus level
+```{r}
+
+for(software in names(software_list)){
+  print(eval(software))
+  software_obj <- paste(software,"sp", sep = "_")
+  genus_obj <- tax_glom(get(software_obj), "Genus")
+  assign(paste(software,"genus", sep = "_"), genus_obj)
+}
+
+genus_list <- list(blastn=blastn_genus, diamond =diamond_genus, kraken2=kraken2_genus,bracken=bracken_genus,centrifuge= centrifuge_genus,clark = clark_genus,clarks = clarks_genus,metaphlan = metaphlan3_genus,kaiju =kaiju_genus) 
+# phylum taxa count: 52, 12, 39, 21, 42, 39, 34, 5, 59
+# genus taxa count: 767, 79, 1058, 260, 1314, 698, 622, 13, 1614
+```
+
+
+### combine each software's phylum count into one dataframe
+```{r}
+read_genus_to_df <- function(software){
+  software_obj <- paste(software, "_genus", sep = "")
+  otu_df <- as.data.frame(otu_table(get(software_obj))) %>% rownames_to_column()
+  otu_df_longer <- pivot_longer(otu_df, names_to = "samples", values_to = "count", cols = starts_with("R2"))
+  tax_df <-as.data.frame(tax_table(get(software_obj)))%>% rownames_to_column() %>% dplyr::select(c(rowname, Genus))
+  df_combined <- left_join(otu_df_longer, tax_df, by="rowname")%>% dplyr::select(!rowname)
+  # df_combined <- df_combined %>% group_by(samples) %>% mutate(Total = sum(count)) %>% mutate(percent = (count/Total)*100) %>% pivot_longer(names_to = "stat", values_to = "value", cols = c(count, percent)) %>% dplyr::select(!Total)
+  colnames(df_combined) <- c( "samples",  software,"Genus")
+ # sum(df_combined[df_combined["samples"] == "R26.S"  & df_combined["stat"] == "percent","value"])
+  df_combined
+}
+
+# read_genus_to_df("kraken2")
+# genus_df[[1]]
+genus_df <- lapply(softwares, read_genus_to_df)
+genus_df_combined <- Reduce(function(...) merge(..., by=c("samples","Genus"),all=TRUE), genus_df)
+
+# any_dup<- genus_df_combined %>% subset(stat =="count") %>% dplyr::select(c(samples,Genus,stat))
+# any_dup[duplicated(any_dup),]
+# test <- data.frame(otu_table(metaphlan3_genus))
+
+genus_df_combined[is.na(genus_df_combined)] <- 0
+
+
+genus_df_combined_longer <- genus_df_combined %>% pivot_longer(names_to = "software", values_to = "values", cols = softwares)
+
+
+# some tax with same genus, but different families or order (higher ranks) cause duplication in rows, we will take the average of these genus for uniqueness
+genus_df_combined_longer <- genus_df_combined_longer %>% group_by(samples,Genus,software) %>% summarise(values=mean(values))
+
+genus_df_combined_longer %>% subset(values != 0) %>% group_by(software) %>% select(!c(samples, values)) %>% distinct() %>% summarise(m_genus=n())#%>% subset(software == "metaphlan3")
+```
+### keep top 10 genus for each software, combine rest phylum into one category
+```{r}
+top_5_genus_df <- genus_df_combined_longer %>% ungroup()%>% group_by(software,samples) %>%slice_max(order_by = values, n=3, with_ties = FALSE)
+
+
+top_5_genus<- unique(top_5_genus_df$Genus)
+
+rest_genus_df <- genus_df_combined_longer %>% subset(!Genus %in% top_5_genus) %>% group_by(samples, software) %>% summarise(values =sum(values)) %>% mutate(Genus = "g__Other.Genus")
+
+genus_df_simplified <- rbind(top_5_genus_df, rest_genus_df)
+unique(genus_df_simplified$Genus)
+genus_df_simplified$Genus <- factor(genus_df_simplified$Genus, levels= c("g__Other.Genus", unique(genus_df_simplified$Genus)[-54]))
+```
+### plot genus level abundance
+```{r}
+library(RColorBrewer)
+manual_color <-c("#A0C4FF","#80B918","#FEE440","#4361EE","#FFADAD","#FFD6A5","#FDFFB6","#CAFFBF","#9BF6FF","#BDB2FF","#FFC6FF","#233D4D","#FE7F2D","#FCCA46","#A1C181",
+                 "#619B8A","#EE6352","#59CD90","#3FA7D6","#FAC05E","#F79D84","#50514F","#F25F5C","#FFE066","#247BA0","#70C1B3",
+                 "#FFD1E8","#C8A439","#465D6F","#A94303","#708841","#540D6E","#EE4266","#FFD23F","#3BCEAC","#0EAD69","#E3AB00ff","#D1DED3ff",
+                 "#AD8EB0ff","#58BADCff","#A71D2Eff","#86D8BBff","#0050ADff","#97CBF0ff","#67A280ff","#F20089","#41EAD4","#FBFF12",brewer.pal(6, "Set2"),"#54478C")
+
+
+genus_df_simplified$software <- factor(genus_df_simplified$software, levels = softwares)
+# genus_df_simplified$stat <- factor(genus_df_simplified$stat , levels =c("count", "percent"))
+p1 <- ggplot(genus_df_simplified , aes(x= samples, y= values,fill=Genus))+
+  geom_bar(stat = "identity")+
+  facet_wrap(~software, scale="free_y", ncol = 1, strip.position = "left")+
+    theme_classic()+
+  theme(text=element_text(size=20), title=element_text(size=17),axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.2),tagger.panel.tag.background = element_rect(linetype = 0,fill = alpha("white", 0)),legend.position = "none",panel.spacing  = unit(0.08, "cm"), axis.title.x = element_blank())+
+  tag_facets()+
+guides(fill=guide_legend(ncol=2, bycol=TRUE))+
+  scale_y_continuous(label=comma)+
+  labs(y="genus abudance count")+
+  scale_fill_manual(values = manual_color)
+p1
+p2 <- ggplot(genus_df_simplified , aes(x= samples, y= values,fill=Genus))+
+  geom_bar(stat = "identity", position = "fill")+
+  facet_wrap(~software, scale="free_y", ncol = 1)+
+    theme_classic()+
+  theme(text=element_text(size=20), title=element_text(size=17),axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.2),tagger.panel.tag.background = element_rect(linetype = 0,fill = alpha("white", 0)),strip.background = element_blank(), strip.text = element_blank(),legend.position ="none", axis.title.y.right  = element_text(margin = margin(l = 10)), panel.spacing = unit(0.08, "cm"), axis.title.x = element_blank())+
+  # tag_facets()+
+guides(fill=guide_legend(ncol=2, bycol=TRUE))+
+  scale_y_continuous(label=comma,position = "right")+
+  labs(y="genus abudance count")+
+  scale_fill_manual(values = manual_color)
+p2
+pc <- grid.arrange(p1,p2,ncol=2)
+ggsave("5.figures/II.software_genus_bar.pdf",pc,width =15, height=15)
+
+unique(genus_df_simplified$Genus)
+l <- ggplot(genus_df_simplified , aes(x= samples, y= values,fill=Genus))+
+  geom_bar(stat = "identity")+
+  facet_wrap(~software, scale="free_y", ncol = 1)+
+    theme_classic()+
+  theme(text=element_text(size=20), title=element_text(size=17),axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.2),tagger.panel.tag.background = element_rect(linetype = 0,fill = alpha("white", 0)),strip.background = element_blank(), strip.text = element_blank(), axis.title.y.right  = element_text(margin = margin(l = 10)), panel.spacing = unit(0.08, "cm"), axis.title.x = element_blank())+
+  # tag_facets()+
+guides(fill=guide_legend(ncol=1, bycol=TRUE))+
+  scale_y_continuous(label=comma,position = "right")+
+  labs(y="genus abudance count")+
+  scale_fill_manual(values = manual_color)
+# ggsave("5.figures/II.software_genus_bar.legend.pdf",l,width =15, height=15)
+
+```
+
+### phylum level bar plot
+```{r}
+softwar <- "kaiju"
+read_phylum_to_df <- function(software){
+  software_obj <- paste(software, "_sp", sep = "") # we will use the genus level object for phylum aggregation
+  otu_df <- as.data.frame(otu_table(get(software_obj))) %>% rownames_to_column()
+  otu_df_longer <- pivot_longer(otu_df, names_to = "samples", values_to = "count", cols = starts_with("R2"))
+  tax_df <-as.data.frame(tax_table(get(software_obj)))%>% rownames_to_column() %>% dplyr::select(c(rowname, Domain,Phylum, Genus, Species))
+  df_combined <- left_join(otu_df_longer, tax_df, by="rowname")%>% dplyr::select(!rowname) %>% group_by(samples, Domain,Phylum, Genus, Species) %>% summarise(count=sum(count))
+  
+  colnames(df_combined) <- c( "samples",  "Domain", "Phylum","Genus","Species",software)
+ # sum(df_combined[df_combined["samples"] == "R26.S"  & df_combined["stat"] == "percent","value"])
+  df_combined
+}
+
+# read_phylum_to_df("kraken2")
+
+phylum_df <- lapply(softwares, read_phylum_to_df)
+phylum_df[[1]] %>% subset(Phylum == "p__Firmicutes") %>% subset(blastn!=0) %>% arrange(desc(blastn)) %>% subset(samples == "R27.S") %>% summarise(unique(Genus))
+phylum_df[[2]] %>% subset(Phylum == "p__Firmicutes") %>% subset(diamond!=0) %>% arrange(desc(diamond)) %>% subset(samples == "R28.L") #%>% summarise(unique(Genus))
+phylum_df[[3]] %>% subset(Phylum == "p__Firmicutes") %>% subset(kraken2!=0) %>% arrange(desc(kraken2)) %>% subset(samples == "R27.S")%>% summarise(unique(Genus))
+phylum_df[[4]] %>% subset(Phylum == "p__Firmicutes") %>% subset(bracken!=0) %>% arrange(desc(bracken)) %>% subset(samples == "R27.S")%>% summarise(unique(Genus))
+phylum_df[[5]] %>% subset(Phylum == "p__Firmicutes") %>% subset(centrifuge!=0) %>% arrange(desc(centrifuge)) %>% subset(samples == "R27.S")#%>% summarise(unique(Genus))
+phylum_df[[6]] %>% subset(Phylum == "p__Firmicutes") %>% subset(clark!=0) %>% arrange(desc(clark)) %>% subset(samples == "R27.L")%>% summarise(unique(Genus))
+phylum_df[[7]] %>% subset(Phylum == "p__Firmicutes") %>% subset(clarks!=0) %>% arrange(desc(clarks)) %>% subset(samples == "R27.L")%>% summarise(unique(Genus))
+phylum_df[[8]] %>% subset(Phylum == "p__Firmicutes") %>% subset(metaphlan3!=0) %>% arrange(desc(metaphlan3)) %>% subset(samples == "R27.L")%>% summarise(unique(Genus))#%>% group_by(Domain,Phylum, Genus, Species) %>% summarise(sum(metaphlan3))
+phylum_df[[9]] %>% subset(Phylum == "p__Firmicutes") %>% subset(kaiju!=0) %>% arrange(desc(kaiju)) %>% subset(samples == "R27.L")%>% summarise(unique(Genus))
+
+
+phylum_df_combined <- Reduce(function(...) merge(..., by=c("samples","Phylum"),all=TRUE), phylum_df)
+
+# any_dup<- genus_df_combined %>% subset(stat =="count") %>% dplyr::select(c(samples,Genus,stat))
+# any_dup[duplicated(any_dup),]
+# test <- data.frame(otu_table(metaphlan3_genus))
+
+phylum_df_combined[is.na(phylum_df_combined)] <- 0
+
+phylum_df_combined_longer <- phylum_df_combined %>% pivot_longer(names_to = "software", values_to = "values", cols = softwares)
+
+
+# # some tax with same genus, but different families or order (higher ranks) cause duplication in rows, we will take the average of these genus for uniqueness
+# phylum_df_combined_longer <- phylum_df_combined_longer %>% group_by(samples,Phylum,software) %>% summarise(values=mean(values))
+
+```
+
+### keep top 10 phylum for each software, combine rest phylum into one category
+```{r}
+top_5_phyla_df <- phylum_df_combined_longer %>% ungroup()%>% group_by(software,samples) %>%slice_max(order_by = values, n=5, with_ties = FALSE) %>% mutate(Phylum = sapply(Phylum, function(x){ifelse(x != "", unlist(strsplit(x, " ", fixed = TRUE))[1],"")})) %>% subset(Phylum != "")
+
+
+top_5_phyla<- unique(top_5_phyla_df[top_5_phyla_df["Phylum"] != "",]$Phylum)
+
+rest_phylum_df <- phylum_df_combined_longer %>% subset(!Phylum %in% top_5_phyla) %>% mutate(Phylum = sapply(Phylum, function(x){
+  s <- unlist(strsplit(x, " ", fixed = TRUE))[1]
+  ifelse(x=="", "p__", s)
+}))%>% group_by(samples, software) %>% summarise(values =sum(values)) %>% mutate(Phylum = "p__Other.Phyla")
+
+
+phyla_df_simplified <- rbind(top_5_phyla_df, rest_phylum_df)
+
+
+phyla_df_simplified$Phylum <- factor(phyla_df_simplified$Phylum, levels= c("p__Other.Phyla", unique(phyla_df_simplified$Phylum)[-22]))
+
+phylum_df_combined_longer %>% subset(samples == "R27.L" & software == "diamond" &values != 0)  %>% group_by(software) %>% summarise(n_distinct(Phylum))
+```
+
+### plot phylum level abundance
+```{r}
+
+manual_color <-c("#A0C4FF","#80B918","#FFC6FF","#4361EE","#FFADAD","#FFD6A5","#FDFFB6","#CAFFBF","#9BF6FF","#BDB2FF","#233D4D","#FE7F2D","#FCCA46","#A1C181",
+                 "#619B8A","#EE6352","#59CD90","#3FA7D6","#FAC05E","#AD8EB0ff","#F79D84","#cccccc","#F25F5C","#FFE066","#247BA0","#70C1B3",
+                 "#FFD1E8","#C8A439","#465D6F","#A94303","#708841","#540D6E","#EE4266","#FFD23F","#3BCEAC","#0EAD69","#E3AB00ff","#D1DED3ff",
+                 "#AD8EB0ff","#58BADCff","#A71D2Eff","#86D8BBff","#0050ADff","#97CBF0ff","#67A280ff","#F20089","#41EAD4","#FBFF12","#FEE440","#54478C")
+
+# genus_df_simplified$stat <- factor(genus_df_simplified$stat , levels =c("count", "percent"))
+phyla_df_simplified$software<- factor(phyla_df_simplified$software, levels = softwares)
+p1 <- ggplot(phyla_df_simplified , aes(x= samples, y= values,fill=Phylum))+
+  geom_bar(stat = "identity")+
+  facet_wrap(~software, scale="free_y", ncol = 1, strip.position = "left")+
+    theme_classic()+
+  theme(text=element_text(size=20), title=element_text(size=17),axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.2),tagger.panel.tag.background = element_rect(linetype = 0,fill = alpha("white", 0)),legend.position = "none",panel.spacing  = unit(0.08, "cm"), axis.title.x = element_blank())+
+  tag_facets()+
+guides(fill=guide_legend(ncol=2, bycol=TRUE))+
+  scale_y_continuous(label=comma)+
+  labs(y="genus abudance count")+
+  scale_fill_manual(values = manual_color)
+p1
+p2 <- ggplot(phyla_df_simplified , aes(x= samples, y= values,fill=Phylum))+
+  geom_bar(stat = "identity", position = "fill")+
+  facet_wrap(~software, scale="free_y", ncol = 1)+
+    theme_classic()+
+  theme(text=element_text(size=20), title=element_text(size=17),axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.2),tagger.panel.tag.background = element_rect(linetype = 0,fill = alpha("white", 0)),strip.background = element_blank(), strip.text = element_blank(),legend.position ="none", axis.title.y.right  = element_text(margin = margin(l = 10)), panel.spacing = unit(0.08, "cm"), axis.title.x = element_blank())+
+  # tag_facets()+
+guides(fill=guide_legend(ncol=2, bycol=TRUE))+
+  scale_y_continuous(label=comma,position = "right")+
+  labs(y="genus abudance count")+
+  scale_fill_manual(values = manual_color)
+p2
+pc <- grid.arrange(p1,p2,ncol=2)
+# ggsave("5.figures/II.software_phylum_bar.pdf",pc,width =15, height=15)
+
+l <- ggplot(phyla_df_simplified , aes(x= samples, y= values,fill=Phylum))+
+  geom_bar(stat = "identity")+
+  facet_wrap(~software, scale="free_y", ncol = 1)+
+    theme_classic()+
+  theme(text=element_text(size=20), title=element_text(size=17),axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.2),tagger.panel.tag.background = element_rect(linetype = 0,fill = alpha("white", 0)),strip.background = element_blank(), strip.text = element_blank(), axis.title.y.right  = element_text(margin = margin(l = 10)), panel.spacing = unit(0.08, "cm"), axis.title.x = element_blank())+
+  # tag_facets()+
+guides(fill=guide_legend(ncol=1, bycol=TRUE))+
+  scale_y_continuous(label=comma,position = "right")+
+  labs(y="genus abudance count")+
+  scale_fill_manual(values = manual_color)
+# ggsave("5.figures/II.software_phylum_bar.legend.pdf",l,width =15, height=15)
+
+t1 <- phyla_df_simplified %>% subset(samples %in% c("R27.L") & Phylum == "p__Proteobacteria")
+t2 <- phyla_df_simplified %>% subset(samples %in%c("R27.L") ) %>% group_by(software, samples) %>% summarise(total=sum(values))#%>% summarise(total = sum(values))
+t3 <- left_join(t2,t1, by = c("samples", "software"))
+t3$percent <- t3$values/t3$total
+t3 %>% subset(software != "metaphlan3") %>% ungroup()%>% summarise(mean = mean(percent), sd = sd(percent))
+t4 <- t3 %>% dplyr::select(-Phylum)
+t4[is.na(t4)] <- 0
+t4 %>% subset(software != "diamond" & software != "centrifuge") %>% summarise(mean=mean(percent), sd = sd(percent))
+phyla_df_simplified %>% subset(Phylum == "p__Pisuviricota")
+phyla_df_simplified %>%  subset(Phylum == "p__Firmicutes")#%>% summarise(total = sum(values))
+phyla_df_simplified %>% subset(software =="metaphlan3")
+```
+
+
+```{r}
+
+# openxlsx::saveWorkbook(software.xlsx, file = "4.tables/II.software_comparison_full.xlsx", overwrite = TRUE)
+```
+
+```{r}
+fastqc_files <- list.files("2.report/fastqc", pattern = "*.txt", full.names = TRUE)
+
+read_fastqc <- function(x){
+  s <- read.csv(x, sep="\t") %>% mutate(sample = sapply(Sample, function(x){
+    unlist(strsplit(x, "_", fixed = TRUE))[1]
+  })) %>% mutate(isFiltered = ifelse(unlist(strsplit(Sample, "_", fixed = TRUE))[3] == "kneaddata", "host_filtered", "raw")) %>% group_by(sample, isFiltered) %>% summarise(duplicate_per=mean(FastQC_mqc.generalstats.fastqc.percent_duplicates), gc_per = mean(FastQC_mqc.generalstats.fastqc.percent_gc), avg_read_length=mean(FastQC_mqc.generalstats.fastqc.avg_sequence_length), per_failed=mean(FastQC_mqc.generalstats.fastqc.percent_fails), total_seq = mean(FastQC_mqc.generalstats.fastqc.total_sequences))
+  s
+} 
+
+fastqc_df <- do.call(rbind, lapply(fastqc_files,read_fastqc))
+
+seq_summary <- fastqc_df %>% select(sample, isFiltered, total_seq)  %>% pivot_wider(names_from = isFiltered, values_from = total_seq) %>% mutate(per_filtered= ((raw-host_filtered)/raw)*100) #%>% ungroup() %>%summarise(mean(per_filtered), sd(per_filtered), mean(no), sd(no),mean(yes), sd(yes))
+
+write.csv(seq_summary, "4.tables/sequencing_stats_before_after_filter.csv")
+```

@@ -1,0 +1,47 @@
+---
+title: "create_simulate_profile"
+author: "Rachel Xu"
+date: '2022-12-12'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/revision/Metagenomics_tools")
+```
+
+# load analyses output of all software
+```{r}
+library(phyloseq)
+library(biomformat)
+library(tidyr)
+mouse_profile <- read.csv( "4.tables/I.all_software_DBs_complete_profiles.csv")
+
+mouse_profile_long <- mouse_profile %>% pivot_longer(starts_with("R2"), names_to = "sample_name", values_to = "read_count") %>% separate(sample_name, into = c("sample", "tissue","software"), sep = "[.]", remove = TRUE) %>% mutate(sample_name = paste(sample, tissue, sep =".")) #%>% select(-c(sample, tissue))
+
+
+# only taxa in the microbial domains are used (Bacteria, Archaea, Virus)
+sample_summary_mean <- mouse_profile_long %>% group_by(Domain, Phylum, Class, Order, Family, Genus, Species,  TaxID, tissue) %>% summarise(avg_count = mean(read_count)) %>% subset(avg_count != 0 & !Domain %in% c("d__Eukaryota", "")  & Species != "") %>% subset(Domain !="" & Phylum != ""& Class != ""& Order != ""& Family != ""& Genus != ""& Species != "") %>% subset(!grepl("sp.", Species)) %>% mutate(Tissue = sapply(tissue, function(x){
+  ifelse(x == "K", "Kidney", ifelse(x == "S", "Spleen", ifelse(x == "L", "Lung", NA)))
+}))
+
+metadata <- read.csv("4.tables/samples_metadata.csv", fileEncoding="UTF-8-BOM") %>% mutate(samples = sapply(Sample, function(x){sub("_", ".", x, fixed=TRUE)}))  %>% group_by(Tissue) %>% summarise(avg_raw_reads = as.character(mean(as.numeric(gsub(",", "",Raw)))), avg_host_filtered=as.character(mean(as.numeric(gsub(",", "",Host_Filtered))))) %>% distinct() %>% tibble::column_to_rownames(var="Tissue")
+sample_obj <- sample_data(metadata)
+t <- read.csv("4.tables/samples_metadata.csv", fileEncoding="UTF-8-BOM") %>% mutate(raw_reads = as.numeric(gsub(",", "",Raw)), host_filtered=as.numeric(gsub(",", "",Host_Filtered)))
+summary(t$host_filtered)
+
+tax_df <- sample_summary_mean %>% ungroup() %>% select(Domain, Phylum, Class, Order, Family, Genus, Species, TaxID) %>% distinct() %>% tibble::column_to_rownames("TaxID")
+taxa <- tax_table(as.matrix(tax_df))
+
+otu_df <- sample_summary_mean %>% ungroup() %>% select(TaxID, Tissue, avg_count) %>% pivot_wider(names_from = "Tissue", values_from = "avg_count", values_fill = 0) %>% tibble::column_to_rownames("TaxID")
+otu <- otu_table(as.matrix(otu_df), taxa_are_rows = TRUE)
+
+avg_phylo <- merge_phyloseq(taxa,otu,sample_obj)
+
+
+# this will generate three files that can be convert into a biom file with python package biom (done on the cluster)
+source("/Users/rx32940/Dropbox/5.Rachel-projects/Metagenomic_Analysis/revision/Metagenomics_tools/3.Rscripts/microfiltR/microfiltR_source_code.R")
+
+write.dataset(avg_phylo, "4.tables/", writeFASTA = FALSE, rename = FALSE, filePREFIX = "avg_tissue" )
+  
+```
