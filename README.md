@@ -3,7 +3,7 @@
 
 This repository include scripts for profiling microbial communities of 12 rat tissue samples using 9 different metagenomics profiling software. Also include profiling of 3 simulated samples of [mice gut microbiome](https://repository.publisso.de/resource/frl:6421672) obtained from [CAMI Challenge](https://www.microbiome-cosi.org/cami)
 
-All the profiling results and their downstream characterization statistics (alpha/beta diversity, differential abundant taxa) were compared and contrast
+All the profiling results and their downstream characterization statistics (alpha/beta diversity, differential abundant taxa) were compared and contrast.
 
 
 ## Software included:
