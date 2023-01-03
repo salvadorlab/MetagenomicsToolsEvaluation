@@ -108,10 +108,12 @@ done
 # # echo "scale=3;$classified_s/$all" | bc # get 3 digits after decimal
 
 # # cat $file | grep "d__" > $OUT/output/${sample}_lcaTaxID_filtered.txt
+# # cat $OUT/output/${sample}_lca.txt | grep "d__" > $OUT/output/${sample}_lca_filtered.txt
 
 # # # ########only keep columns with right taxnomy assignment (drop rows with extra column, ex. multiple species assignment)
 # # delimiter=';'
 # # cut -d "$delimiter" -f 1-30 "$OUT/output/${sample}_lcaTaxID_filtered.txt" > $OUT/output/${sample}_lcaTaxID_filtered2.txt
+# # cut -d "$delimiter" -f 1-30 "$OUT/output/${sample}_lca_filtered.txt" > $OUT/output/${sample}_lca_filtered2.txt
 
 # python $OUT/summarise_megan_lca.py $OUT/output/${sample}_lca_filtered2.txt $OUT/output/${sample}_lcaTaxID_filtered2.txt $OUT/output/${sample}.summary.txt
 
